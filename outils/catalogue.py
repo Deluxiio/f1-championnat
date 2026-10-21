@@ -1,7 +1,7 @@
-"""Génère docs/cartes/catalogue.json : une carte par couple pilote × écurie depuis 2000.
+"""Génère docs/cartes/catalogue.json : une carte par couple pilote × écurie depuis 1980.
 
 Les stats de chaque carte sont celles du pilote dans cette écurie (toutes saisons confondues,
-y compris avant 2000 pour les équipes déjà présentes). Source : API Jolpica (ex-Ergast).
+y compris avant 1980 pour les passages déjà commencés). Source : API Jolpica (ex-Ergast).
 Les réponses sont mises en cache dans outils/cache/ : relancer le script ne refait pas d'appels.
 
     py outils/catalogue.py
@@ -19,8 +19,8 @@ RACINE = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / "cache"
 SORTIE = RACINE / "docs" / "cartes" / "catalogue.json"
 API = "https://api.jolpi.ca/ergast/f1"
-PREMIERE_SAISON_CARTES = 2000
-PREMIERE_SAISON_STATS = 1993  # début de stint le plus ancien encore actif en 2000 (Häkkinen chez McLaren)
+PREMIERE_SAISON_CARTES = 1980
+PREMIERE_SAISON_STATS = 1970  # couvre les passages dans une écurie déjà commencés en 1980 (Laffite chez Ligier depuis 1976…)
 DERNIERE_SAISON = date.today().year
 BAREME_ACTUEL = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 
@@ -60,6 +60,21 @@ COULEURS = {
     "audi": ["#C0C0C0", "#E10600", "#111111"], "footwork": ["#F58220", "#111111", "#FFFFFF"],
     "stewart": ["#FFFFFF", "#111111", "#E10600"], "tyrrell": ["#1F3F8F", "#FFFFFF", "#111111"],
     "ligier": ["#1F3F8F", "#FFFFFF", "#E10600"], "lotus": ["#0B5A2A", "#FFD200", "#FFFFFF"],
+    # Écuries des années 1970 à 1990
+    "ags": ["#FFFFFF", "#1F3F8F", "#E10600"], "ats": ["#FFD200", "#E10600", "#111111"],
+    "brabham": ["#FFFFFF", "#1F3F8F", "#E10600"], "coloni": ["#FFD200", "#1F3F8F", "#FFFFFF"],
+    "dallara": ["#E10600", "#FFFFFF", "#111111"], "ensign": ["#1F3F8F", "#FFFFFF", "#E10600"],
+    "eurobrun": ["#FFFFFF", "#E10600", "#111111"], "fittipaldi": ["#FFD200", "#C0C0C0", "#111111"],
+    "fondmetal": ["#111111", "#FFFFFF", "#E10600"], "forti": ["#FFD200", "#1F3F8F", "#00843D"],
+    "lambo": ["#E10600", "#FFFFFF", "#111111"], "larrousse": ["#1F3F8F", "#FFFFFF", "#FFD200"],
+    "leyton": ["#00B2A9", "#FFFFFF", "#1F3F8F"], "lola": ["#1F3F8F", "#FFFFFF", "#E10600"],
+    "march": ["#00B2A9", "#FFFFFF", "#111111"], "moda": ["#111111", "#E10600", "#FFFFFF"],
+    "onyx": ["#1F3F8F", "#F596C8", "#FFFFFF"], "osella": ["#FFFFFF", "#1F3F8F", "#E10600"],
+    "pacific": ["#1F3F8F", "#FFFFFF", "#00A3E0"], "ram": ["#FFFFFF", "#E10600", "#1F3F8F"],
+    "rial": ["#1F3F8F", "#FFFFFF", "#111111"], "shadow": ["#111111", "#FFFFFF", "#C0C0C0"],
+    "simtek": ["#6A0DAD", "#111111", "#FFFFFF"], "spirit": ["#FFFFFF", "#E10600", "#111111"],
+    "theodore": ["#E10600", "#FFFFFF", "#111111"], "toleman": ["#FFFFFF", "#1F3F8F", "#E10600"],
+    "zakspeed": ["#FFFFFF", "#E10600", "#111111"],
 }
 
 NATIONALITES = {
@@ -74,7 +89,7 @@ NATIONALITES = {
     "Monegasque": ("MON", "Monaco"), "New Zealander": ("NZL", "Nouvelle-Zélande"), "Polish": ("POL", "Pologne"),
     "Portuguese": ("POR", "Portugal"), "Russian": ("RUS", "Russie"), "Spanish": ("ESP", "Espagne"),
     "Swedish": ("SWE", "Suède"), "Swiss": ("SUI", "Suisse"), "Thai": ("THA", "Thaïlande"),
-    "Venezuelan": ("VEN", "Venezuela"), "Argentinian": ("ARG", "Argentine"), "Estonian": ("EST", "Estonie"),
+    "Venezuelan": ("VEN", "Venezuela"), "Chilean": ("CHI", "Chili"), "South African": ("RSA", "Afrique du Sud"), "Argentinian": ("ARG", "Argentine"), "Estonian": ("EST", "Estonie"),
 }
 
 STATUTS_NON_PARTANT = ("qualify", "withdrew", "did not start", "excluded")
@@ -263,7 +278,7 @@ def main():
             c.update(perso[c["id"]])
 
     catalogue = {
-        "version": 1, "genere": date.today().isoformat(), "total": len(cartes),
+        "version": 1, "genere": date.today().isoformat(), "total": len(cartes), "premiereSaison": PREMIERE_SAISON_CARTES,
         **reglages,
         "raretes": raretes,
         "ecuries": {eid: {"nom": ecuries[eid], "couleurs": COULEURS.get(eid, ["#8A8A8A", "#FFFFFF", "#111111"])}

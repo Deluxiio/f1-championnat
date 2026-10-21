@@ -439,7 +439,7 @@
     emb.appendChild(casqueSvg());
     dos.appendChild(emb);
     const bas = el('span', 'marque bas', 'Collection pilotes');
-    bas.appendChild(el('small', null, '2000 — aujourd’hui'));
+    bas.appendChild(el('small', null, `${(etat.catalogue && etat.catalogue.premiereSaison) || 2000} — aujourd’hui`));
     dos.appendChild(bas);
     return dos;
   }
@@ -543,7 +543,7 @@
   function rendreSousTitre() {
     if (etat.panne && !etat.public) return;
     const total = etat.catalogue.cartes.length;
-    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis 2000. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`;
+    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`;
     document.querySelectorAll('.ratio-boosters').forEach((n) => { n.textContent = texteRatio(); });
   }
   function rendreCompte() {
