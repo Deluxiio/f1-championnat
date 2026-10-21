@@ -18,6 +18,7 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / "cache"
 SORTIE = RACINE / "docs" / "cartes" / "catalogue.json"
+PHOTOS = Path(__file__).resolve().parent / "photos.json"  # produit par outils/photos.py
 API = "https://api.jolpi.ca/ergast/f1"
 PREMIERE_SAISON_CARTES = 1980
 PREMIERE_SAISON_STATS = 1970  # couvre les passages dans une écurie déjà commencés en 1980 (Laffite chez Ligier depuis 1976…)
@@ -285,6 +286,9 @@ def main():
                     for eid in sorted({c["ecurie"] for c in cartes})},
         "cartes": cartes,
     }
+    # Photos libres (Wikimedia Commons) et crédits, par pilote
+    photos = json.loads(PHOTOS.read_text(encoding="utf-8")) if PHOTOS.exists() else {}
+    catalogue["pilotes"] = {pid: photos[pid] for pid in sorted({c["pilote"] for c in cartes}) if pid in photos}
     SORTIE.parent.mkdir(parents=True, exist_ok=True)
     SORTIE.write_text(json.dumps(catalogue, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     compte = {r["id"]: sum(c["rarete"] == r["id"] for c in cartes) for r in RARETES}

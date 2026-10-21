@@ -58,6 +58,7 @@ La page **Cartes** (`docs/cartes/`) est un jeu de collection : 1 point au champi
 
 Fichiers :
 - `outils/catalogue.py` régénère `docs/cartes/catalogue.json` à partir des résultats officiels (API Jolpica, avec un cache local).
+- `outils/photos.py` récupère la photo principale de chaque pilote sur Wikipédia. Il la garde seulement si elle est sous licence libre sur Wikimedia Commons, et note l'auteur et la licence pour les crédits affichés sur le site. Les pilotes sans photo libre gardent leur casque dessiné. Lance-le avant `catalogue.py`.
 - `serveur/` contient le serveur PHP (comptes, boosters, fragments) installé sur Hostinger. Voir `serveur/LISEZMOI.md` pour l'installation et `serveur/API.md` pour le fonctionnement.
 - Tant que `docs/cartes/config.js` ne contient pas l'adresse du serveur, la page tourne en **mode démo** : rien n'y est conservé.
 

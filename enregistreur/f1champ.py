@@ -4,6 +4,7 @@
 docs/data/saison.json, sert la page d'admin locale et publie la saison sur
 GitHub (git commit + push) pour mettre à jour la page publique.
 """
+import hashlib
 import json
 import os
 import re
@@ -102,7 +103,6 @@ class Enregistreur:
         self.verrou = threading.RLock()
         self.saison = lire_json(FICHIER_SAISON)
         self.revision = 1
-        self.revision_catalogue = 1
         self.seances = {}
         self.uid_courant = None
         self.paquets = 0
@@ -409,6 +409,10 @@ class Enregistreur:
 
 # --- Serveur de l'admin ------------------------------------------------------
 
+def empreinte(contenu):
+    return hashlib.sha1(contenu).hexdigest()
+
+
 def config_serveur_cartes():
     """Adresse du serveur des cartes et clé admin, pour gérer les comptes depuis l'admin locale."""
     api = cle = ""
@@ -458,7 +462,8 @@ def creer_gestionnaire(app):
                     self._json({"revision": app.revision, "saison": app.saison})
             elif chemin == "/api/catalogue":
                 with app.verrou:
-                    self._json({"revision": app.revision_catalogue, "catalogue": lire_json(FICHIER_CATALOGUE)})
+                    contenu = FICHIER_CATALOGUE.read_bytes()
+                    self._json({"revision": empreinte(contenu), "catalogue": json.loads(contenu)})
             elif chemin == "/api/cartes-serveur":
                 self._json(config_serveur_cartes())
             elif chemin == "/api/brouillon":
@@ -496,12 +501,12 @@ def creer_gestionnaire(app):
             if not isinstance(catalogue, dict) or not isinstance(catalogue.get("cartes"), list)                     or not isinstance(catalogue.get("raretes"), list) or not catalogue["cartes"]:
                 return self._json({"erreur": "Catalogue invalide"}, HTTPStatus.BAD_REQUEST)
             with app.verrou:
-                if corps.get("revision") != app.revision_catalogue:
-                    return self._json({"erreur": "Le catalogue a changé entre-temps. Recharge la page."},
-                                      HTTPStatus.CONFLICT)
+                # L'empreinte du fichier détecte aussi une mise à jour faite hors de l'admin (nouveau catalogue)
+                if corps.get("revision") != empreinte(FICHIER_CATALOGUE.read_bytes()):
+                    return self._json({"erreur": "Le catalogue a changé entre-temps (mise à jour des cartes ?). "
+                                                 "Recharge la page avant de modifier."}, HTTPStatus.CONFLICT)
                 ecrire_json(FICHIER_CATALOGUE, catalogue)
-                app.revision_catalogue += 1
-                revision = app.revision_catalogue
+                revision = empreinte(FICHIER_CATALOGUE.read_bytes())
             if corps.get("publier"):
                 app.demander_publication(corps.get("message") or "Réglages des cartes")
             self._json({"revision": revision})

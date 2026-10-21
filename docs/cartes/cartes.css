@@ -399,6 +399,54 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 .loupe-infos .note-fabrique { color: #7fe3b0; font-weight: 700; }
 
 /* ======================================================================
+   Photos des pilotes (Wikimedia Commons, servies depuis photos/)
+   ====================================================================== */
+.illu .photo {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  object-fit: cover; object-position: 50% 20%;
+  filter: contrast(1.04) saturate(0.86) brightness(0.96);
+}
+.illu .voile {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 8, 14, 0.42) 0%, rgba(8, 8, 14, 0) 30%, rgba(8, 8, 14, 0) 50%, color-mix(in srgb, var(--c1) 70%, #07070b) 100%),
+    linear-gradient(100deg, rgba(8, 8, 14, 0.35) 0%, rgba(8, 8, 14, 0) 38%),
+    repeating-linear-gradient(-24deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 14px);
+}
+.illu .voile::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0.32em;
+  background: linear-gradient(180deg, var(--c2) 0 38%, var(--c1) 38% 100%);
+  box-shadow: 0.32em 0 0 rgba(8, 8, 14, 0.45);
+}
+.illu .voile::after {
+  content: ""; position: absolute; right: -0.5em; bottom: 0; width: 7.5em; height: 3.4em; opacity: 0.95;
+  background: linear-gradient(112deg, transparent 44%, var(--c2) 44.5% 51%, transparent 51.5%, transparent 59%, var(--c1) 59.5% 70%, transparent 70.5%);
+}
+.illu.avec-photo .note { text-shadow: 0 0 0.35em rgba(0, 0, 0, 0.95), 0 0.08em 0.45em rgba(0, 0, 0, 0.85); }
+/* Sur une photo, l'holo et le reflet sont adoucis pour ne pas teinter les visages */
+.carte.avec-photo.r-icone .holo { opacity: 0.26; filter: brightness(0.6) contrast(1.5) saturate(1.1); }
+.carte.avec-photo.r-legendaire .holo { opacity: 0.22; filter: brightness(0.65) contrast(1.25) saturate(1.1); }
+.carte.avec-photo.r-epique .holo { opacity: 0.1; }
+.carte.avec-photo.actif .holo { opacity: 0.38; }
+.carte.avec-photo .reflet { background: radial-gradient(farthest-corner circle at var(--mx) var(--my), rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 32%, rgba(0, 0, 0, 0.28) 100%); }
+.carte.manquante .illu .photo { filter: grayscale(1) brightness(0.6) contrast(1.05); }
+.mini .mini-photo {
+  display: block; width: 58%; aspect-ratio: 1; margin: 3px auto 0; border-radius: 50%; object-fit: cover; object-position: 50% 20%;
+  background: #1c1c25; box-shadow: 0 0 0 2px var(--c1), 0 0 0 3.5px var(--c2), 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+.mini.nouvelle-carte .mini-photo { box-shadow: 0 0 0 2px var(--c1), 0 0 0 3.5px var(--c2), 0 0 10px rgba(127, 227, 176, 0.5); }
+.credit { font-size: 0.78rem; color: var(--discret); margin: 10px 0 0; line-height: 1.4; }
+.credit a, .credits a { color: var(--encre-2); }
+.credit a:hover, .credits a:hover { color: var(--encre); }
+.credits { margin-top: 28px; background: var(--surface); border: 1px solid var(--bordure); border-radius: 10px; padding: 10px 16px; }
+.credits summary { cursor: pointer; font-weight: 700; color: var(--encre-2); padding: 4px 0; }
+.credits summary:hover { color: var(--encre); }
+.credits .aide { margin: 10px 0 12px; }
+.credits-liste { margin: 0; padding: 0 0 6px 18px; font-size: 0.82rem; color: var(--encre-2); columns: 2; column-gap: 28px; }
+.credits-liste li { break-inside: avoid; margin-bottom: 4px; }
+.credits-liste b { color: var(--encre); }
+
+/* ======================================================================
    Responsive et mouvement réduit
    ====================================================================== */
 @media (max-width: 640px) {
@@ -407,6 +455,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
   .filtres select { flex: 1 1 140px; }
   .filtres-compte { margin-left: 0; width: 100%; }
   .progression .barre { width: 120px; }
+  .credits-liste { columns: 1; }
   .section-tete { align-items: flex-start; }
   .paquet { width: 180px; height: 283px; }
   .couche .contenu .titre { font-size: 32px; }

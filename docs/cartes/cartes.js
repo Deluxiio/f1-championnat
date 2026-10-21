@@ -24,6 +24,7 @@
     albumJoueur: null, tuiles: new Map(), groupes: new Map(), albumConstruit: false,
     filtres: { recherche: '', rarete: '', ecurie: '', possession: 'toutes' },
     occupe: false, pioches: [], minuterie: null, nouvellesRecentes: new Set(),
+    pilotes: new Map(), photosCassees: new Set(), creditsConstruits: false,
   };
 
   /* ====================================================================
@@ -249,7 +250,37 @@
       if (!etat.parRarete.has(c.rarete)) etat.parRarete.set(c.rarete, []);
       etat.parRarete.get(c.rarete).push(c);
       c.cle = normaliser(`${c.prenom} ${c.nom} ${nomEcurie(c.ecurie)} ${c.nationalite} ${c.pays || ''}`);
+      if (c.pilote && !etat.pilotes.has(c.pilote)) etat.pilotes.set(c.pilote, { prenom: c.prenom, nom: c.nom });
     });
+  }
+  /* Photo du pilote (Wikimedia Commons, servie depuis photos/) ou null → casque. */
+  function photoDe(c) {
+    const pilotes = etat.catalogue && etat.catalogue.pilotes;
+    if (!pilotes || !c || !c.pilote || etat.photosCassees.has(c.pilote)) return null;
+    const p = pilotes[c.pilote];
+    return p && typeof p.photo === 'string' && p.photo ? p : null;
+  }
+  function tronquer(texte, max) {
+    const t = String(texte || '').replace(/\s+/g, ' ').trim();
+    if (t.length <= max) return t;
+    const coupe = t.slice(0, max - 1);
+    const espace = coupe.lastIndexOf(' ');
+    return (espace > max * 0.6 ? coupe.slice(0, espace) : coupe).replace(/[\s,;:·(–-]+$/, '') + '…';
+  }
+  function lienExterne(texte, url, cls) {
+    if (!url) return el('span', cls, texte);
+    return el('a', cls, texte, { href: url, target: '_blank', rel: 'noopener noreferrer' });
+  }
+  /* Ligne « Photo : auteur · licence · Wikimedia Commons » */
+  function ligneCredit(p, cls) {
+    const ligne = el('p', cls || 'credit');
+    ligne.appendChild(el('span', null, 'Photo : '));
+    ligne.appendChild(el('span', 'credit-auteur', tronquer(p.auteur || 'auteur inconnu', 60), { title: p.auteur || '' }));
+    ligne.appendChild(el('span', null, ' · '));
+    ligne.appendChild(lienExterne(p.licence || 'licence libre', p.lienLicence));
+    ligne.appendChild(el('span', null, ' · '));
+    ligne.appendChild(lienExterne('Wikimedia Commons', p.source));
+    return ligne;
   }
   function statsAffichees(c) {
     const s = c.stats || {};
@@ -388,7 +419,24 @@
     face.appendChild(tete);
 
     const illu = el('div', 'illu');
-    illu.appendChild(casqueSvg());
+    const photo = photoDe(c);
+    if (photo) {
+      illu.classList.add('avec-photo');
+      carte.classList.add('avec-photo');
+      const img = el('img', 'photo', null, { src: photo.photo, alt: '', decoding: 'async' });
+      if (options.paresseux) img.setAttribute('loading', 'lazy');
+      const voile = el('div', 'voile');
+      img.addEventListener('error', () => {
+        etat.photosCassees.add(c.pilote);
+        illu.classList.remove('avec-photo');
+        carte.classList.remove('avec-photo');
+        voile.remove();
+        img.replaceWith(casqueSvg());
+      });
+      illu.append(img, voile);
+    } else {
+      illu.appendChild(casqueSvg());
+    }
     const note = el('div', 'note', String(c.note));
     note.appendChild(el('small', null, 'Note'));
     illu.appendChild(note);
@@ -456,6 +504,17 @@
     m.classList.toggle('possede', possede);
     if (possede) appliquerCouleurs(m, couleursEcurie(c.ecurie));
     else ['--c1', '--c2', '--c3'].forEach((v) => m.style.removeProperty(v));
+    /* Photo ronde seulement sur les cartes possédées ; les manquantes gardent la silhouette (surprise). */
+    const photo = possede ? photoDe(c) : null;
+    const actuel = m.querySelector('.mini-photo, .casque');
+    const estPhoto = !!(actuel && actuel.classList.contains('mini-photo'));
+    if (photo && !estPhoto) {
+      const img = el('img', 'mini-photo', null, { src: photo.photo, alt: '', loading: 'lazy', decoding: 'async' });
+      img.addEventListener('error', () => { etat.photosCassees.add(c.pilote); img.replaceWith(casqueSvg()); });
+      if (actuel) actuel.replaceWith(img); else m.insertBefore(img, m.children[1] || null);
+    } else if (!photo && estPhoto) {
+      actuel.replaceWith(casqueSvg());
+    }
   }
 
   function activerInclinaison(carte) {
@@ -917,7 +976,7 @@
     if (grandes.length) {
       recap.appendChild(el('h3', null, 'Meilleures nouvelles cartes'));
       const zone = el('div', 'recap-grandes');
-      grandes.forEach((c) => zone.appendChild(creerCarte(c, { cliquable: true })));
+      grandes.forEach((c) => zone.appendChild(creerCarte(c, { cliquable: true, paresseux: true })));
       recap.appendChild(zone);
     }
     recap.appendChild(el('h3', null, nouvelles.length ? `Nouvelles cartes (${nouvelles.length}), de la plus rare à la plus courante` : 'Aucune nouvelle carte cette fois'));
@@ -1110,6 +1169,8 @@
     } else if (j) {
       infos.appendChild(el('p', 'ligne', estMoi ? 'Dans votre collection.' : `Dans la collection de ${j.nom}.`));
     }
+    const photo = photoDe(c);
+    if (photo) infos.appendChild(ligneCredit(photo, 'credit'));
     $('loupe').hidden = false;
   }
   function fermerLoupe() { $('loupe').hidden = true; }
@@ -1217,6 +1278,59 @@
   }
 
   /* ====================================================================
+     Crédits photos (repliables, construits à la première ouverture)
+     ==================================================================== */
+  function nbPhotos() {
+    const pilotes = (etat.catalogue && etat.catalogue.pilotes) || {};
+    return Object.keys(pilotes).filter((id) => pilotes[id] && pilotes[id].photo).length;
+  }
+  function construireCredits() {
+    if (etat.creditsConstruits) return;
+    etat.creditsConstruits = true;
+    const liste = $('credits-liste');
+    liste.textContent = '';
+    const pilotes = (etat.catalogue && etat.catalogue.pilotes) || {};
+    Object.keys(pilotes)
+      .filter((id) => pilotes[id] && pilotes[id].photo)
+      .map((id) => { const n = etat.pilotes.get(id) || { prenom: '', nom: id }; return { id, p: pilotes[id], nom: `${n.prenom} ${n.nom}`.trim(), tri: normaliser(`${n.nom} ${n.prenom}`) }; })
+      .sort((a, b) => a.tri.localeCompare(b.tri, 'fr'))
+      .forEach(({ p, nom }) => {
+        const li = el('li');
+        li.appendChild(el('b', null, nom));
+        li.appendChild(el('span', null, ' — '));
+        li.appendChild(el('span', 'credit-auteur', tronquer(p.auteur || 'auteur inconnu', 90), { title: p.auteur || '' }));
+        li.appendChild(el('span', null, ' · '));
+        li.appendChild(lienExterne(p.licence || 'licence libre', p.lienLicence));
+        li.appendChild(el('span', null, ' · '));
+        li.appendChild(lienExterne('source', p.source));
+        liste.appendChild(li);
+      });
+  }
+  function initialiserCredits() {
+    const details = $('credits');
+    const n = nbPhotos();
+    $('credits-titre').textContent = `Crédits photos (${pluriel(n, 'pilote')})`;
+    details.hidden = n === 0;
+    details.addEventListener('toggle', () => { if (details.open) construireCredits(); });
+    if (details.open) construireCredits();
+  }
+  function rendrePied() {
+    const pied = $('pied');
+    pied.textContent = '';
+    const cat = etat.catalogue;
+    if (nbPhotos()) {
+      pied.appendChild(el('span', null, 'Photos : Wikimedia Commons, licences libres ('));
+      const lien = el('a', null, 'voir les crédits', { href: '#credits' });
+      lien.addEventListener('click', (e) => { e.preventDefault(); const d = $('credits'); d.open = true; d.scrollIntoView({ behavior: reduitMouvement ? 'auto' : 'smooth', block: 'start' }); });
+      pied.appendChild(lien);
+      pied.appendChild(el('span', null, '). Aucun logo officiel : casques, drapeaux et motifs sont dessinés en CSS/SVG. '));
+    } else {
+      pied.appendChild(el('span', null, 'Aucune photo ni logo : casques, drapeaux et motifs sont dessinés en CSS/SVG. '));
+    }
+    pied.appendChild(el('span', null, `Catalogue v${cat.version} généré le ${cat.genere} · ${cat.cartes.length} cartes.`));
+  }
+
+  /* ====================================================================
      Onglets et démarrage
      ==================================================================== */
   function initialiserOnglets() {
@@ -1251,7 +1365,8 @@
     remplirFiltres();
     rendreTableRaretes();
     construireAlbum();
-    $('pied').textContent = `Aucune photo ni logo : casques, drapeaux et motifs sont dessinés en CSS/SVG. Catalogue v${etat.catalogue.version} généré le ${etat.catalogue.genere} · ${etat.catalogue.cartes.length} cartes.`;
+    initialiserCredits();
+    rendrePied();
     await rafraichirEtat(true);
     rendreTout();
   }
