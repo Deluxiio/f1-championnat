@@ -73,6 +73,7 @@
     document.getElementById("titre").textContent = saison.titre;
     rendreCourses();
     rendreReglages();
+    window.dispatchEvent(new Event("saison-chargee"));
   }
 
   async function sauver(nouvelleSaison, publier, message) {
@@ -84,6 +85,7 @@
       rendreCourses();
       rendreReglages();
       rafraichirEtat();
+      window.dispatchEvent(new Event("saison-chargee"));
       return true;
     } catch (e) {
       alert(e.message);
@@ -444,6 +446,9 @@
       } }, "Enregistrer et publier"),
     ));
   }
+
+  // Outils partagés avec la gestion des cartes (cartes-admin.js)
+  window.Admin = { h, option, api, copie, saison: () => saison, sauverSaison: sauver };
 
   // --- Démarrage -------------------------------------------------------------
 

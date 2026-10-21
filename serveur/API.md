@@ -5,10 +5,13 @@ Serveur PHP hébergé chez Hostinger (`api.php`). La page `docs/cartes/` l'appel
 Le serveur lit lui-même `data/saison.json` (points des joueurs) et `cartes/catalogue.json` sur GitHub Pages. Les boosters gagnés ne peuvent donc pas être falsifiés côté navigateur.
 
 ## Règles
-- **Boosters gagnés** = total des points du joueur au championnat (barème du championnat, points forcés compris). 1 point = 1 booster.
-- **Booster** = 5 cartes. Chaque carte est tirée d'abord par rareté (`poids` dans `catalogue.raretes`, total 100), puis uniformément parmi les cartes de cette rareté. La 5e carte est au minimum `catalogue.derniereCarteMin` (« peu_commune »).
+Tous les réglages se font dans l'admin locale, bloc **Cartes**, et sont publiés dans `catalogue.json` et `saison.json`. Le serveur relit le catalogue toutes les 5 minutes.
+
+- **Boosters gagnés** = points du joueur au championnat ÷ `catalogue.pointsParBooster` (arrondi en dessous) + `boostersBonus` du joueur dans `saison.json`. Les points forcés comptent.
+- **Booster** = `catalogue.cartesParBooster` cartes. Chaque carte est tirée d'abord par rareté (`poids` dans `catalogue.raretes`), puis au hasard parmi les cartes de cette rareté. La dernière carte est au minimum `catalogue.derniereCarteMin`.
 - **Doublon** : une carte déjà possédée est recyclée automatiquement en `fragments` (valeur selon sa rareté). On ne garde jamais deux fois la même carte.
-- **Fabrication** : une carte manquante coûte `cout` fragments (selon sa rareté).
+- **Fabrication** : une carte manquante coûte son propre `cout` s'il existe, sinon le `cout` de sa rareté.
+- **Cartes modifiées à la main** : `perso` contient ce qui a été changé (rareté, note, prix, phrase) et `auto` les valeurs calculées à partir du palmarès. `outils/catalogue.py` conserve ces réglages quand il régénère le catalogue.
 
 ## Appels
 

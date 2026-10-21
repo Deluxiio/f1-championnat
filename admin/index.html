@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin championnat</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e10600'/%3E%3Cpath d='M6 22l8-12h12l-2 3H15.5l-1.4 2H22l-2 3h-8l-2 4z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/docs/style.css">
   <link rel="stylesheet" href="admin.css">
 </head>
@@ -15,6 +16,7 @@
         <h1 id="titre">Championnat F1 25</h1>
       </div>
       <div class="liens">
+        <a href="#cartes">Cartes ↓</a>
         <a id="lien-public" href="#" target="_blank" rel="noopener" hidden>Page publique ↗</a>
         <a href="/docs/index.html" target="_blank" rel="noopener">Aperçu local ↗</a>
       </div>
@@ -57,9 +59,27 @@
       <h2>Réglages</h2>
       <div class="formulaire" id="reglages"></div>
     </section>
+
+    <section class="panneau" id="cartes">
+      <h2>Cartes</h2>
+      <h3>Économie</h3>
+      <div id="cartes-economie"></div>
+      <h3>Boosters par joueur</h3>
+      <div id="cartes-boosters"></div>
+      <h3>Catalogue</h3>
+      <div id="cartes-catalogue"></div>
+      <div class="section-tete">
+        <h3>Comptes des joueurs</h3>
+        <button type="button" class="bouton secondaire" id="cartes-rafraichir-comptes">Actualiser</button>
+      </div>
+      <div id="cartes-comptes"></div>
+    </section>
   </main>
+
+  <div class="barre-enregistrement" id="cartes-barre" hidden></div>
 
   <script src="/docs/champ.js"></script>
   <script src="admin.js"></script>
+  <script src="cartes-admin.js"></script>
 </body>
 </html>

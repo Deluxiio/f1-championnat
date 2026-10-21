@@ -6,6 +6,7 @@ GitHub (git commit + push) pour mettre à jour la page publique.
 """
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -24,6 +25,9 @@ import telemetrie as tl
 RACINE = Path(__file__).resolve().parent.parent
 FICHIER_SAISON = RACINE / "docs" / "data" / "saison.json"
 FICHIER_CONFIG = Path(__file__).resolve().parent / "config.json"
+FICHIER_CATALOGUE = RACINE / "docs" / "cartes" / "catalogue.json"
+FICHIER_CONFIG_CARTES = RACINE / "docs" / "cartes" / "config.js"
+FICHIER_CONFIG_SERVEUR = RACINE / "serveur" / "config.php"
 
 CONFIG_DEFAUT = {
     "ecoute": {"ip": "127.0.0.1", "port": 20777},
@@ -98,6 +102,7 @@ class Enregistreur:
         self.verrou = threading.RLock()
         self.saison = lire_json(FICHIER_SAISON)
         self.revision = 1
+        self.revision_catalogue = 1
         self.seances = {}
         self.uid_courant = None
         self.paquets = 0
@@ -384,7 +389,7 @@ class Enregistreur:
                 continue
             self.publication = {"etat": "en_cours", "message": "Publication en cours…", "date": maintenant()}
             try:
-                self._git("add", "docs/data/saison.json")
+                self._git("add", "docs/data/saison.json", "docs/cartes/catalogue.json")
                 if self._git("diff", "--cached", "--quiet", verifier=False).returncode != 0:
                     self._git("commit", "-m", message)
                 self._git("push", "--quiet")
@@ -403,6 +408,18 @@ class Enregistreur:
 
 
 # --- Serveur de l'admin ------------------------------------------------------
+
+def config_serveur_cartes():
+    """Adresse du serveur des cartes et clé admin, pour gérer les comptes depuis l'admin locale."""
+    api = cle = ""
+    if FICHIER_CONFIG_CARTES.exists():
+        m = re.search(r"CARTES_API\s*=\s*[\"']([^\"']*)", FICHIER_CONFIG_CARTES.read_text(encoding="utf-8"))
+        api = m.group(1) if m else ""
+    if FICHIER_CONFIG_SERVEUR.exists():
+        m = re.search(r"CLE_ADMIN\s*=\s*'([^']*)'", FICHIER_CONFIG_SERVEUR.read_text(encoding="utf-8"))
+        cle = m.group(1) if m else ""
+    return {"api": api, "cleAdmin": cle}
+
 
 def creer_gestionnaire(app):
     class Gestionnaire(SimpleHTTPRequestHandler):
@@ -439,6 +456,11 @@ def creer_gestionnaire(app):
             elif chemin == "/api/saison":
                 with app.verrou:
                     self._json({"revision": app.revision, "saison": app.saison})
+            elif chemin == "/api/catalogue":
+                with app.verrou:
+                    self._json({"revision": app.revision_catalogue, "catalogue": lire_json(FICHIER_CATALOGUE)})
+            elif chemin == "/api/cartes-serveur":
+                self._json(config_serveur_cartes())
             elif chemin == "/api/brouillon":
                 course = app.brouillon()
                 self._json({"course": course}, HTTPStatus.OK if course else HTTPStatus.NOT_FOUND)
@@ -448,7 +470,10 @@ def creer_gestionnaire(app):
                 self.send_error(HTTPStatus.NOT_FOUND)
 
         def do_PUT(self):
-            if urlparse(self.path).path != "/api/saison":
+            chemin = urlparse(self.path).path
+            if chemin == "/api/catalogue":
+                return self._put_catalogue()
+            if chemin != "/api/saison":
                 return self.send_error(HTTPStatus.NOT_FOUND)
             corps = self._corps()
             saison = corps.get("saison")
@@ -463,6 +488,22 @@ def creer_gestionnaire(app):
                 revision = app.revision
             if corps.get("publier"):
                 app.demander_publication(corps.get("message") or "Correction du championnat")
+            self._json({"revision": revision})
+
+        def _put_catalogue(self):
+            corps = self._corps()
+            catalogue = corps.get("catalogue")
+            if not isinstance(catalogue, dict) or not isinstance(catalogue.get("cartes"), list)                     or not isinstance(catalogue.get("raretes"), list) or not catalogue["cartes"]:
+                return self._json({"erreur": "Catalogue invalide"}, HTTPStatus.BAD_REQUEST)
+            with app.verrou:
+                if corps.get("revision") != app.revision_catalogue:
+                    return self._json({"erreur": "Le catalogue a changé entre-temps. Recharge la page."},
+                                      HTTPStatus.CONFLICT)
+                ecrire_json(FICHIER_CATALOGUE, catalogue)
+                app.revision_catalogue += 1
+                revision = app.revision_catalogue
+            if corps.get("publier"):
+                app.demander_publication(corps.get("message") or "Réglages des cartes")
             self._json({"revision": revision})
 
         def do_POST(self):

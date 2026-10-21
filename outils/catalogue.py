@@ -248,10 +248,24 @@ def main():
     if natio_inconnues:
         print("Nationalités sans code :", natio_inconnues, file=sys.stderr)
 
+    # Les réglages faits dans l'admin (économie, raretés, cartes modifiées) survivent à une régénération
+    ancien = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
+    reglages = {"pointsParBooster": 1, "cartesParBooster": 5, "derniereCarteMin": "peu_commune"}
+    reglages.update({k: ancien[k] for k in reglages if k in ancien})
+    anciennes = {r["id"]: r for r in ancien.get("raretes", [])}
+    raretes = [{**r, **{k: anciennes[r["id"]][k] for k in ("poids", "fragments", "cout") if k in anciennes.get(r["id"], {})}}
+               for r in RARETES]
+    perso = {c["id"]: c["perso"] for c in ancien.get("cartes", []) if c.get("perso")}
+    for c in cartes:
+        c["auto"] = {"rarete": c["rarete"], "note": c["note"], "fait": c["fait"]}
+        if c["id"] in perso:
+            c["perso"] = perso[c["id"]]
+            c.update(perso[c["id"]])
+
     catalogue = {
         "version": 1, "genere": date.today().isoformat(), "total": len(cartes),
-        "cartesParBooster": 5, "derniereCarteMin": "peu_commune",
-        "raretes": RARETES,
+        **reglages,
+        "raretes": raretes,
         "ecuries": {eid: {"nom": ecuries[eid], "couleurs": COULEURS.get(eid, ["#8A8A8A", "#FFFFFF", "#111111"])}
                     for eid in sorted({c["ecurie"] for c in cartes})},
         "cartes": cartes,

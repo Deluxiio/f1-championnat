@@ -61,6 +61,14 @@ Fichiers :
 - `serveur/` contient le serveur PHP (comptes, boosters, fragments) installé sur Hostinger. Voir `serveur/LISEZMOI.md` pour l'installation et `serveur/API.md` pour le fonctionnement.
 - Tant que `docs/cartes/config.js` ne contient pas l'adresse du serveur, la page tourne en **mode démo** : rien n'y est conservé.
 
+Le bloc **Cartes** de l'admin locale (lien « Cartes ↓ » en haut) permet de régler :
+- l'économie : points pour 1 booster, cartes par booster, chances de chaque rareté, valeur des doublons et prix de fabrication ;
+- des boosters bonus (ou retirés) par joueur ;
+- chaque carte du catalogue : rareté, note, prix propre et phrase ;
+- les comptes des joueurs, avec la réinitialisation d'un mot de passe oublié.
+
+Le bouton *Enregistrer et publier* met le site à jour, et le serveur applique les changements sous 5 à 15 minutes.
+
 ## Réglages de l'enregistreur
 
 `enregistreur/config.json` est créé au premier lancement :

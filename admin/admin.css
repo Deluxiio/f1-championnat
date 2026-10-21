@@ -63,5 +63,15 @@ input.nom { width: 150px; }
 .editeur-pied div { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .formulaire { display: grid; gap: 14px; }
+
+#cartes h3 { margin: 22px 0 10px; }
+#cartes .section-tete { margin: 22px 0 10px; }
+#cartes .section-tete h3 { margin: 0; }
+input.fait { width: 320px; }
+.barre-enregistrement {
+  position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--entete); color: var(--entete-encre);
+  border-top: 3px solid var(--accent); font-weight: 600;
+}
 .ligne-joueur { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .ligne-joueur input.alias { width: 260px; }

@@ -79,7 +79,7 @@ function saison(): array
 
 function catalogue(): array
 {
-    return telecharger(URL_CATALOGUE, CACHE_CATALOGUE, 3600);
+    return telecharger(URL_CATALOGUE, CACHE_CATALOGUE, 300);
 }
 
 /** Points de chaque joueur, avec les mêmes règles que docs/champ.js (pointsDe). */
@@ -183,9 +183,17 @@ function authentifier(array &$etat, string $jeton): string
     erreur(401, 'Session expirée : reconnecte-toi.');
 }
 
-function boostersGagnes(array $saison, string $id): int
+/** Boosters gagnés = points / pointsParBooster (arrondi en dessous) + boosters bonus donnés dans l'admin. */
+function boostersGagnes(array $saison, array $catalogue, string $id): int
 {
-    return (int) floor(pointsJoueurs($saison)[$id] ?? 0);
+    $ratio = max(1, (float) ($catalogue['pointsParBooster'] ?? 1));
+    $bonus = 0;
+    foreach ($saison['joueurs'] as $j) {
+        if ($j['id'] === $id) {
+            $bonus = (int) ($j['boostersBonus'] ?? 0);
+        }
+    }
+    return max(0, (int) floor((pointsJoueurs($saison)[$id] ?? 0) / $ratio) + $bonus);
 }
 
 function indexer(array $catalogue): array
@@ -247,7 +255,7 @@ if ($action === 'etat' && $methode === 'GET') {
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
-        $gagnes = (int) floor($points[$j['id']]);
+        $gagnes = boostersGagnes($saison, $catalogue, $j['id']);
         $joueurs[] = [
             'id' => $j['id'], 'nom' => $j['nom'], 'compte' => $e['hash'] !== null, 'points' => $points[$j['id']],
             'boostersGagnes' => $gagnes, 'boostersOuverts' => $e['ouverts'],
@@ -310,7 +318,7 @@ if ($action === 'ouvrir') {
     $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
         $j = &$etat['joueurs'][$id];
-        $dispo = boostersGagnes($saison, $id) - $j['ouverts'];
+        $dispo = boostersGagnes($saison, $catalogue, $id) - $j['ouverts'];
         if ($dispo <= 0) {
             return null;
         }
@@ -336,7 +344,7 @@ if ($action === 'ouvrir') {
             $boosters[] = $booster;
         }
         return ['boosters' => $boosters, 'fragments' => $j['fragments'],
-                'boostersDispo' => boostersGagnes($saison, $id) - $j['ouverts']];
+                'boostersDispo' => boostersGagnes($saison, $catalogue, $id) - $j['ouverts']];
     });
     if ($resultat === null) {
         erreur(409, 'Aucun booster disponible : marque des points au prochain GP !');
@@ -351,7 +359,7 @@ if ($action === 'fabriquer') {
     if (!isset($cartes[$carte])) {
         erreur(404, 'Carte inconnue.');
     }
-    $cout = $raretes[$cartes[$carte]['rarete']]['cout'];
+    $cout = (int) ($cartes[$carte]['cout'] ?? $raretes[$cartes[$carte]['rarete']]['cout']);
     $resultat = modifierEtat(function (array &$etat) use ($entree, $carte, $cout, $cartes) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
         $j = &$etat['joueurs'][$id];

@@ -49,6 +49,10 @@
   const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
   const delai = (ms) => (reduitMouvement ? Math.min(ms, 60) : ms);
   const rangDe = (rarete) => etat.rang.get(rarete) || 0;
+  const texteRatio = () => {
+    const ratio = (etat.catalogue && etat.catalogue.pointsParBooster) || 1;
+    return ratio === 1 ? '1 point au championnat = 1 booster' : `${ratio} points au championnat = 1 booster`;
+  };
   const rareteDe = (id) => etat.raretes.get(id) || { id, nom: id, regle: '', poids: 0, fragments: 0, cout: 0 };
   const nomEcurie = (id) => (etat.catalogue.ecuries[id] && etat.catalogue.ecuries[id].nom) || id;
   function couleursEcurie(id) {
@@ -211,7 +215,7 @@
         const carte = catalogue.cartes.find((c) => c.id === carteId);
         if (!carte) echec(404, 'Carte inconnue.');
         if (j.cartes.includes(carte.id)) echec(409, 'Vous possédez déjà cette carte.');
-        const cout = rareteLocale(carte.rarete).cout;
+        const cout = carte.cout ?? rareteLocale(carte.rarete).cout;
         if (j.fragments < cout) echec(409, `Fragments insuffisants : il en faut ${cout}, vous en avez ${j.fragments}.`);
         j.fragments -= cout;
         j.cartes.push(carte.id);
@@ -539,7 +543,8 @@
   function rendreSousTitre() {
     if (etat.panne && !etat.public) return;
     const total = etat.catalogue.cartes.length;
-    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis 2000. 1 point au championnat = 1 booster de ${etat.catalogue.cartesParBooster} cartes.`;
+    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis 2000. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`;
+    document.querySelectorAll('.ratio-boosters').forEach((n) => { n.textContent = texteRatio(); });
   }
   function rendreCompte() {
     const zone = $('compte');
@@ -1090,12 +1095,13 @@
     l2.append(el('span', null, `N° ${pad3(c.numero)}/${etat.catalogue.cartes.length} · `), gemmes(c.rarete), el('span', null, ' '), el('span', 'rarete-nom', r.nom), el('span', null, ` · ${r.regle}`));
     infos.appendChild(l2);
     if (!possede) {
-      infos.appendChild(el('p', 'cout', `Carte manquante · fabrication : ${pluriel(r.cout, 'fragment')}`));
+      const cout = c.cout ?? r.cout;
+      infos.appendChild(el('p', 'cout', `Carte manquante · fabrication : ${pluriel(cout, 'fragment')}`));
       if (!etat.session) infos.appendChild(el('p', 'ligne', 'Connectez-vous pour fabriquer cette carte avec vos fragments.'));
       else if (!j || !estMoi) infos.appendChild(el('p', 'ligne', j ? `Vous consultez l’album de ${j.nom}.` : ''));
       else {
-        const assez = moi.fragments >= r.cout;
-        if (!assez) infos.appendChild(el('p', 'ligne', `Vous avez ${pluriel(moi.fragments, 'fragment')} : il en manque ${r.cout - moi.fragments}.`));
+        const assez = moi.fragments >= cout;
+        if (!assez) infos.appendChild(el('p', 'ligne', `Vous avez ${pluriel(moi.fragments, 'fragment')} : il en manque ${cout - moi.fragments}.`));
         const b = el('button', 'bouton', assez ? `Fabriquer (${moi.fragments} fragments disponibles)` : 'Fabriquer', { type: 'button' });
         b.disabled = !assez;
         b.addEventListener('click', () => fabriquer(c, b));

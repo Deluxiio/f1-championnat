@@ -2,6 +2,7 @@
  "version": 1,
  "genere": "2026-10-21",
  "total": 302,
+ "pointsParBooster": 1,
  "cartesParBooster": 5,
  "derniereCarteMin": "peu_commune",
  "raretes": [
@@ -424,7 +425,12 @@
     "meilleur": 1
    },
    "note": 99,
-   "numero": 1
+   "numero": 1,
+   "auto": {
+    "rarete": "icone",
+    "note": 99,
+    "fait": "Champion du monde 2014, 2015, 2017, 2018, 2019 et 2020"
+   }
   },
   {
    "id": "michael_schumacher--ferrari",
@@ -449,7 +455,12 @@
     "meilleur": 1
    },
    "note": 98,
-   "numero": 2
+   "numero": 2,
+   "auto": {
+    "rarete": "icone",
+    "note": 98,
+    "fait": "Champion du monde 2000, 2001, 2002, 2003 et 2004"
+   }
   },
   {
    "id": "max_verstappen--red_bull",
@@ -474,7 +485,12 @@
     "meilleur": 1
    },
    "note": 97,
-   "numero": 3
+   "numero": 3,
+   "auto": {
+    "rarete": "icone",
+    "note": 97,
+    "fait": "Champion du monde 2021, 2022, 2023 et 2024"
+   }
   },
   {
    "id": "vettel--red_bull",
@@ -499,7 +515,12 @@
     "meilleur": 1
    },
    "note": 96,
-   "numero": 4
+   "numero": 4,
+   "auto": {
+    "rarete": "icone",
+    "note": 96,
+    "fait": "Champion du monde 2010, 2011, 2012 et 2013"
+   }
   },
   {
    "id": "hakkinen--mclaren",
@@ -524,7 +545,12 @@
     "meilleur": 1
    },
    "note": 95,
-   "numero": 5
+   "numero": 5,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 95,
+    "fait": "Champion du monde 1998 et 1999"
+   }
   },
   {
    "id": "alonso--renault",
@@ -549,7 +575,12 @@
     "meilleur": 1
    },
    "note": 94,
-   "numero": 6
+   "numero": 6,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 94,
+    "fait": "Champion du monde 2005 et 2006"
+   }
   },
   {
    "id": "rosberg--mercedes",
@@ -574,7 +605,12 @@
     "meilleur": 1
    },
    "note": 93,
-   "numero": 7
+   "numero": 7,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 93,
+    "fait": "Champion du monde 2016"
+   }
   },
   {
    "id": "hamilton--mclaren",
@@ -599,7 +635,12 @@
     "meilleur": 1
    },
    "note": 92,
-   "numero": 8
+   "numero": 8,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 92,
+    "fait": "Champion du monde 2008"
+   }
   },
   {
    "id": "norris--mclaren",
@@ -624,7 +665,12 @@
     "meilleur": 1
    },
    "note": 92,
-   "numero": 9
+   "numero": 9,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 92,
+    "fait": "Champion du monde 2025"
+   }
   },
   {
    "id": "raikkonen--ferrari",
@@ -649,7 +695,12 @@
     "meilleur": 1
    },
    "note": 91,
-   "numero": 10
+   "numero": 10,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 91,
+    "fait": "Champion du monde 2007"
+   }
   },
   {
    "id": "button--brawn",
@@ -674,7 +725,12 @@
     "meilleur": 1
    },
    "note": 90,
-   "numero": 11
+   "numero": 11,
+   "auto": {
+    "rarete": "legendaire",
+    "note": 90,
+    "fait": "Champion du monde 2009"
+   }
   },
   {
    "id": "bottas--mercedes",
@@ -699,7 +755,12 @@
     "meilleur": 1
    },
    "note": 89,
-   "numero": 12
+   "numero": 12,
+   "auto": {
+    "rarete": "epique",
+    "note": 89,
+    "fait": "10 victoires en 101 départs"
+   }
   },
   {
    "id": "vettel--ferrari",
@@ -724,7 +785,12 @@
     "meilleur": 1
    },
    "note": 89,
-   "numero": 13
+   "numero": 13,
+   "auto": {
+    "rarete": "epique",
+    "note": 89,
+    "fait": "14 victoires en 119 départs"
+   }
   },
   {
    "id": "alonso--ferrari",
@@ -749,7 +815,12 @@
     "meilleur": 1
    },
    "note": 89,
-   "numero": 14
+   "numero": 14,
+   "auto": {
+    "rarete": "epique",
+    "note": 89,
+    "fait": "11 victoires en 96 départs"
+   }
   },
   {
    "id": "barrichello--ferrari",
@@ -774,7 +845,12 @@
     "meilleur": 1
    },
    "note": 88,
-   "numero": 15
+   "numero": 15,
+   "auto": {
+    "rarete": "epique",
+    "note": 88,
+    "fait": "9 victoires en 104 départs"
+   }
   },
   {
    "id": "leclerc--ferrari",
@@ -799,7 +875,12 @@
     "meilleur": 1
    },
    "note": 88,
-   "numero": 16
+   "numero": 16,
+   "auto": {
+    "rarete": "epique",
+    "note": 88,
+    "fait": "9 victoires en 168 départs"
+   }
   },
   {
    "id": "coulthard--mclaren",
@@ -824,7 +905,12 @@
     "meilleur": 1
    },
    "note": 88,
-   "numero": 17
+   "numero": 17,
+   "auto": {
+    "rarete": "epique",
+    "note": 88,
+    "fait": "12 victoires en 150 départs"
+   }
   },
   {
    "id": "russell--mercedes",
@@ -849,7 +935,12 @@
     "meilleur": 1
    },
    "note": 88,
-   "numero": 18
+   "numero": 18,
+   "auto": {
+    "rarete": "epique",
+    "note": 88,
+    "fait": "8 victoires en 110 départs"
+   }
   },
   {
    "id": "massa--ferrari",
@@ -874,7 +965,12 @@
     "meilleur": 1
    },
    "note": 87,
-   "numero": 19
+   "numero": 19,
+   "auto": {
+    "rarete": "epique",
+    "note": 87,
+    "fait": "11 victoires en 139 départs"
+   }
   },
   {
    "id": "webber--red_bull",
@@ -899,7 +995,12 @@
     "meilleur": 1
    },
    "note": 87,
-   "numero": 20
+   "numero": 20,
+   "auto": {
+    "rarete": "epique",
+    "note": 87,
+    "fait": "9 victoires en 129 départs"
+   }
   },
   {
    "id": "raikkonen--mclaren",
@@ -924,7 +1025,12 @@
     "meilleur": 1
    },
    "note": 87,
-   "numero": 21
+   "numero": 21,
+   "auto": {
+    "rarete": "epique",
+    "note": 87,
+    "fait": "9 victoires en 87 départs"
+   }
   },
   {
    "id": "piastri--mclaren",
@@ -949,7 +1055,12 @@
     "meilleur": 1
    },
    "note": 87,
-   "numero": 22
+   "numero": 22,
+   "auto": {
+    "rarete": "epique",
+    "note": 87,
+    "fait": "9 victoires en 85 départs"
+   }
   },
   {
    "id": "ricciardo--red_bull",
@@ -974,7 +1085,12 @@
     "meilleur": 1
    },
    "note": 86,
-   "numero": 23
+   "numero": 23,
+   "auto": {
+    "rarete": "epique",
+    "note": 86,
+    "fait": "7 victoires en 100 départs"
+   }
   },
   {
    "id": "perez--red_bull",
@@ -999,7 +1115,12 @@
     "meilleur": 1
    },
    "note": 86,
-   "numero": 24
+   "numero": 24,
+   "auto": {
+    "rarete": "epique",
+    "note": 86,
+    "fait": "5 victoires en 90 départs"
+   }
   },
   {
    "id": "antonelli--mercedes",
@@ -1024,7 +1145,12 @@
     "meilleur": 1
    },
    "note": 86,
-   "numero": 25
+   "numero": 25,
+   "auto": {
+    "rarete": "epique",
+    "note": 86,
+    "fait": "8 victoires en 41 départs"
+   }
   },
   {
    "id": "sainz--ferrari",
@@ -1049,7 +1175,12 @@
     "meilleur": 1
    },
    "note": 86,
-   "numero": 26
+   "numero": 26,
+   "auto": {
+    "rarete": "epique",
+    "note": 86,
+    "fait": "4 victoires en 88 départs"
+   }
   },
   {
    "id": "montoya--williams",
@@ -1074,7 +1205,12 @@
     "meilleur": 1
    },
    "note": 86,
-   "numero": 27
+   "numero": 27,
+   "auto": {
+    "rarete": "epique",
+    "note": 86,
+    "fait": "4 victoires en 68 départs"
+   }
   },
   {
    "id": "ralf_schumacher--williams",
@@ -1099,7 +1235,12 @@
     "meilleur": 1
    },
    "note": 85,
-   "numero": 28
+   "numero": 28,
+   "auto": {
+    "rarete": "epique",
+    "note": 85,
+    "fait": "6 victoires en 94 départs"
+   }
   },
   {
    "id": "button--mclaren",
@@ -1124,7 +1265,12 @@
     "meilleur": 1
    },
    "note": 85,
-   "numero": 29
+   "numero": 29,
+   "auto": {
+    "rarete": "epique",
+    "note": 85,
+    "fait": "8 victoires en 136 départs"
+   }
   },
   {
    "id": "raikkonen--lotus_f1",
@@ -1149,7 +1295,12 @@
     "meilleur": 1
    },
    "note": 85,
-   "numero": 30
+   "numero": 30,
+   "auto": {
+    "rarete": "epique",
+    "note": 85,
+    "fait": "2 victoires en 37 départs"
+   }
   },
   {
    "id": "barrichello--brawn",
@@ -1174,7 +1325,12 @@
     "meilleur": 1
    },
    "note": 85,
-   "numero": 31
+   "numero": 31,
+   "auto": {
+    "rarete": "epique",
+    "note": 85,
+    "fait": "2 victoires en 17 départs"
+   }
   },
   {
    "id": "hamilton--ferrari",
@@ -1199,7 +1355,12 @@
     "meilleur": 1
    },
    "note": 84,
-   "numero": 32
+   "numero": 32,
+   "auto": {
+    "rarete": "epique",
+    "note": 84,
+    "fait": "1 victoire en 41 départs"
+   }
   },
   {
    "id": "fisichella--renault",
@@ -1224,7 +1385,12 @@
     "meilleur": 1
    },
    "note": 84,
-   "numero": 33
+   "numero": 33,
+   "auto": {
+    "rarete": "epique",
+    "note": 84,
+    "fait": "2 victoires en 53 départs"
+   }
   },
   {
    "id": "montoya--mclaren",
@@ -1249,7 +1415,12 @@
     "meilleur": 1
    },
    "note": 84,
-   "numero": 34
+   "numero": 34,
+   "auto": {
+    "rarete": "epique",
+    "note": 84,
+    "fait": "3 victoires en 26 départs"
+   }
   },
   {
    "id": "frentzen--jordan",
@@ -1274,7 +1445,12 @@
     "meilleur": 1
    },
    "note": 84,
-   "numero": 35
+   "numero": 35,
+   "auto": {
+    "rarete": "epique",
+    "note": 84,
+    "fait": "2 victoires en 43 départs"
+   }
   },
   {
    "id": "kubica--bmw_sauber",
@@ -1299,7 +1475,12 @@
     "meilleur": 1
    },
    "note": 84,
-   "numero": 36
+   "numero": 36,
+   "auto": {
+    "rarete": "epique",
+    "note": 84,
+    "fait": "1 victoire en 57 départs"
+   }
   },
   {
    "id": "alonso--mclaren",
@@ -1324,7 +1505,12 @@
     "meilleur": 1
    },
    "note": 83,
-   "numero": 37
+   "numero": 37,
+   "auto": {
+    "rarete": "epique",
+    "note": 83,
+    "fait": "4 victoires en 95 départs"
+   }
   },
   {
    "id": "trulli--renault",
@@ -1349,7 +1535,12 @@
     "meilleur": 1
    },
    "note": 83,
-   "numero": 38
+   "numero": 38,
+   "auto": {
+    "rarete": "epique",
+    "note": 83,
+    "fait": "1 victoire en 48 départs"
+   }
   },
   {
    "id": "kovalainen--mclaren",
@@ -1374,7 +1565,12 @@
     "meilleur": 1
    },
    "note": 83,
-   "numero": 39
+   "numero": 39,
+   "auto": {
+    "rarete": "epique",
+    "note": 83,
+    "fait": "1 victoire en 35 départs"
+   }
   },
   {
    "id": "perez--racing_point",
@@ -1399,7 +1595,12 @@
     "meilleur": 1
    },
    "note": 83,
-   "numero": 40
+   "numero": 40,
+   "auto": {
+    "rarete": "epique",
+    "note": 83,
+    "fait": "1 victoire en 36 départs"
+   }
   },
   {
    "id": "fisichella--jordan",
@@ -1424,7 +1625,12 @@
     "meilleur": 1
    },
    "note": 82,
-   "numero": 41
+   "numero": 41,
+   "auto": {
+    "rarete": "epique",
+    "note": 82,
+    "fait": "1 victoire en 50 départs"
+   }
   },
   {
    "id": "gasly--alphatauri",
@@ -1449,7 +1655,12 @@
     "meilleur": 1
    },
    "note": 82,
-   "numero": 42
+   "numero": 42,
+   "auto": {
+    "rarete": "epique",
+    "note": 82,
+    "fait": "1 victoire en 61 départs"
+   }
   },
   {
    "id": "ocon--alpine",
@@ -1474,7 +1685,12 @@
     "meilleur": 1
    },
    "note": 82,
-   "numero": 43
+   "numero": 43,
+   "auto": {
+    "rarete": "epique",
+    "note": 82,
+    "fait": "1 victoire en 89 départs"
+   }
   },
   {
    "id": "button--honda",
@@ -1499,7 +1715,12 @@
     "meilleur": 1
    },
    "note": 82,
-   "numero": 44
+   "numero": 44,
+   "auto": {
+    "rarete": "epique",
+    "note": 82,
+    "fait": "1 victoire en 53 départs"
+   }
   },
   {
    "id": "ricciardo--mclaren",
@@ -1524,7 +1745,12 @@
     "meilleur": 1
    },
    "note": 81,
-   "numero": 45
+   "numero": 45,
+   "auto": {
+    "rarete": "epique",
+    "note": 81,
+    "fait": "1 victoire en 44 départs"
+   }
   },
   {
    "id": "vettel--toro_rosso",
@@ -1549,7 +1775,12 @@
     "meilleur": 1
    },
    "note": 81,
-   "numero": 46
+   "numero": 46,
+   "auto": {
+    "rarete": "epique",
+    "note": 81,
+    "fait": "1 victoire en 25 départs"
+   }
   },
   {
    "id": "maldonado--williams",
@@ -1574,7 +1805,12 @@
     "meilleur": 1
    },
    "note": 81,
-   "numero": 47
+   "numero": 47,
+   "auto": {
+    "rarete": "epique",
+    "note": 81,
+    "fait": "1 victoire en 58 départs"
+   }
   },
   {
    "id": "wurz--mclaren",
@@ -1599,7 +1835,12 @@
     "meilleur": 3
    },
    "note": 80,
-   "numero": 48
+   "numero": 48,
+   "auto": {
+    "rarete": "rare",
+    "note": 80,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "button--bar",
@@ -1624,7 +1865,12 @@
     "meilleur": 2
    },
    "note": 80,
-   "numero": 49
+   "numero": 49,
+   "auto": {
+    "rarete": "rare",
+    "note": 80,
+    "fait": "12 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "heidfeld--bmw_sauber",
@@ -1649,7 +1895,12 @@
     "meilleur": 2
    },
    "note": 80,
-   "numero": 50
+   "numero": 50,
+   "auto": {
+    "rarete": "rare",
+    "note": 80,
+    "fait": "8 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "bottas--williams",
@@ -1674,7 +1925,12 @@
     "meilleur": 2
    },
    "note": 80,
-   "numero": 51
+   "numero": 51,
+   "auto": {
+    "rarete": "rare",
+    "note": 80,
+    "fait": "9 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "albon--red_bull",
@@ -1699,7 +1955,12 @@
     "meilleur": 3
    },
    "note": 79,
-   "numero": 52
+   "numero": 52,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "kubica--renault",
@@ -1724,7 +1985,12 @@
     "meilleur": 2
    },
    "note": 79,
-   "numero": 53
+   "numero": 53,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "3 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "trulli--toyota",
@@ -1749,7 +2015,12 @@
     "meilleur": 2
    },
    "note": 79,
-   "numero": 54
+   "numero": 54,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "7 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "perez--force_india",
@@ -1774,7 +2045,12 @@
     "meilleur": 3
    },
    "note": 79,
-   "numero": 55
+   "numero": 55,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "5 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "massa--williams",
@@ -1799,7 +2075,12 @@
     "meilleur": 2
    },
    "note": 79,
-   "numero": 56
+   "numero": 56,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "5 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "hadjar--red_bull",
@@ -1824,7 +2105,12 @@
     "meilleur": 3
    },
    "note": 79,
-   "numero": 57
+   "numero": 57,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "alonso--aston_martin",
@@ -1849,7 +2135,12 @@
     "meilleur": 2
    },
    "note": 79,
-   "numero": 58
+   "numero": 58,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "8 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "grosjean--lotus_f1",
@@ -1874,7 +2165,12 @@
     "meilleur": 2
    },
    "note": 79,
-   "numero": 59
+   "numero": 59,
+   "auto": {
+    "rarete": "rare",
+    "note": 79,
+    "fait": "10 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "fisichella--benetton",
@@ -1899,7 +2195,12 @@
     "meilleur": 2
    },
    "note": 78,
-   "numero": 60
+   "numero": 60,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "7 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "sainz--mclaren",
@@ -1924,7 +2225,12 @@
     "meilleur": 2
    },
    "note": 78,
-   "numero": 61
+   "numero": 61,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "2 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "ricciardo--renault",
@@ -1949,7 +2255,12 @@
     "meilleur": 3
    },
    "note": 78,
-   "numero": 62
+   "numero": 62,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "kvyat--red_bull",
@@ -1974,7 +2285,12 @@
     "meilleur": 2
    },
    "note": 78,
-   "numero": 63
+   "numero": 63,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "2 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "ralf_schumacher--toyota",
@@ -1999,7 +2315,12 @@
     "meilleur": 3
    },
    "note": 78,
-   "numero": 64
+   "numero": 64,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "3 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "rosa--mclaren",
@@ -2024,7 +2345,12 @@
     "meilleur": 2
    },
    "note": 78,
-   "numero": 65
+   "numero": 65,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "frentzen--sauber",
@@ -2049,7 +2375,12 @@
     "meilleur": 3
    },
    "note": 78,
-   "numero": 66
+   "numero": 66,
+   "auto": {
+    "rarete": "rare",
+    "note": 78,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "glock--toyota",
@@ -2074,7 +2405,12 @@
     "meilleur": 2
    },
    "note": 77,
-   "numero": 67
+   "numero": 67,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "3 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "villeneuve--bar",
@@ -2099,7 +2435,12 @@
     "meilleur": 3
    },
    "note": 77,
-   "numero": 68
+   "numero": 68,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "rosberg--williams",
@@ -2124,7 +2465,12 @@
     "meilleur": 2
    },
    "note": 77,
-   "numero": 69
+   "numero": 69,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "2 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "michael_schumacher--mercedes",
@@ -2149,7 +2495,12 @@
     "meilleur": 3
    },
    "note": 77,
-   "numero": 70
+   "numero": 70,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "kovalainen--renault",
@@ -2174,7 +2525,12 @@
     "meilleur": 2
    },
    "note": 77,
-   "numero": 71
+   "numero": 71,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "alonso--alpine",
@@ -2199,7 +2555,12 @@
     "meilleur": 3
    },
    "note": 77,
-   "numero": 72
+   "numero": 72,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "heidfeld--williams",
@@ -2224,7 +2585,12 @@
     "meilleur": 2
    },
    "note": 77,
-   "numero": 73
+   "numero": 73,
+   "auto": {
+    "rarete": "rare",
+    "note": 77,
+    "fait": "3 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "wurz--benetton",
@@ -2249,7 +2615,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 74
+   "numero": 74,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "heidfeld--sauber",
@@ -2274,7 +2645,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 75
+   "numero": 75,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "coulthard--red_bull",
@@ -2299,7 +2675,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 76
+   "numero": 76,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "webber--williams",
@@ -2324,7 +2705,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 77
+   "numero": 77,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "gasly--alpine",
@@ -2349,7 +2735,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 78
+   "numero": 78,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "irvine--jaguar",
@@ -2374,7 +2765,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 79
+   "numero": 79,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "sato--bar",
@@ -2399,7 +2795,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 80
+   "numero": 80,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "kobayashi--sauber",
@@ -2424,7 +2825,12 @@
     "meilleur": 3
    },
    "note": 76,
-   "numero": 81
+   "numero": 81,
+   "auto": {
+    "rarete": "rare",
+    "note": 76,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "barrichello--honda",
@@ -2449,7 +2855,12 @@
     "meilleur": 3
    },
    "note": 75,
-   "numero": 82
+   "numero": 82,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "stroll--racing_point",
@@ -2474,7 +2885,12 @@
     "meilleur": 3
    },
    "note": 75,
-   "numero": 83
+   "numero": 83,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "hulkenberg--sauber",
@@ -2499,7 +2915,12 @@
     "meilleur": 3
    },
    "note": 75,
-   "numero": 84
+   "numero": 84,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "ocon--renault",
@@ -2524,7 +2945,12 @@
     "meilleur": 2
    },
    "note": 75,
-   "numero": 85
+   "numero": 85,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "perez--sauber",
@@ -2549,7 +2975,12 @@
     "meilleur": 2
    },
    "note": 75,
-   "numero": 86
+   "numero": 86,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "3 podiums, meilleur résultat : 2e"
+   }
   },
   {
    "id": "vettel--aston_martin",
@@ -2574,7 +3005,12 @@
     "meilleur": 2
    },
    "note": 75,
-   "numero": 87
+   "numero": 87,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "kevin_magnussen--mclaren",
@@ -2599,7 +3035,12 @@
     "meilleur": 2
    },
    "note": 75,
-   "numero": 88
+   "numero": 88,
+   "auto": {
+    "rarete": "rare",
+    "note": 75,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "kvyat--toro_rosso",
@@ -2624,7 +3065,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 89
+   "numero": 89,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "petrov--renault",
@@ -2649,7 +3095,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 90
+   "numero": 90,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "sainz--williams",
@@ -2674,7 +3125,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 91
+   "numero": 91,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "2 podiums, meilleur résultat : 3e"
+   }
   },
   {
    "id": "gasly--toro_rosso",
@@ -2699,7 +3155,12 @@
     "meilleur": 2
    },
    "note": 74,
-   "numero": 92
+   "numero": 92,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "hadjar--rb",
@@ -2724,7 +3185,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 93
+   "numero": 93,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "piquet_jr--renault",
@@ -2749,7 +3215,12 @@
     "meilleur": 2
    },
    "note": 74,
-   "numero": 94
+   "numero": 94,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "heidfeld--renault",
@@ -2774,7 +3245,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 95
+   "numero": 95,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "stroll--williams",
@@ -2799,7 +3275,12 @@
     "meilleur": 3
    },
    "note": 74,
-   "numero": 96
+   "numero": 96,
+   "auto": {
+    "rarete": "rare",
+    "note": 74,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "russell--williams",
@@ -2824,7 +3305,12 @@
     "meilleur": 2
    },
    "note": 73,
-   "numero": 97
+   "numero": 97,
+   "auto": {
+    "rarete": "rare",
+    "note": 73,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "wurz--williams",
@@ -2849,7 +3335,12 @@
     "meilleur": 3
    },
    "note": 73,
-   "numero": 98
+   "numero": 98,
+   "auto": {
+    "rarete": "rare",
+    "note": 73,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "fisichella--force_india",
@@ -2874,7 +3365,12 @@
     "meilleur": 2
    },
    "note": 73,
-   "numero": 99
+   "numero": 99,
+   "auto": {
+    "rarete": "rare",
+    "note": 73,
+    "fait": "1 podium, meilleur résultat : 2e"
+   }
   },
   {
    "id": "monteiro--jordan",
@@ -2899,7 +3395,12 @@
     "meilleur": 3
    },
    "note": 73,
-   "numero": 100
+   "numero": 100,
+   "auto": {
+    "rarete": "rare",
+    "note": 73,
+    "fait": "1 podium, meilleur résultat : 3e"
+   }
   },
   {
    "id": "hulkenberg--force_india",
@@ -2924,7 +3425,12 @@
     "meilleur": 4
    },
    "note": 72,
-   "numero": 101
+   "numero": 101,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "289 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "button--renault",
@@ -2949,7 +3455,12 @@
     "meilleur": 4
    },
    "note": 72,
-   "numero": 102
+   "numero": 102,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "14 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "gasly--red_bull",
@@ -2974,7 +3485,12 @@
     "meilleur": 4
    },
    "note": 72,
-   "numero": 103
+   "numero": 103,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "63 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "ocon--force_india",
@@ -2999,7 +3515,12 @@
     "meilleur": 5
    },
    "note": 72,
-   "numero": 104
+   "numero": 104,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "136 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "stroll--aston_martin",
@@ -3024,7 +3545,12 @@
     "meilleur": 4
    },
    "note": 72,
-   "numero": 105
+   "numero": 105,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "173 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "hulkenberg--renault",
@@ -3049,7 +3575,12 @@
     "meilleur": 5
    },
    "note": 72,
-   "numero": 106
+   "numero": 106,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "149 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "trulli--jordan",
@@ -3074,7 +3605,12 @@
     "meilleur": 4
    },
    "note": 72,
-   "numero": 107
+   "numero": 107,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 72,
+    "fait": "18 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "massa--sauber",
@@ -3099,7 +3635,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 108
+   "numero": 108,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "27 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "kevin_magnussen--haas",
@@ -3124,7 +3665,12 @@
     "meilleur": 5
    },
    "note": 71,
-   "numero": 109
+   "numero": 109,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "134 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "fisichella--sauber",
@@ -3149,7 +3695,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 110
+   "numero": 110,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "22 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "button--williams",
@@ -3174,7 +3725,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 111
+   "numero": 111,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "12 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "sutil--force_india",
@@ -3199,7 +3755,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 112
+   "numero": 112,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "123 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "raikkonen--sauber",
@@ -3224,7 +3785,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 113
+   "numero": 113,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "9 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "resta--force_india",
@@ -3249,7 +3815,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 114
+   "numero": 114,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "121 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "albon--williams",
@@ -3274,7 +3845,12 @@
     "meilleur": 5
    },
    "note": 71,
-   "numero": 115
+   "numero": 115,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "116 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "sainz--toro_rosso",
@@ -3299,7 +3875,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 116
+   "numero": 116,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "112 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "salo--sauber",
@@ -3324,7 +3905,12 @@
     "meilleur": 5
    },
    "note": 71,
-   "numero": 117
+   "numero": 117,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "6 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "grosjean--haas",
@@ -3349,7 +3935,12 @@
     "meilleur": 4
    },
    "note": 71,
-   "numero": 118
+   "numero": 118,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "104 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "lawson--rb",
@@ -3374,7 +3965,12 @@
     "meilleur": 5
    },
    "note": 71,
-   "numero": 119
+   "numero": 119,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 71,
+    "fait": "96 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "webber--jaguar",
@@ -3399,7 +3995,12 @@
     "meilleur": 6
    },
    "note": 70,
-   "numero": 120
+   "numero": 120,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "24 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "max_verstappen--toro_rosso",
@@ -3424,7 +4025,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 121
+   "numero": 121,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "62 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "panis--bar",
@@ -3449,7 +4055,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 122
+   "numero": 122,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "8 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "sainz--renault",
@@ -3474,7 +4085,12 @@
     "meilleur": 5
    },
    "note": 70,
-   "numero": 123
+   "numero": 123,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "59 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "tsunoda--alphatauri",
@@ -3499,7 +4115,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 124
+   "numero": 124,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "58 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "raikkonen--alfa",
@@ -3524,7 +4145,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 125
+   "numero": 125,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "57 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "perez--mclaren",
@@ -3549,7 +4175,12 @@
     "meilleur": 5
    },
    "note": 70,
-   "numero": 126
+   "numero": 126,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "49 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "bearman--haas",
@@ -3574,7 +4205,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 127
+   "numero": 127,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "59 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "bearman--ferrari",
@@ -3599,7 +4235,12 @@
     "meilleur": 7
    },
    "note": 70,
-   "numero": 128
+   "numero": 128,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "6 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "bottas--alfa",
@@ -3624,7 +4265,12 @@
     "meilleur": 5
    },
    "note": 70,
-   "numero": 129
+   "numero": 129,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "57 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "vergne--toro_rosso",
@@ -3649,7 +4295,12 @@
     "meilleur": 6
    },
    "note": 70,
-   "numero": 130
+   "numero": 130,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "51 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "verstappen--arrows",
@@ -3674,7 +4325,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 131
+   "numero": 131,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "6 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "barrichello--williams",
@@ -3699,7 +4355,12 @@
     "meilleur": 4
    },
    "note": 70,
-   "numero": 132
+   "numero": 132,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 70,
+    "fait": "51 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "ericsson--sauber",
@@ -3724,7 +4385,12 @@
     "meilleur": 8
    },
    "note": 69,
-   "numero": 133
+   "numero": 133,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "18 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "buemi--toro_rosso",
@@ -3749,7 +4415,12 @@
     "meilleur": 7
    },
    "note": 69,
-   "numero": 134
+   "numero": 134,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "29 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "hulkenberg--haas",
@@ -3774,7 +4445,12 @@
     "meilleur": 6
    },
    "note": 69,
-   "numero": 135
+   "numero": 135,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "42 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "matta--toyota",
@@ -3799,7 +4475,12 @@
     "meilleur": 6
    },
    "note": 69,
-   "numero": 136
+   "numero": 136,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "13 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "diniz--sauber",
@@ -3824,7 +4505,12 @@
     "meilleur": 6
    },
    "note": 69,
-   "numero": 137
+   "numero": 137,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "klien--red_bull",
@@ -3849,7 +4535,12 @@
     "meilleur": 5
    },
    "note": 69,
-   "numero": 138
+   "numero": 138,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "11 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "zonta--bar",
@@ -3874,7 +4565,12 @@
     "meilleur": 6
    },
    "note": 69,
-   "numero": 139
+   "numero": 139,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "ocon--haas",
@@ -3899,7 +4595,12 @@
     "meilleur": 5
    },
    "note": 69,
-   "numero": 140
+   "numero": 140,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "41 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "arvid_lindblad--rb",
@@ -3924,7 +4625,12 @@
     "meilleur": 6
    },
    "note": 69,
-   "numero": 141
+   "numero": 141,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "37 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "panis--toyota",
@@ -3949,7 +4655,12 @@
     "meilleur": 5
    },
    "note": 69,
-   "numero": 142
+   "numero": 142,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "12 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "giovinazzi--alfa",
@@ -3974,7 +4685,12 @@
     "meilleur": 5
    },
    "note": 69,
-   "numero": 143
+   "numero": 143,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "21 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "alesi--prost",
@@ -3999,7 +4715,12 @@
     "meilleur": 5
    },
    "note": 69,
-   "numero": 144
+   "numero": 144,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 69,
+    "fait": "4 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "leclerc--sauber",
@@ -4024,7 +4745,12 @@
     "meilleur": 6
    },
    "note": 68,
-   "numero": 145
+   "numero": 145,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "39 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "alesi--jordan",
@@ -4049,7 +4775,12 @@
     "meilleur": 6
    },
    "note": 68,
-   "numero": 146
+   "numero": 146,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "1 point, meilleur résultat : 6e"
+   }
   },
   {
    "id": "alguersuari--toro_rosso",
@@ -4074,7 +4805,12 @@
     "meilleur": 7
    },
    "note": 68,
-   "numero": 147
+   "numero": 147,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "31 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "nakajima--williams",
@@ -4099,7 +4835,12 @@
     "meilleur": 6
    },
    "note": 68,
-   "numero": 148
+   "numero": 148,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "9 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "latifi--williams",
@@ -4124,7 +4865,12 @@
     "meilleur": 7
    },
    "note": 68,
-   "numero": 149
+   "numero": 149,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "9 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "salo--toyota",
@@ -4149,7 +4895,12 @@
     "meilleur": 6
    },
    "note": 68,
-   "numero": 150
+   "numero": 150,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "2 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "rosa--jaguar",
@@ -4174,7 +4925,12 @@
     "meilleur": 5
    },
    "note": 68,
-   "numero": 151
+   "numero": 151,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "3 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "ricciardo--toro_rosso",
@@ -4199,7 +4955,12 @@
     "meilleur": 7
    },
    "note": 68,
-   "numero": 152
+   "numero": 152,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "30 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "nasr--sauber",
@@ -4224,7 +4985,12 @@
     "meilleur": 5
    },
    "note": 68,
-   "numero": 153
+   "numero": 153,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "29 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "vandoorne--mclaren",
@@ -4249,7 +5015,12 @@
     "meilleur": 7
    },
    "note": 68,
-   "numero": 154
+   "numero": 154,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "26 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "maldonado--lotus_f1",
@@ -4274,7 +5045,12 @@
     "meilleur": 7
    },
    "note": 68,
-   "numero": 155
+   "numero": 155,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "29 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "kvyat--alphatauri",
@@ -4299,7 +5075,12 @@
     "meilleur": 4
    },
    "note": 68,
-   "numero": 156
+   "numero": 156,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "32 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "gene--minardi",
@@ -4324,7 +5105,12 @@
     "meilleur": 6
    },
    "note": 68,
-   "numero": 157
+   "numero": 157,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 68,
+    "fait": "1 point, meilleur résultat : 6e"
+   }
   },
   {
    "id": "rosa--arrows",
@@ -4349,7 +5135,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 158
+   "numero": 158,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "kobayashi--toyota",
@@ -4374,7 +5165,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 159
+   "numero": 159,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "tsunoda--rb",
@@ -4399,7 +5195,12 @@
     "meilleur": 7
    },
    "note": 67,
-   "numero": 160
+   "numero": 160,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "30 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "colapinto--alpine",
@@ -4424,7 +5225,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 161
+   "numero": 161,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "27 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "pizzonia--williams",
@@ -4449,7 +5255,12 @@
     "meilleur": 7
    },
    "note": 67,
-   "numero": 162
+   "numero": 162,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "8 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "bruno_senna--williams",
@@ -4474,7 +5285,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 163
+   "numero": 163,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "31 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "zhou--alfa",
@@ -4499,7 +5315,12 @@
     "meilleur": 8
    },
    "note": 67,
-   "numero": 164
+   "numero": 164,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "12 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "mick_schumacher--haas",
@@ -4524,7 +5345,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 165
+   "numero": 165,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "12 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "villeneuve--sauber",
@@ -4549,7 +5375,12 @@
     "meilleur": 4
    },
    "note": 67,
-   "numero": 166
+   "numero": 166,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "9 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "sato--super_aguri",
@@ -4574,7 +5405,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 167
+   "numero": 167,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "4 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "liuzzi--toro_rosso",
@@ -4599,7 +5435,12 @@
     "meilleur": 6
    },
    "note": 67,
-   "numero": 168
+   "numero": 168,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "4 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "bourdais--toro_rosso",
@@ -4624,7 +5465,12 @@
     "meilleur": 7
    },
    "note": 67,
-   "numero": 169
+   "numero": 169,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "6 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "button--benetton",
@@ -4649,7 +5495,12 @@
     "meilleur": 5
    },
    "note": 67,
-   "numero": 170
+   "numero": 170,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 67,
+    "fait": "2 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "gene--williams",
@@ -4674,7 +5525,12 @@
     "meilleur": 5
    },
    "note": 66,
-   "numero": 171
+   "numero": 171,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "4 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "liuzzi--force_india",
@@ -4699,7 +5555,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 172
+   "numero": 172,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "21 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "jolyon_palmer--renault",
@@ -4724,7 +5585,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 173
+   "numero": 173,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "9 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "villeneuve--bmw_sauber",
@@ -4749,7 +5615,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 174
+   "numero": 174,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "7 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "tsunoda--red_bull",
@@ -4774,7 +5645,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 175
+   "numero": 175,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "21 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "gutierrez--sauber",
@@ -4799,7 +5675,12 @@
     "meilleur": 7
    },
    "note": 66,
-   "numero": 176
+   "numero": 176,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "6 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "hulkenberg--williams",
@@ -4824,7 +5705,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 177
+   "numero": 177,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "22 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "bortoleto--sauber",
@@ -4849,7 +5735,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 178
+   "numero": 178,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "19 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "sato--jordan",
@@ -4874,7 +5765,12 @@
     "meilleur": 5
    },
    "note": 66,
-   "numero": 179
+   "numero": 179,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "2 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "lawson--red_bull",
@@ -4899,7 +5795,12 @@
     "meilleur": 6
    },
    "note": 66,
-   "numero": 180
+   "numero": 180,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "14 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "sargeant--williams",
@@ -4924,7 +5825,12 @@
     "meilleur": 10
    },
    "note": 66,
-   "numero": 181
+   "numero": 181,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "1 point, meilleur résultat : 10e"
+   }
   },
   {
    "id": "hulkenberg--racing_point",
@@ -4949,7 +5855,12 @@
     "meilleur": 7
    },
    "note": 66,
-   "numero": 182
+   "numero": 182,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 66,
+    "fait": "10 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "jules_bianchi--marussia",
@@ -4974,7 +5885,12 @@
     "meilleur": 9
    },
    "note": 65,
-   "numero": 183
+   "numero": 183,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "2 points, meilleur résultat : 9e"
+   }
   },
   {
    "id": "webber--minardi",
@@ -4999,7 +5915,12 @@
     "meilleur": 5
    },
    "note": 65,
-   "numero": 184
+   "numero": 184,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "2 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "frentzen--arrows",
@@ -5024,7 +5945,12 @@
     "meilleur": 6
    },
    "note": 65,
-   "numero": 185
+   "numero": 185,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "2 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "albon--toro_rosso",
@@ -5049,7 +5975,12 @@
     "meilleur": 6
    },
    "note": 65,
-   "numero": 186
+   "numero": 186,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "16 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "karthikeyan--jordan",
@@ -5074,7 +6005,12 @@
     "meilleur": 4
    },
    "note": 65,
-   "numero": 187
+   "numero": 187,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "5 points, meilleur résultat : 4e"
+   }
   },
   {
    "id": "klien--jaguar",
@@ -5099,7 +6035,12 @@
     "meilleur": 6
    },
    "note": 65,
-   "numero": 188
+   "numero": 188,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "brendon_hartley--toro_rosso",
@@ -5124,7 +6065,12 @@
     "meilleur": 9
    },
    "note": 65,
-   "numero": 189
+   "numero": 189,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "4 points, meilleur résultat : 9e"
+   }
   },
   {
    "id": "vettel--bmw_sauber",
@@ -5149,7 +6095,12 @@
     "meilleur": 8
    },
    "note": 65,
-   "numero": 190
+   "numero": 190,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "heidfeld--jordan",
@@ -5174,7 +6125,12 @@
     "meilleur": 7
    },
    "note": 65,
-   "numero": 191
+   "numero": 191,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "3 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "albers--minardi",
@@ -5199,7 +6155,12 @@
     "meilleur": 5
    },
    "note": 65,
-   "numero": 192
+   "numero": 192,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "4 points, meilleur résultat : 5e"
+   }
   },
   {
    "id": "zhou--sauber",
@@ -5224,7 +6185,12 @@
     "meilleur": 8
    },
    "note": 65,
-   "numero": 193
+   "numero": 193,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "4 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "kevin_magnussen--renault",
@@ -5249,7 +6215,12 @@
     "meilleur": 7
    },
    "note": 65,
-   "numero": 194
+   "numero": 194,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "7 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "hulkenberg--audi",
@@ -5274,7 +6245,12 @@
     "meilleur": 8
    },
    "note": 65,
-   "numero": 195
+   "numero": 195,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 65,
+    "fait": "11 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "bortoleto--audi",
@@ -5299,7 +6275,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 196
+   "numero": 196,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "10 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "baumgartner--minardi",
@@ -5324,7 +6305,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 197
+   "numero": 197,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "ricciardo--rb",
@@ -5349,7 +6335,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 198
+   "numero": 198,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "7 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "wehrlein--sauber",
@@ -5374,7 +6365,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 199
+   "numero": 199,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "5 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "kubica--williams",
@@ -5399,7 +6395,12 @@
     "meilleur": 10
    },
    "note": 64,
-   "numero": 200
+   "numero": 200,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 10e"
+   }
   },
   {
    "id": "sirotkin--williams",
@@ -5424,7 +6425,12 @@
     "meilleur": 10
    },
    "note": 64,
-   "numero": 201
+   "numero": 201,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 10e"
+   }
   },
   {
    "id": "wehrlein--manor",
@@ -5449,7 +6455,12 @@
     "meilleur": 10
    },
    "note": 64,
-   "numero": 202
+   "numero": 202,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 10e"
+   }
   },
   {
    "id": "sutil--spyker",
@@ -5474,7 +6485,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 203
+   "numero": 203,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "rosa--sauber",
@@ -5499,7 +6515,12 @@
     "meilleur": 7
    },
    "note": 64,
-   "numero": 204
+   "numero": 204,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "6 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "friesacher--minardi",
@@ -5524,7 +6545,12 @@
     "meilleur": 6
    },
    "note": 64,
-   "numero": 205
+   "numero": 205,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "3 points, meilleur résultat : 6e"
+   }
   },
   {
    "id": "firman--jordan",
@@ -5549,7 +6575,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 206
+   "numero": 206,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "colapinto--williams",
@@ -5574,7 +6605,12 @@
     "meilleur": 8
    },
    "note": 64,
-   "numero": 207
+   "numero": 207,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 64,
+    "fait": "5 points, meilleur résultat : 8e"
+   }
   },
   {
    "id": "ricciardo--alphatauri",
@@ -5599,7 +6635,12 @@
     "meilleur": 7
    },
    "note": 63,
-   "numero": 208
+   "numero": 208,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "6 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "glock--jordan",
@@ -5624,7 +6665,12 @@
     "meilleur": 7
    },
    "note": 63,
-   "numero": 209
+   "numero": 209,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "2 points, meilleur résultat : 7e"
+   }
   },
   {
    "id": "liuzzi--red_bull",
@@ -5649,7 +6695,12 @@
     "meilleur": 8
    },
    "note": 63,
-   "numero": 210
+   "numero": 210,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "bruno_senna--renault",
@@ -5674,7 +6725,12 @@
     "meilleur": 9
    },
    "note": 63,
-   "numero": 211
+   "numero": 211,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "2 points, meilleur résultat : 9e"
+   }
   },
   {
    "id": "wilson--jaguar",
@@ -5699,7 +6755,12 @@
     "meilleur": 8
    },
    "note": 63,
-   "numero": 212
+   "numero": 212,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "1 point, meilleur résultat : 8e"
+   }
   },
   {
    "id": "lawson--alphatauri",
@@ -5724,7 +6785,12 @@
     "meilleur": 9
    },
    "note": 63,
-   "numero": 213
+   "numero": 213,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "2 points, meilleur résultat : 9e"
+   }
   },
   {
    "id": "de_vries--williams",
@@ -5749,7 +6815,12 @@
     "meilleur": 9
    },
    "note": 63,
-   "numero": 214
+   "numero": 214,
+   "auto": {
+    "rarete": "peu_commune",
+    "note": 63,
+    "fait": "2 points, meilleur résultat : 9e"
+   }
   },
   {
    "id": "glock--virgin",
@@ -5774,7 +6845,12 @@
     "meilleur": 14
    },
    "note": 62,
-   "numero": 215
+   "numero": 215,
+   "auto": {
+    "rarete": "commune",
+    "note": 62,
+    "fait": "38 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "kovalainen--lotus_racing",
@@ -5799,7 +6875,12 @@
     "meilleur": 12
    },
    "note": 62,
-   "numero": 216
+   "numero": 216,
+   "auto": {
+    "rarete": "commune",
+    "note": 62,
+    "fait": "38 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "trulli--lotus_racing",
@@ -5824,7 +6905,12 @@
     "meilleur": 13
    },
    "note": 62,
-   "numero": 217
+   "numero": 217,
+   "auto": {
+    "rarete": "commune",
+    "note": 62,
+    "fait": "37 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "herbert--jaguar",
@@ -5849,7 +6935,12 @@
     "meilleur": 7
    },
    "note": 62,
-   "numero": 218
+   "numero": 218,
+   "auto": {
+    "rarete": "commune",
+    "note": 62,
+    "fait": "17 départs, meilleur résultat : 7e"
+   }
   },
   {
    "id": "chilton--marussia",
@@ -5874,7 +6965,12 @@
     "meilleur": 13
    },
    "note": 61,
-   "numero": 219
+   "numero": 219,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "35 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "bernoldi--arrows",
@@ -5899,7 +6995,12 @@
     "meilleur": 8
    },
    "note": 61,
-   "numero": 220
+   "numero": 220,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "28 départs, meilleur résultat : 8e"
+   }
   },
   {
    "id": "speed--toro_rosso",
@@ -5924,7 +7025,12 @@
     "meilleur": 9
    },
    "note": 61,
-   "numero": 221
+   "numero": 221,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "28 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "mcnish--toyota",
@@ -5949,7 +7055,12 @@
     "meilleur": 7
    },
    "note": 61,
-   "numero": 222
+   "numero": 222,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "17 départs, meilleur résultat : 7e"
+   }
   },
   {
    "id": "marques--minardi",
@@ -5974,7 +7085,12 @@
     "meilleur": 9
    },
    "note": 61,
-   "numero": 223
+   "numero": 223,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "25 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "karthikeyan--hrt",
@@ -5999,7 +7115,12 @@
     "meilleur": 15
    },
    "note": 61,
-   "numero": 224
+   "numero": 224,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "27 départs, meilleur résultat : 15e"
+   }
   },
   {
    "id": "bottas--sauber",
@@ -6024,7 +7145,12 @@
     "meilleur": 11
    },
    "note": 61,
-   "numero": 225
+   "numero": 225,
+   "auto": {
+    "rarete": "commune",
+    "note": 61,
+    "fait": "24 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "heidfeld--prost",
@@ -6049,7 +7175,12 @@
     "meilleur": 8
    },
    "note": 60,
-   "numero": 226
+   "numero": 226,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "16 départs, meilleur résultat : 8e"
+   }
   },
   {
    "id": "mazepin--haas",
@@ -6074,7 +7205,12 @@
     "meilleur": 14
    },
    "note": 60,
-   "numero": 227
+   "numero": 227,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "22 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "mazzacane--minardi",
@@ -6099,7 +7235,12 @@
     "meilleur": 8
    },
    "note": 60,
-   "numero": 228
+   "numero": 228,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "17 départs, meilleur résultat : 8e"
+   }
   },
   {
    "id": "zonta--jordan",
@@ -6124,7 +7265,12 @@
     "meilleur": 7
    },
    "note": 60,
-   "numero": 229
+   "numero": 229,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "2 départs, meilleur résultat : 7e"
+   }
   },
   {
    "id": "davidson--super_aguri",
@@ -6149,7 +7295,12 @@
     "meilleur": 11
    },
    "note": 60,
-   "numero": 230
+   "numero": 230,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "21 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "gutierrez--haas",
@@ -6174,7 +7325,12 @@
     "meilleur": 11
    },
    "note": 60,
-   "numero": 231
+   "numero": 231,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "21 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "yoong--minardi",
@@ -6199,7 +7355,12 @@
     "meilleur": 7
    },
    "note": 60,
-   "numero": 232
+   "numero": 232,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "15 départs, meilleur résultat : 7e"
+   }
   },
   {
    "id": "kovalainen--caterham",
@@ -6224,7 +7385,12 @@
     "meilleur": 13
    },
    "note": 60,
-   "numero": 233
+   "numero": 233,
+   "auto": {
+    "rarete": "commune",
+    "note": 60,
+    "fait": "20 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "petrov--caterham",
@@ -6249,7 +7415,12 @@
     "meilleur": 11
    },
    "note": 59,
-   "numero": 234
+   "numero": 234,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "20 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "pic--marussia",
@@ -6274,7 +7445,12 @@
     "meilleur": 12
    },
    "note": 59,
-   "numero": 235
+   "numero": 235,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "20 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "glock--marussia",
@@ -6299,7 +7475,12 @@
     "meilleur": 12
    },
    "note": 59,
-   "numero": 236
+   "numero": 236,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "19 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "pic--caterham",
@@ -6324,7 +7505,12 @@
     "meilleur": 14
    },
    "note": 59,
-   "numero": 237
+   "numero": 237,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "19 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "sutil--sauber",
@@ -6349,7 +7535,12 @@
     "meilleur": 11
    },
    "note": 59,
-   "numero": 238
+   "numero": 238,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "19 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "ambrosio--virgin",
@@ -6374,7 +7565,12 @@
     "meilleur": 14
    },
    "note": 59,
-   "numero": 239
+   "numero": 239,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "19 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "rosa--hrt",
@@ -6399,7 +7595,12 @@
     "meilleur": 17
    },
    "note": 59,
-   "numero": 240
+   "numero": 240,
+   "auto": {
+    "rarete": "commune",
+    "note": 59,
+    "fait": "19 départs, meilleur résultat : 17e"
+   }
   },
   {
    "id": "grassi--virgin",
@@ -6424,7 +7625,12 @@
     "meilleur": 14
    },
    "note": 58,
-   "numero": 241
+   "numero": 241,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "19 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "garde--caterham",
@@ -6449,7 +7655,12 @@
     "meilleur": 14
    },
    "note": 58,
-   "numero": 242
+   "numero": 242,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "19 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "verstappen--minardi",
@@ -6474,7 +7685,12 @@
     "meilleur": 9
    },
    "note": 58,
-   "numero": 243
+   "numero": 243,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "16 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "bruni--minardi",
@@ -6499,7 +7715,12 @@
     "meilleur": 14
    },
    "note": 58,
-   "numero": 244
+   "numero": 244,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "18 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "bruno_senna--hrt",
@@ -6524,7 +7745,12 @@
     "meilleur": 14
    },
    "note": 58,
-   "numero": 245
+   "numero": 245,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "18 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "stevens--manor",
@@ -6549,7 +7775,12 @@
     "meilleur": 13
    },
    "note": 58,
-   "numero": 246
+   "numero": 246,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "18 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "alonso--minardi",
@@ -6574,7 +7805,12 @@
     "meilleur": 10
    },
    "note": 58,
-   "numero": 247
+   "numero": 247,
+   "auto": {
+    "rarete": "commune",
+    "note": 58,
+    "fait": "17 départs, meilleur résultat : 10e"
+   }
   },
   {
    "id": "bottas--cadillac",
@@ -6599,7 +7835,12 @@
     "meilleur": 13
    },
    "note": 57,
-   "numero": 248
+   "numero": 248,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "17 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "liuzzi--hrt",
@@ -6624,7 +7865,12 @@
     "meilleur": 13
    },
    "note": 57,
-   "numero": 249
+   "numero": 249,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "17 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "perez--cadillac",
@@ -6649,7 +7895,12 @@
     "meilleur": 14
    },
    "note": 57,
-   "numero": 250
+   "numero": 250,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "17 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "ericsson--caterham",
@@ -6674,7 +7925,12 @@
     "meilleur": 11
    },
    "note": 57,
-   "numero": 251
+   "numero": 251,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "16 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "kobayashi--caterham",
@@ -6699,7 +7955,12 @@
     "meilleur": 13
    },
    "note": 57,
-   "numero": 252
+   "numero": 252,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "16 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "monteiro--mf1",
@@ -6724,7 +7985,12 @@
     "meilleur": 9
    },
    "note": 57,
-   "numero": 253
+   "numero": 253,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "14 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "pizzonia--jaguar",
@@ -6749,7 +8015,12 @@
     "meilleur": 9
    },
    "note": 57,
-   "numero": 254
+   "numero": 254,
+   "auto": {
+    "rarete": "commune",
+    "note": 57,
+    "fait": "11 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "albers--mf1",
@@ -6774,7 +8045,12 @@
     "meilleur": 10
    },
    "note": 56,
-   "numero": 255
+   "numero": 255,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "14 départs, meilleur résultat : 10e"
+   }
   },
   {
    "id": "burti--prost",
@@ -6799,7 +8075,12 @@
     "meilleur": 8
    },
    "note": 56,
-   "numero": 256
+   "numero": 256,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "10 départs, meilleur résultat : 8e"
+   }
   },
   {
    "id": "pantano--jordan",
@@ -6824,7 +8105,12 @@
     "meilleur": 13
    },
    "note": 56,
-   "numero": 257
+   "numero": 257,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "14 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "merhi--manor",
@@ -6849,7 +8135,12 @@
     "meilleur": 12
    },
    "note": 56,
-   "numero": 258
+   "numero": 258,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "13 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "haryanto--manor",
@@ -6874,7 +8165,12 @@
     "meilleur": 15
    },
    "note": 56,
-   "numero": 259
+   "numero": 259,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "12 départs, meilleur résultat : 15e"
+   }
   },
   {
    "id": "ricciardo--hrt",
@@ -6899,7 +8195,12 @@
     "meilleur": 16
    },
    "note": 56,
-   "numero": 260
+   "numero": 260,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "11 départs, meilleur résultat : 16e"
+   }
   },
   {
    "id": "wilson--minardi",
@@ -6924,7 +8225,12 @@
     "meilleur": 11
    },
    "note": 56,
-   "numero": 261
+   "numero": 261,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "11 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "burti--jaguar",
@@ -6949,7 +8255,12 @@
     "meilleur": 8
    },
    "note": 56,
-   "numero": 262
+   "numero": 262,
+   "auto": {
+    "rarete": "commune",
+    "note": 56,
+    "fait": "5 départs, meilleur résultat : 8e"
+   }
   },
   {
    "id": "chandhok--hrt",
@@ -6974,7 +8285,12 @@
     "meilleur": 14
    },
    "note": 55,
-   "numero": 263
+   "numero": 263,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "10 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "de_vries--alphatauri",
@@ -6999,7 +8315,12 @@
     "meilleur": 12
    },
    "note": 55,
-   "numero": 264
+   "numero": 264,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "10 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "albers--spyker",
@@ -7024,7 +8345,12 @@
     "meilleur": 14
    },
    "note": 55,
-   "numero": 265
+   "numero": 265,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "9 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "ocon--manor",
@@ -7049,7 +8375,12 @@
     "meilleur": 12
    },
    "note": 55,
-   "numero": 266
+   "numero": 266,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "9 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "doornbos--minardi",
@@ -7074,7 +8405,12 @@
     "meilleur": 13
    },
    "note": 55,
-   "numero": 267
+   "numero": 267,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "8 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "frentzen--prost",
@@ -7099,7 +8435,12 @@
     "meilleur": 9
    },
    "note": 55,
-   "numero": 268
+   "numero": 268,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "5 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "doohan--alpine",
@@ -7124,7 +8465,12 @@
     "meilleur": 13
    },
    "note": 55,
-   "numero": 269
+   "numero": 269,
+   "auto": {
+    "rarete": "commune",
+    "note": 55,
+    "fait": "7 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "grosjean--renault",
@@ -7149,7 +8495,12 @@
     "meilleur": 13
    },
    "note": 54,
-   "numero": 270
+   "numero": 270,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "7 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "montagny--super_aguri",
@@ -7174,7 +8525,12 @@
     "meilleur": 16
    },
    "note": 54,
-   "numero": 271
+   "numero": 271,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "7 départs, meilleur résultat : 16e"
+   }
   },
   {
    "id": "yamamoto--super_aguri",
@@ -7199,7 +8555,12 @@
     "meilleur": 16
    },
    "note": 54,
-   "numero": 272
+   "numero": 272,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "7 départs, meilleur résultat : 16e"
+   }
   },
   {
    "id": "yamamoto--spyker",
@@ -7224,7 +8585,12 @@
     "meilleur": 12
    },
    "note": 54,
-   "numero": 273
+   "numero": 273,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "7 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "yamamoto--hrt",
@@ -7249,7 +8615,12 @@
     "meilleur": 15
    },
    "note": 54,
-   "numero": 274
+   "numero": 274,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "7 départs, meilleur résultat : 15e"
+   }
   },
   {
    "id": "fisichella--ferrari",
@@ -7274,7 +8645,12 @@
     "meilleur": 9
    },
    "note": 54,
-   "numero": 275
+   "numero": 275,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "5 départs, meilleur résultat : 9e"
+   }
   },
   {
    "id": "zonta--toyota",
@@ -7299,7 +8675,12 @@
     "meilleur": 10
    },
    "note": 54,
-   "numero": 276
+   "numero": 276,
+   "auto": {
+    "rarete": "commune",
+    "note": 54,
+    "fait": "5 départs, meilleur résultat : 10e"
+   }
   },
   {
    "id": "villeneuve--renault",
@@ -7324,7 +8705,12 @@
     "meilleur": 10
    },
    "note": 53,
-   "numero": 277
+   "numero": 277,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "3 départs, meilleur résultat : 10e"
+   }
   },
   {
    "id": "kiesa--minardi",
@@ -7349,7 +8735,12 @@
     "meilleur": 11
    },
    "note": 53,
-   "numero": 278
+   "numero": 278,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "5 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "rossi--manor",
@@ -7374,7 +8765,12 @@
     "meilleur": 12
    },
    "note": 53,
-   "numero": 279
+   "numero": 279,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "5 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "albers--spyker_mf1",
@@ -7399,7 +8795,12 @@
     "meilleur": 14
    },
    "note": 53,
-   "numero": 280
+   "numero": 280,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "4 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "ide--super_aguri",
@@ -7424,7 +8825,12 @@
     "meilleur": 13
    },
    "note": 53,
-   "numero": 281
+   "numero": 281,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "4 départs, meilleur résultat : 13e"
+   }
   },
   {
    "id": "mazzacane--prost",
@@ -7449,7 +8855,12 @@
     "meilleur": 12
    },
    "note": 53,
-   "numero": 282
+   "numero": 282,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "4 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "monteiro--spyker_mf1",
@@ -7474,7 +8885,12 @@
     "meilleur": 15
    },
    "note": 53,
-   "numero": 283
+   "numero": 283,
+   "auto": {
+    "rarete": "commune",
+    "note": 53,
+    "fait": "4 départs, meilleur résultat : 15e"
+   }
   },
   {
    "id": "doornbos--red_bull",
@@ -7499,7 +8915,12 @@
     "meilleur": 12
    },
    "note": 52,
-   "numero": 284
+   "numero": 284,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "3 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "enge--prost",
@@ -7524,7 +8945,12 @@
     "meilleur": 12
    },
    "note": 52,
-   "numero": 285
+   "numero": 285,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "3 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "klien--hrt",
@@ -7549,7 +8975,12 @@
     "meilleur": 20
    },
    "note": 52,
-   "numero": 286
+   "numero": 286,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "3 départs, meilleur résultat : 20e"
+   }
   },
   {
    "id": "badoer--ferrari",
@@ -7574,7 +9005,12 @@
     "meilleur": 14
    },
    "note": 52,
-   "numero": 287
+   "numero": 287,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "2 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "baumgartner--jordan",
@@ -7599,7 +9035,12 @@
     "meilleur": 11
    },
    "note": 52,
-   "numero": 288
+   "numero": 288,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "2 départs, meilleur résultat : 11e"
+   }
   },
   {
    "id": "davidson--minardi",
@@ -7624,7 +9065,12 @@
     "meilleur": 17
    },
    "note": 52,
-   "numero": 289
+   "numero": 289,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "2 départs, meilleur résultat : 17e"
+   }
   },
   {
    "id": "pietro_fittipaldi--haas",
@@ -7649,7 +9095,12 @@
     "meilleur": 17
    },
    "note": 52,
-   "numero": 290
+   "numero": 290,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "2 départs, meilleur résultat : 17e"
+   }
   },
   {
    "id": "giovinazzi--sauber",
@@ -7674,7 +9125,12 @@
     "meilleur": 12
    },
    "note": 52,
-   "numero": 291
+   "numero": 291,
+   "auto": {
+    "rarete": "commune",
+    "note": 52,
+    "fait": "2 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "hulkenberg--aston_martin",
@@ -7699,7 +9155,12 @@
     "meilleur": 12
    },
    "note": 51,
-   "numero": 292
+   "numero": 292,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "2 départs, meilleur résultat : 12e"
+   }
   },
   {
    "id": "kovalainen--lotus_f1",
@@ -7724,7 +9185,12 @@
     "meilleur": 14
    },
    "note": 51,
-   "numero": 293
+   "numero": 293,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "2 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "kubica--alfa",
@@ -7749,7 +9215,12 @@
     "meilleur": 14
    },
    "note": 51,
-   "numero": 294
+   "numero": 294,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "2 départs, meilleur résultat : 14e"
+   }
   },
   {
    "id": "aitken--williams",
@@ -7774,7 +9245,12 @@
     "meilleur": 16
    },
    "note": 51,
-   "numero": 295
+   "numero": 295,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "1 départ, meilleur résultat : 16e"
+   }
   },
   {
    "id": "chandhok--lotus_racing",
@@ -7799,7 +9275,12 @@
     "meilleur": 20
    },
    "note": 51,
-   "numero": 296
+   "numero": 296,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "1 départ, meilleur résultat : 20e"
+   }
   },
   {
    "id": "davidson--bar",
@@ -7824,7 +9305,12 @@
     "meilleur": 19
    },
    "note": 51,
-   "numero": 297
+   "numero": 297,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "1 départ, meilleur résultat : 19e"
+   }
   },
   {
    "id": "lotterer--caterham",
@@ -7849,7 +9335,12 @@
     "meilleur": 22
    },
    "note": 51,
-   "numero": 298
+   "numero": 298,
+   "auto": {
+    "rarete": "commune",
+    "note": 51,
+    "fait": "1 départ, meilleur résultat : 22e"
+   }
   },
   {
    "id": "stevens--caterham",
@@ -7874,7 +9365,12 @@
     "meilleur": 17
    },
    "note": 50,
-   "numero": 299
+   "numero": 299,
+   "auto": {
+    "rarete": "commune",
+    "note": 50,
+    "fait": "1 départ, meilleur résultat : 17e"
+   }
   },
   {
    "id": "markus_winkelhock--spyker",
@@ -7899,7 +9395,12 @@
     "meilleur": 17
    },
    "note": 50,
-   "numero": 300
+   "numero": 300,
+   "auto": {
+    "rarete": "commune",
+    "note": 50,
+    "fait": "1 départ, meilleur résultat : 17e"
+   }
   },
   {
    "id": "ambrosio--lotus_f1",
@@ -7924,7 +9425,12 @@
     "meilleur": 13
    },
    "note": 50,
-   "numero": 301
+   "numero": 301,
+   "auto": {
+    "rarete": "commune",
+    "note": 50,
+    "fait": "1 départ, meilleur résultat : 13e"
+   }
   },
   {
    "id": "resta--williams",
@@ -7949,7 +9455,12 @@
     "meilleur": 18
    },
    "note": 50,
-   "numero": 302
+   "numero": 302,
+   "auto": {
+    "rarete": "commune",
+    "note": 50,
+    "fait": "1 départ, meilleur résultat : 18e"
+   }
   }
  ]
 }
