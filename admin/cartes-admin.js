@@ -276,6 +276,11 @@
   window.addEventListener("saison-chargee", () => { if (catalogue && !modifie) charger(); else if (catalogue) rendreBoosters(); });
   window.addEventListener("beforeunload", (e) => { if (modifie) { e.preventDefault(); e.returnValue = ""; } });
   document.getElementById("cartes-rafraichir-comptes").addEventListener("click", rendreComptes);
-  charger().catch((e) => { document.getElementById("cartes-economie").textContent = `Catalogue illisible : ${e.message}`; });
-  rendreComptes();
+  const ancienneVersion = "L'enregistreur tourne avec une ancienne version : ferme sa fenêtre noire, relance Lancer.bat puis recharge cette page.";
+  charger().catch((e) => {
+    document.getElementById("cartes-economie").textContent = e.statut === 404 ? ancienneVersion : `Catalogue illisible : ${e.message}`;
+  });
+  rendreComptes().catch((e) => {
+    if (e.statut === 404) document.getElementById("cartes-comptes").textContent = ancienneVersion;
+  });
 })();
