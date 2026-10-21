@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin championnat</title>
+  <link rel="stylesheet" href="/docs/style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="entete entete-admin">
+    <div class="conteneur entete-ligne">
+      <div>
+        <p class="surtitre">Admin locale · visible uniquement sur ce PC</p>
+        <h1 id="titre">Championnat F1 25</h1>
+      </div>
+      <div class="liens">
+        <a id="lien-public" href="#" target="_blank" rel="noopener" hidden>Page publique ↗</a>
+        <a href="/docs/index.html" target="_blank" rel="noopener">Aperçu local ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="conteneur">
+    <section class="panneau">
+      <h2>Enregistreur</h2>
+      <div class="etat-grille" id="etat"></div>
+      <div class="humains" id="humains"></div>
+      <div class="publication">
+        <div id="publication"></div>
+        <button type="button" class="bouton" id="bouton-publier">Publier maintenant</button>
+      </div>
+      <details class="journal">
+        <summary>Journal</summary>
+        <ol id="journal"></ol>
+      </details>
+    </section>
+
+    <section class="panneau">
+      <div class="section-tete">
+        <h2>Courses</h2>
+        <div class="actions">
+          <button type="button" class="bouton secondaire" id="ajout-brouillon" hidden>+ Depuis la dernière course captée</button>
+          <button type="button" class="bouton secondaire" id="ajout-copie">+ Course manuelle</button>
+        </div>
+      </div>
+      <div id="bandeau-revision" class="bandeau" hidden>
+        Nouvelle course enregistrée pendant que tu modifiais.
+        <button type="button" class="bouton secondaire" id="recharger">Recharger</button>
+      </div>
+      <div class="tableau-defilant" id="courses"></div>
+    </section>
+
+    <section class="panneau" id="editeur" hidden></section>
+
+    <section class="panneau">
+      <h2>Réglages</h2>
+      <div class="formulaire" id="reglages"></div>
+    </section>
+  </main>
+
+  <script src="/docs/champ.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --encre: #0b0b0b;
+  --encre-2: #52514e;
+  --discret: #6f6e69;
+  --grille: #e1e0d9;
+  --axe: #c3c2b7;
+  --bordure: rgba(11, 11, 11, 0.10);
+  --accent: #e10600;
+  --entete: #15151e;
+  --entete-encre: #ffffff;
+  --entete-encre-2: #c9c9d1;
+
+  /* Couleurs des joueurs (palette validée daltonisme, ordre fixe) */
+  --j1: #2a78d6; --j2: #eb6834; --j3: #1baf7a; --j4: #eda100;
+  --j5: #e87ba4; --j6: #008300; --j7: #6250d6; --j8: #e34948;
+  --ref: #9b9a94;
+
+  /* Cases de résultats */
+  --c-p1: #f5e3a1; --c-p2: #e2e2e2; --c-p3: #efcfae; --c-pts: #d6eedb;
+  --c-hors: #f0efec; --c-ab: #f5d3d3; --c-sel: rgba(42, 120, 214, 0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+    --encre: #f0efec; --encre-2: #c3c2b7; --discret: #9a998f;
+    --grille: #2c2c2a; --axe: #383835; --bordure: rgba(255, 255, 255, 0.10);
+    --entete: #15151e;
+    --j1: #3987e5; --j2: #d95926; --j3: #199e70; --j4: #c98500;
+    --j5: #d55181; --j6: #008300; --j7: #9085e9; --j8: #e66767;
+    --ref: #6f6e69;
+    --c-p1: #5a4b14; --c-p2: #474747; --c-p3: #583922; --c-pts: #1e3b25;
+    --c-hors: #262624; --c-ab: #4a2222; --c-sel: rgba(57, 135, 229, 0.16);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+  --encre: #f0efec; --encre-2: #c3c2b7; --discret: #9a998f;
+  --grille: #2c2c2a; --axe: #383835; --bordure: rgba(255, 255, 255, 0.10);
+  --entete: #15151e;
+  --j1: #3987e5; --j2: #d95926; --j3: #199e70; --j4: #c98500;
+  --j5: #d55181; --j6: #008300; --j7: #9085e9; --j8: #e66767;
+  --ref: #6f6e69;
+  --c-p1: #5a4b14; --c-p2: #474747; --c-p3: #583922; --c-pts: #1e3b25;
+  --c-hors: #262624; --c-ab: #4a2222; --c-sel: rgba(57, 135, 229, 0.16);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--encre);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+h1, h2, h3 { line-height: 1.15; margin: 0; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.05rem; margin: 28px 0 10px; }
+button { font: inherit; color: inherit; }
+.conteneur { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+
+/* --- En-tête ----------------------------------------------------------- */
+.entete {
+  background: var(--entete);
+  color: var(--entete-encre);
+  border-top: 4px solid var(--accent);
+  padding: 28px 0 24px;
+}
+.surtitre {
+  margin: 0 0 6px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--entete-encre-2);
+}
+.entete h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; }
+.sous-titre { margin: 6px 0 20px; color: var(--entete-encre-2); }
+.cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.cartes > *, .duels > * { min-width: 0; }
+.carte-joueur {
+  position: relative; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px; padding: 14px 14px 12px 18px; overflow: hidden;
+}
+.carte-joueur::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--couleur);
+}
+.carte-joueur .nom { font-weight: 700; font-size: 1.02rem; }
+.carte-joueur .rang { color: var(--entete-encre-2); font-size: 0.85rem; }
+.carte-joueur .points { font-size: 1.9rem; font-weight: 800; margin-top: 6px; }
+.carte-joueur .points small { font-size: 0.85rem; font-weight: 600; color: var(--entete-encre-2); margin-left: 4px; }
+.carte-joueur .detail { font-size: 0.83rem; color: var(--entete-encre-2); }
+
+/* --- Onglets ----------------------------------------------------------- */
+.onglets {
+  position: sticky; top: 0; z-index: 5; background: var(--surface);
+  border-bottom: 1px solid var(--bordure);
+}
+.onglets-liste { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.onglets-liste::-webkit-scrollbar { display: none; }
+.onglets a {
+  flex: 0 0 auto; padding: 13px 12px 11px; color: var(--encre-2); text-decoration: none; font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+.onglets a:hover { color: var(--encre); }
+.onglets a[aria-selected="true"] { color: var(--encre); border-bottom-color: var(--accent); }
+
+/* --- Sections ---------------------------------------------------------- */
+.section { padding: 24px 0 8px; }
+.section-tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.aide { color: var(--encre-2); margin: -6px 0 16px; }
+.vide {
+  padding: 28px 16px; text-align: center; color: var(--encre-2); background: var(--surface);
+  border: 1px dashed var(--axe); border-radius: 10px;
+}
+
+.bascule { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 3px; }
+.bascule button {
+  border: 0; background: transparent; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  font-size: 0.88rem; font-weight: 600; color: var(--encre-2);
+}
+.bascule button[aria-pressed="true"] { background: var(--surface); color: var(--encre); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+
+/* --- Tableaux ---------------------------------------------------------- */
+.tableau-defilant {
+  overflow-x: auto; background: var(--surface); border: 1px solid var(--bordure); border-radius: 10px;
+}
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--grille); }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--discret); font-weight: 700; background: var(--surface); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; }
+td.centre, th.centre { text-align: center; }
+.colle {
+  position: sticky; left: 0; z-index: 1; background: var(--surface);
+  box-shadow: 1px 0 0 var(--grille);
+}
+tr.est-joueur td { background: var(--c-sel); }
+tr.est-joueur td.colle { background: linear-gradient(var(--c-sel), var(--c-sel)), var(--surface); }
+.rang-cell { display: inline-block; width: 1.6em; color: var(--encre-2); font-weight: 700; vertical-align: middle; }
+.pilote { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; vertical-align: middle; }
+.pastille { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; box-shadow: 0 0 0 2px var(--surface); }
+.trait-ecurie { width: 4px; height: 16px; border-radius: 2px; flex: 0 0 auto; }
+.ecurie-nom { color: var(--encre-2); }
+.total { font-weight: 800; }
+.badge {
+  display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  background: var(--surface-2); color: var(--encre-2); vertical-align: 1px;
+}
+
+.case {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 24px; padding: 0 5px;
+  border-radius: 4px; font-size: 0.82rem; font-weight: 700; color: var(--encre);
+}
+.case.p1 { background: var(--c-p1); }
+.case.p2 { background: var(--c-p2); }
+.case.p3 { background: var(--c-p3); }
+.case.pts { background: var(--c-pts); }
+.case.hors { background: var(--c-hors); font-weight: 500; }
+.case.ab { background: var(--c-ab); }
+.case.absent { color: var(--discret); font-weight: 500; }
+.case.mt { box-shadow: inset 0 0 0 2px #9b4dca; }
+td.res { padding: 6px 3px; text-align: center; }
+th.res { padding: 8px 3px; text-align: center; }
+.legende-cases { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--encre-2); font-size: 0.83rem; margin: 12px 0 0; }
+.legende-cases .case { min-width: 26px; height: 20px; font-size: 0.75rem; }
+.legende-cases .case + .case { margin-left: -4px; }
+.mt-exemple {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px;
+  border-radius: 4px; font-size: 0.75rem; font-weight: 700; box-shadow: inset 0 0 0 2px #9b4dca;
+}
+
+/* --- Graphique --------------------------------------------------------- */
+.carte-graphique { background: var(--surface); border: 1px solid var(--bordure); border-radius: 10px; padding: 16px; }
+.graphique-titre { margin: 0 0 8px; color: var(--encre-2); font-size: 0.9rem; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 8px; font-size: 0.88rem; color: var(--encre-2); }
+.legende span { display: inline-flex; align-items: center; gap: 6px; }
+.cle-ligne { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+.graphique { position: relative; width: 100%; }
+.graphique svg { display: block; width: 100%; height: auto; overflow: visible; }
+.graphique text { font-family: inherit; }
+.graphique .axe-texte { fill: var(--discret); font-size: 11px; font-variant-numeric: tabular-nums; }
+.graphique .etiquette { fill: var(--encre); font-size: 12px; font-weight: 600; }
+.graphique .etiquette-val { fill: var(--encre-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.infobulle {
+  position: fixed; z-index: 20; pointer-events: none; background: var(--surface); color: var(--encre);
+  border: 1px solid var(--bordure); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  padding: 8px 10px; font-size: 0.85rem; min-width: 150px; max-width: 260px;
+}
+.infobulle .titre-bulle { color: var(--encre-2); font-size: 0.78rem; margin-bottom: 4px; }
+.infobulle .ligne-bulle { display: flex; align-items: center; gap: 8px; }
+.infobulle .ligne-bulle strong { font-variant-numeric: tabular-nums; min-width: 2.5em; }
+.infobulle .ligne-bulle span:last-child { color: var(--encre-2); }
+
+/* --- Duels ------------------------------------------------------------- */
+.duels { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.duel { background: var(--surface); border: 1px solid var(--bordure); border-radius: 10px; padding: 14px; }
+.duel-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.duel-nom { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+.duel-nom span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel-score { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.duel-barre { display: flex; gap: 2px; height: 8px; margin: 10px 0 8px; }
+.duel-barre span { border-radius: 4px; min-width: 4px; }
+.duel-barre .neutre { background: var(--surface-2); flex: 1; }
+.duel-detail { font-size: 0.83rem; color: var(--encre-2); }
+
+/* --- Calendrier -------------------------------------------------------- */
+.calendrier { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.gp { background: var(--surface); border: 1px solid var(--bordure); border-radius: 10px; padding: 12px 14px; }
+.gp.a-venir { opacity: 0.6; }
+.gp.prochain { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); opacity: 1; }
+.gp-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.gp-manche { font-size: 0.75rem; font-weight: 700; color: var(--discret); text-transform: uppercase; letter-spacing: 0.05em; }
+.gp-nom { font-weight: 700; margin: 2px 0 6px; }
+.gp-ligne { font-size: 0.85rem; color: var(--encre-2); display: flex; align-items: center; gap: 6px; }
+.gp-ligne strong { color: var(--encre); }
+
+.pied { color: var(--discret); font-size: 0.82rem; padding-top: 24px; padding-bottom: 32px; }
+
+@media (max-width: 640px) {
+  .entete { padding: 20px 0 18px; }
+  .cartes { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .carte-joueur { padding: 10px 10px 10px 14px; }
+  .carte-joueur .points { font-size: 1.5rem; }
+  .masque-mobile { display: none; }
+  th, td { padding: 7px 8px; }
+}

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Championnat F1 25</title>
+  <meta name="description" content="Classement général de notre championnat F1 25, mis à jour après chaque Grand Prix.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e10600'/%3E%3Cpath d='M6 22l8-12h12l-2 3H15.5l-1.4 2H22l-2 3h-8l-2 4z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <div class="conteneur">
+      <p class="surtitre" id="surtitre">F1 25</p>
+      <h1 id="titre">Championnat F1 25</h1>
+      <p class="sous-titre" id="sous-titre">Chargement…</p>
+      <div class="cartes" id="cartes"></div>
+    </div>
+  </header>
+
+  <nav class="onglets" aria-label="Sections">
+    <div class="conteneur onglets-liste" role="tablist">
+      <a href="#pilotes" role="tab">Pilotes</a>
+      <a href="#ecuries" role="tab">Constructeurs</a>
+      <a href="#evolution" role="tab">Évolution</a>
+      <a href="#duels" role="tab">Duels</a>
+      <a href="#stats" role="tab">Stats</a>
+      <a href="#calendrier" role="tab">Calendrier</a>
+    </div>
+  </nav>
+
+  <main class="conteneur">
+    <section id="pilotes" class="section" role="tabpanel">
+      <div class="section-tete">
+        <h2>Classement pilotes</h2>
+        <div class="bascule" data-filtre="pilotes">
+          <button type="button" data-valeur="tous" aria-pressed="true">Toute la grille</button>
+          <button type="button" data-valeur="nous" aria-pressed="false">Nous seulement</button>
+        </div>
+      </div>
+      <div class="tableau-defilant" id="table-pilotes"></div>
+      <p class="legende-cases">
+        <span class="case p1">1</span> Victoire
+        <span class="case p2">2</span><span class="case p3">3</span> Podium
+        <span class="case pts">7</span> Dans les points
+        <span class="case hors">14</span> Hors points
+        <span class="case ab">Ab</span> Abandon
+        <span class="mt-exemple">5</span> Meilleur tour
+      </p>
+    </section>
+
+    <section id="ecuries" class="section" role="tabpanel" hidden>
+      <div class="section-tete"><h2>Classement constructeurs</h2></div>
+      <div class="tableau-defilant" id="table-ecuries"></div>
+    </section>
+
+    <section id="evolution" class="section" role="tabpanel" hidden>
+      <div class="section-tete">
+        <h2>Évolution du classement</h2>
+        <div class="bascule" data-filtre="evolution">
+          <button type="button" data-valeur="points" aria-pressed="true">Points</button>
+          <button type="button" data-valeur="rang" aria-pressed="false">Position</button>
+        </div>
+      </div>
+      <div class="carte-graphique">
+        <p class="graphique-titre" id="graphique-titre"></p>
+        <div class="legende" id="legende"></div>
+        <div class="graphique" id="graphique"></div>
+      </div>
+    </section>
+
+    <section id="duels" class="section" role="tabpanel" hidden>
+      <div class="section-tete"><h2>Duels</h2></div>
+      <p class="aide">Nombre de courses où chacun a fini devant l'autre, quand les deux étaient au départ.</p>
+      <div class="duels" id="liste-duels"></div>
+      <h3>Tableau des face-à-face</h3>
+      <div class="tableau-defilant" id="matrice-duels"></div>
+    </section>
+
+    <section id="stats" class="section" role="tabpanel" hidden>
+      <div class="section-tete">
+        <h2>Stats pilotes</h2>
+        <div class="bascule" data-filtre="stats">
+          <button type="button" data-valeur="nous" aria-pressed="true">Nous seulement</button>
+          <button type="button" data-valeur="tous" aria-pressed="false">Toute la grille</button>
+        </div>
+      </div>
+      <div class="tableau-defilant" id="table-stats"></div>
+    </section>
+
+    <section id="calendrier" class="section" role="tabpanel" hidden>
+      <div class="section-tete"><h2>Calendrier</h2></div>
+      <ol class="calendrier" id="liste-calendrier"></ol>
+    </section>
+  </main>
+
+  <footer class="pied conteneur" id="pied"></footer>
+
+  <div class="infobulle" id="infobulle" hidden></div>
+
+  <script src="champ.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

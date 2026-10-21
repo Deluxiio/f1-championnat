@@ -1,0 +1,169 @@
+{
+ "titre": "Championnat F1 25",
+ "saison": "Saison 2025",
+ "bareme": [
+  25,
+  18,
+  15,
+  12,
+  10,
+  8,
+  6,
+  4,
+  2,
+  1
+ ],
+ "joueurs": [
+  {
+   "id": "joueur1",
+   "nom": "Valentin",
+   "alias": [
+    "Deluxiio"
+   ]
+  },
+  {
+   "id": "joueur2",
+   "nom": "Christopher",
+   "alias": [
+    "FlameC"
+   ]
+  },
+  {
+   "id": "joueur3",
+   "nom": "Joris",
+   "alias": [
+    "Ptijo"
+   ]
+  },
+  {
+   "id": "joueur4",
+   "nom": "Mathieu",
+   "alias": [
+    "Le Crack"
+   ]
+  }
+ ],
+ "calendrier": [
+  {
+   "manche": 1,
+   "circuit": 0,
+   "gp": "Australie"
+  },
+  {
+   "manche": 2,
+   "circuit": 2,
+   "gp": "Chine"
+  },
+  {
+   "manche": 3,
+   "circuit": 13,
+   "gp": "Japon"
+  },
+  {
+   "manche": 4,
+   "circuit": 3,
+   "gp": "Bahreïn"
+  },
+  {
+   "manche": 5,
+   "circuit": 29,
+   "gp": "Arabie saoudite"
+  },
+  {
+   "manche": 6,
+   "circuit": 30,
+   "gp": "Miami"
+  },
+  {
+   "manche": 7,
+   "circuit": 27,
+   "gp": "Émilie-Romagne"
+  },
+  {
+   "manche": 8,
+   "circuit": 5,
+   "gp": "Monaco"
+  },
+  {
+   "manche": 9,
+   "circuit": 4,
+   "gp": "Espagne"
+  },
+  {
+   "manche": 10,
+   "circuit": 6,
+   "gp": "Canada"
+  },
+  {
+   "manche": 11,
+   "circuit": 17,
+   "gp": "Autriche"
+  },
+  {
+   "manche": 12,
+   "circuit": 7,
+   "gp": "Grande-Bretagne"
+  },
+  {
+   "manche": 13,
+   "circuit": 10,
+   "gp": "Belgique"
+  },
+  {
+   "manche": 14,
+   "circuit": 9,
+   "gp": "Hongrie"
+  },
+  {
+   "manche": 15,
+   "circuit": 26,
+   "gp": "Pays-Bas"
+  },
+  {
+   "manche": 16,
+   "circuit": 11,
+   "gp": "Italie"
+  },
+  {
+   "manche": 17,
+   "circuit": 20,
+   "gp": "Azerbaïdjan"
+  },
+  {
+   "manche": 18,
+   "circuit": 12,
+   "gp": "Singapour"
+  },
+  {
+   "manche": 19,
+   "circuit": 15,
+   "gp": "États-Unis"
+  },
+  {
+   "manche": 20,
+   "circuit": 19,
+   "gp": "Mexique"
+  },
+  {
+   "manche": 21,
+   "circuit": 16,
+   "gp": "Brésil"
+  },
+  {
+   "manche": 22,
+   "circuit": 31,
+   "gp": "Las Vegas"
+  },
+  {
+   "manche": 23,
+   "circuit": 32,
+   "gp": "Qatar"
+  },
+  {
+   "manche": 24,
+   "circuit": 14,
+   "gp": "Abu Dhabi"
+  }
+ ],
+ "courses": []
+}
