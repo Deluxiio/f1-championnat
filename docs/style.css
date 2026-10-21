@@ -107,6 +107,8 @@ button { font: inherit; color: inherit; }
 }
 .onglets a:hover { color: var(--encre); }
 .onglets a[aria-selected="true"] { color: var(--encre); border-bottom-color: var(--accent); }
+.onglets a.lien-cartes { margin-left: auto; color: var(--accent); }
+.onglets a.lien-cartes::before { content: "◆ "; font-size: 0.8em; }
 
 /* --- Sections ---------------------------------------------------------- */
 .section { padding: 24px 0 8px; }

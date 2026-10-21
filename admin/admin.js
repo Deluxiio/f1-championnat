@@ -135,13 +135,20 @@
       ligne("Séance", morceaux.join(" · "), " ", suite);
 
       for (const hu of s.humains) {
-        if (hu.joueur) {
-          humains.appendChild(h("span", { class: "humain" }, voyant("ok", hu.nom), `→ ${hu.joueur}`));
+        const libelle = `${hu.nom} #${hu.numero} · ${C.nomEcurie(hu.ecurie)}`;
+        const choix = h("select", { onchange: (evt) => associer(hu.cle, evt.target.value) },
+          option("", hu.joueur ? "Changer…" : "Associer à…", true), saison ? saison.joueurs.map((j) => option(j.id, j.nom)) : []);
+        if (hu.local) {
+          humains.appendChild(h("span", { class: "humain" }, voyant("ok", libelle), `→ ${hu.joueur || "?"} (ce PC)`));
+        } else if (hu.joueur) {
+          humains.appendChild(h("span", { class: "humain" }, voyant("ok", libelle), `→ ${hu.joueur}`, choix));
         } else {
-          const choix = h("select", { onchange: (evt) => associer(hu.nom, evt.target.value) },
-            option("", "Associer à…", true), saison ? saison.joueurs.map((j) => option(j.id, j.nom)) : []);
-          humains.appendChild(h("span", { class: "humain" }, voyant("attente", hu.nom), "non reconnu", choix));
+          humains.appendChild(h("span", { class: "humain" }, voyant("attente", libelle), "non reconnu", choix));
         }
+      }
+      if (s.humains.some((hu) => hu.cle.startsWith("#"))) {
+        humains.appendChild(h("p", { class: "indice" },
+          "Le jeu masque les pseudos : chaque joueur est reconnu par son numéro de voiture. Associe chaque numéro une fois."));
       }
     }
 
@@ -159,11 +166,12 @@
     for (const l of e.journal) journal.appendChild(h("li", {}, h("time", {}, heure(l.date)), l.msg));
   }
 
-  async function associer(nom, idJoueur) {
+  async function associer(cle, idJoueur) {
     if (!idJoueur) return;
     const nouvelle = copie(saison);
+    for (const j of nouvelle.joueurs) j.alias = (j.alias || []).filter((a) => a.toLowerCase() !== cle.toLowerCase());
     const j = nouvelle.joueurs.find((x) => x.id === idJoueur);
-    j.alias = [...new Set([...(j.alias || []), nom])];
+    j.alias.push(cle);
     await sauver(nouvelle, false);
   }
 
@@ -352,7 +360,7 @@
       if (o.pilote.startsWith("inconnu:") && r.pilote.startsWith("j:")
           && nomsInconnus.filter((p) => p === o.pilote).length === 1) {
         const j = nouvelle.joueurs.find((x) => `j:${x.id}` === r.pilote);
-        j.alias = [...new Set([...(j.alias || []), o.nom])];
+        j.alias = [...new Set([...(j.alias || []), o.pilote.slice("inconnu:".length)])];
       }
     }
     c.resultats.forEach((r, i) => { r.pos = i + 1; delete r._original; });
@@ -417,7 +425,7 @@
       zone.appendChild(h("div", { class: "ligne-joueur" },
         h("span", { class: "pastille", style: { background: `var(--j${(i % 8) + 1})`, marginBottom: "10px" } }),
         h("label", {}, "Nom affiché", h("input", { value: j.nom, oninput: (e) => { j.nom = e.target.value; } })),
-        h("label", {}, "Pseudos en jeu (séparés par des virgules)",
+        h("label", {}, "Pseudos ou numéros en jeu (ex. FlameC, #44)",
           h("input", { class: "alias", value: (j.alias || []).join(", "),
             oninput: (e) => { j.alias = e.target.value.split(",").map((a) => a.trim()).filter(Boolean); } })),
         aDesResultats.has(`j:${j.id}`) ? null : h("button", { type: "button", class: "bouton danger",

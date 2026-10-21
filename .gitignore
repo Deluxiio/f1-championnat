@@ -1,3 +1,6 @@
 enregistreur/config.json
 __pycache__/
 *.tmp
+outils/cache/
+serveur/config.php
+serveur/donnees/*.json

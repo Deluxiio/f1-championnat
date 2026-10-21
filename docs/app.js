@@ -491,13 +491,13 @@
     const ids = ["pilotes", "ecuries", "evolution", "duels", "stats", "calendrier"];
     const id = ids.includes(location.hash.slice(1)) ? location.hash.slice(1) : "pilotes";
     for (const autre of ids) document.getElementById(autre).hidden = autre !== id;
-    for (const a of document.querySelectorAll(".onglets a")) {
+    for (const a of document.querySelectorAll('.onglets a[href^="#"]')) {
       a.setAttribute("aria-selected", a.getAttribute("href") === `#${id}` ? "true" : "false");
     }
     if (id === "evolution" && etat.calc) rendreEvolution();
   }
 
-  document.querySelectorAll(".onglets a").forEach((a) => a.addEventListener("click", (evt) => {
+  document.querySelectorAll('.onglets a[href^="#"]').forEach((a) => a.addEventListener("click", (evt) => {
     evt.preventDefault();
     history.replaceState(null, "", a.getAttribute("href"));
     afficherOnglet();

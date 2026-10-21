@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cartes pilotes — Championnat F1 25</title>
+  <meta name="description" content="Collection de cartes pilotes de notre championnat F1 25 : boosters gagnés avec les points, album, fragments et fabrication.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e10600'/%3E%3Cpath d='M6 22l8-12h12l-2 3H15.5l-1.4 2H22l-2 3h-8l-2 4z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="cartes.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <clipPath id="clip-coque">
+      <path d="M26 104 C26 52 68 20 120 20 C162 20 190 50 190 90 L190 150 C190 165 180 175 164 176 L110 178 C60 178 26 152 26 104 Z"/>
+    </clipPath>
+    <!-- Casque stylisé de profil (aucun visage), recoloré par --c1 --c2 --c3 -->
+    <symbol id="casque" viewBox="0 0 200 200">
+      <path d="M32 120 L12 130 L22 150 L42 144 Z" style="fill:var(--c3, #222)"/>
+      <g clip-path="url(#clip-coque)">
+        <path d="M26 104 C26 52 68 20 120 20 C162 20 190 50 190 90 L190 150 C190 165 180 175 164 176 L110 178 C60 178 26 152 26 104 Z" style="fill:var(--c1, #888)"/>
+        <path d="M40 70 C64 34 108 20 150 32 L142 48 C110 40 78 50 56 82 Z" style="fill:var(--c2, #ddd)"/>
+        <path d="M56 82 C78 50 110 40 142 48 L138 56 C112 50 86 58 64 88 Z" style="fill:var(--c3, #222)"/>
+        <path d="M26 104 C26 92 29 80 34 70 L46 78 C41 86 38 95 38 104 C38 120 44 136 54 150 L42 156 C32 142 26 124 26 104 Z" style="fill:var(--c2, #ddd)"/>
+        <path d="M118 126 C150 118 176 122 190 130 L190 150 C190 165 180 175 164 176 L118 178 Z" fill="rgba(0,0,0,0.18)"/>
+        <path d="M30 128 C52 162 92 180 134 180 L164 178 C182 176 192 164 192 148 L190 142 C160 166 90 170 30 128 Z" fill="rgba(0,0,0,0.3)"/>
+        <path d="M56 46 C80 26 112 20 142 26 C112 28 86 38 68 58 Z" fill="rgba(255,255,255,0.22)"/>
+        <path d="M94 72 C130 62 170 66 198 82 L198 120 C170 108 134 106 100 114 C90 116 84 110 84 98 C84 86 88 74 94 72 Z" fill="#0d0d14"/>
+        <path d="M94 72 C130 62 170 66 198 82 L198 120 C170 108 134 106 100 114 C90 116 84 110 84 98 C84 86 88 74 94 72 Z" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+        <path d="M100 80 C132 72 164 76 192 88 L192 95 C162 84 132 82 102 88 Z" fill="rgba(255,255,255,0.32)"/>
+        <path d="M114 104 C140 98 166 100 190 108 L190 114 C166 106 140 106 116 111 Z" fill="rgba(255,255,255,0.08)"/>
+        <rect x="108" y="32" width="26" height="6" rx="3" fill="#15151e" opacity="0.8"/>
+        <rect x="150" y="146" width="24" height="4" rx="2" fill="#15151e"/>
+        <rect x="146" y="154" width="24" height="4" rx="2" fill="#15151e"/>
+        <rect x="142" y="162" width="24" height="4" rx="2" fill="#15151e"/>
+      </g>
+      <circle cx="92" cy="98" r="9" style="fill:var(--c2, #ddd)"/>
+      <circle cx="92" cy="98" r="4" style="fill:var(--c3, #222)"/>
+    </symbol>
+    <symbol id="couronne" viewBox="0 0 24 24">
+      <path d="M3 18.5 L4.6 7.5 L9.2 12 L12 4.5 L14.8 12 L19.4 7.5 L21 18.5 Z"/>
+      <rect x="3" y="19.5" width="18" height="2" rx="1"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="bandeau-demo" id="bandeau-demo" hidden>
+  <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chacun a 40 boosters pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
+  <button type="button" class="lien-bouton" id="btn-reinit-demo">Réinitialiser la démo</button>
+</div>
+
+<header class="entete">
+  <div class="conteneur">
+    <div class="entete-haut">
+      <div>
+        <p class="surtitre">Championnat F1 25</p>
+        <h1>Cartes pilotes</h1>
+        <p class="sous-titre" id="sous-titre">Chargement du catalogue…</p>
+      </div>
+      <a class="retour" href="../index.html">← Classement</a>
+    </div>
+    <div class="compte" id="compte"></div>
+  </div>
+</header>
+
+<nav class="onglets" aria-label="Sections">
+  <div class="conteneur onglets-liste" role="tablist">
+    <a href="#boosters" role="tab">Boosters</a>
+    <a href="#collection" role="tab">Ma collection</a>
+    <a href="#collections" role="tab">Collections</a>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section id="boosters" class="section" role="tabpanel">
+    <div class="section-tete">
+      <h2>Boosters</h2>
+      <div class="puces" id="boosters-compteur"></div>
+    </div>
+    <p class="aide">1 point marqué au championnat = 1 booster de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.</p>
+
+    <div class="vide" id="boosters-hors-ligne" hidden>
+      <p>Connectez-vous pour ouvrir vos boosters.</p>
+      <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+    </div>
+
+    <div id="boosters-zone" hidden>
+      <div class="actions" id="boosters-actions">
+        <button type="button" class="bouton" id="btn-ouvrir-1">Ouvrir 1</button>
+        <button type="button" class="bouton secondaire" id="btn-ouvrir-10">Ouvrir 10</button>
+        <button type="button" class="bouton secondaire" id="btn-ouvrir-tout">Tout ouvrir</button>
+        <button type="button" class="bouton secondaire" id="btn-tout-reveler" hidden>Tout révéler</button>
+      </div>
+      <p class="indication" id="indication"></p>
+      <div class="scene" id="scene">
+        <div class="paquet" id="paquet">
+          <div class="couche haut" id="paquet-haut"></div>
+          <div class="couche bas" id="paquet-bas"></div>
+          <span class="paquet-multiple" id="paquet-multiple" hidden></span>
+        </div>
+        <div class="main-cartes" id="main-cartes" hidden></div>
+      </div>
+      <div class="recap" id="recap" hidden></div>
+    </div>
+
+    <h3>Raretés, chances et fragments</h3>
+    <div class="tableau-defilant"><table id="table-raretes"></table></div>
+  </section>
+
+  <section id="collection" class="section" role="tabpanel" hidden>
+    <div class="section-tete">
+      <h2 id="album-titre">Collection</h2>
+      <div class="progression">
+        <span id="prog-texte">0 / 0</span>
+        <div class="barre" aria-hidden="true"><i id="prog-barre"></i></div>
+        <small id="prog-pct">0 %</small>
+      </div>
+    </div>
+    <div class="bandeau-lecture" id="album-lecture" hidden>
+      <span id="album-lecture-texte"></span>
+      <button type="button" class="bouton secondaire petit" id="btn-mon-album">Revenir à mon album</button>
+    </div>
+    <p class="aide" id="album-aide"></p>
+    <div class="resume" id="resume"></div>
+    <div class="filtres">
+      <input type="search" id="filtre-recherche" placeholder="Rechercher un pilote…" aria-label="Rechercher un pilote" autocomplete="off">
+      <select id="filtre-rarete" aria-label="Filtrer par rareté"><option value="">Toutes les raretés</option></select>
+      <select id="filtre-ecurie" aria-label="Filtrer par écurie"><option value="">Toutes les écuries</option></select>
+      <div class="bascule" id="filtre-possession">
+        <button type="button" data-valeur="toutes" aria-pressed="true">Toutes</button>
+        <button type="button" data-valeur="possedees" aria-pressed="false">Possédées</button>
+        <button type="button" data-valeur="manquantes" aria-pressed="false">Manquantes</button>
+      </div>
+      <span class="filtres-compte" id="filtres-compte"></span>
+    </div>
+    <div class="minis" id="album"></div>
+    <div class="vide" id="album-vide" hidden>Aucune carte ne correspond à ces filtres.</div>
+  </section>
+
+  <section id="collections" class="section" role="tabpanel" hidden>
+    <div class="section-tete"><h2>Collections des joueurs</h2></div>
+    <p class="aide">Chacun gagne 1 booster par point marqué au championnat. Cliquez sur un joueur pour feuilleter son album.</p>
+    <div class="cartes joueurs" id="joueurs"></div>
+    <h3>Dernières grosses cartes</h3>
+    <p class="aide">Les 30 dernières cartes Épique ou mieux obtenues, la plus récente en premier.</p>
+    <ol class="fil" id="fil"></ol>
+  </section>
+</main>
+
+<footer class="pied conteneur" id="pied"></footer>
+
+<div class="modale" id="modale-connexion" hidden>
+  <form class="modale-contenu" id="form-connexion" novalidate>
+    <h2>Connexion</h2>
+    <label class="champ">
+      <span>Prénom</span>
+      <select id="connexion-nom" required></select>
+    </label>
+    <label class="champ">
+      <span>Mot de passe</span>
+      <input type="password" id="connexion-mdp" minlength="4" required autocomplete="current-password">
+    </label>
+    <p class="aide" id="connexion-aide">Première connexion ? Le mot de passe que vous saisissez devient le vôtre (4 caractères minimum) : retenez-le bien.</p>
+    <p class="erreur" id="connexion-erreur" hidden></p>
+    <div class="actions">
+      <button type="submit" class="bouton" id="connexion-valider">Se connecter</button>
+      <button type="button" class="bouton secondaire" id="connexion-annuler">Annuler</button>
+    </div>
+  </form>
+</div>
+
+<div class="loupe" id="loupe" hidden>
+  <div class="loupe-contenu">
+    <div id="loupe-carte"></div>
+    <div class="loupe-infos" id="loupe-infos"></div>
+    <button type="button" class="bouton secondaire" id="loupe-fermer">Fermer</button>
+  </div>
+</div>
+
+<div class="notification" id="notification" hidden></div>
+
+<script src="config.js"></script>
+<script src="cartes.js"></script>
+</body>
+</html>

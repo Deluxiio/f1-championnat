@@ -34,7 +34,12 @@ CONFIG_DEFAUT = {
     # Ignore les courses hors ligne (tests en solo, etc.)
     "seulementEnLigne": True,
     "urlPublique": "",
+    # Joueur qui fait tourner l'enregistreur : sa voiture est reconnue même si le jeu masque son pseudo
+    "joueurLocal": "joueur1",
 }
+
+# Noms affichés par le jeu quand les pseudos en ligne sont masqués : on identifie alors par numéro
+NOMS_GENERIQUES = {"player", "pilote", "joueur", "piloto", "spieler", "pilota", "giocatore", "jugador"}
 
 CIRCUITS = {
     0: "Australie", 2: "Chine", 3: "Bahreïn", 4: "Espagne", 5: "Monaco", 6: "Canada",
@@ -161,6 +166,7 @@ class Enregistreur:
                                               "nbActifs": 0, "tours": None, "classee": False}
                 self._oublier_vieilles_seances()
             s["maj"] = time.time()
+            s["voitureJoueur"] = e["voitureJoueur"]
             self.uid_courant = e["uid"]
 
             if e["id"] == tl.PAQUET_SESSION:
@@ -218,17 +224,35 @@ class Enregistreur:
                 return j
         return None
 
-    def _identite(self, p, i, remarques):
+    def _noms_ambigus(self, s):
+        """Pseudos qui ne permettent pas d'identifier un joueur : génériques ou portés par plusieurs humains."""
+        noms = [p["nom"].casefold() for p in (s["participants"] or []) if p["nom"] and not p["ia"]]
+        return {n for n in noms if noms.count(n) > 1} | NOMS_GENERIQUES
+
+    def _cle_humain(self, p, ambigus):
+        """Ce qui sert d'alias pour reconnaître ce joueur : son pseudo, ou « #numéro » s'il est masqué."""
+        return f"#{p['numero']}" if p["nom"].casefold() in ambigus else p["nom"]
+
+    def _joueur_humain(self, s, i, p, ambigus):
+        if i == s.get("voitureJoueur") and self.config.get("joueurLocal"):
+            local = next((j for j in self.saison["joueurs"] if j["id"] == self.config["joueurLocal"]), None)
+            if local:
+                return local
+        return self._joueur_par_nom(self._cle_humain(p, ambigus))
+
+    def _identite(self, s, p, i, remarques, ambigus):
         if p is None:
             return {"pilote": f"voiture:{i}", "nom": f"Voiture {i + 1}", "ecurie": None, "numero": None}
         ident = {"ecurie": p["ecurie"], "numero": p["numero"]}
         if p["ia"]:
             return {"pilote": f"ia:{p['piloteId']}", "nom": joli_nom(p["nom"]), **ident}
-        joueur = self._joueur_par_nom(p["nom"])
+        joueur = self._joueur_humain(s, i, p, ambigus)
         if joueur:
             return {"pilote": f"j:{joueur['id']}", "nom": joueur["nom"], **ident}
-        remarques.append(f"Joueur non reconnu : « {p['nom']} » (associe-le à l'un de vous dans l'admin)")
-        return {"pilote": f"inconnu:{p['nom']}", "nom": p["nom"], **ident}
+        cle = self._cle_humain(p, ambigus)
+        nom = p["nom"] if cle == p["nom"] else f"{p['nom']} {cle}"
+        remarques.append(f"Joueur non reconnu : « {nom} » (associe-le à l'un de vous dans l'admin)")
+        return {"pilote": f"inconnu:{cle}", "nom": nom, **ident}
 
     def _manche_pour(self, circuit):
         base = CIRCUIT_DE_BASE.get(circuit, circuit)
@@ -243,17 +267,23 @@ class Enregistreur:
         participants = s["participants"] or []
         remarques = []
         resultats = []
+        ambigus = self._noms_ambigus(s)
         for i, c in enumerate(lignes):
             if c["pos"] == 0:
                 continue
             p = participants[i] if i < len(participants) else None
-            r = {"pos": c["pos"], **self._identite(p, i, remarques), "grille": c["grille"],
+            r = {"pos": c["pos"], **self._identite(s, p, i, remarques, ambigus), "grille": c["grille"],
                  "tours": c["tours"], "statut": tl.STATUTS.get(c["statutJeu"], "nc"),
                  "statutJeu": c["statutJeu"], "meilleurTour": c["meilleurTour"] or None,
                  "tempsTotal": c["tempsTotal"], "penalites": c["penalites"],
                  "nbPenalites": c["nbPenalites"], "arrets": c["arrets"],
                  "pointsJeu": c["pointsJeu"], "pneus": c["pneus"]}
             resultats.append(r)
+        # Deux voitures reconnues comme le même joueur (même numéro, par ex.) : on ne devine pas
+        for r in resultats:
+            if r["pilote"].startswith("j:") and sum(x["pilote"] == r["pilote"] for x in resultats) > 1:
+                remarques.append(f"Plusieurs voitures reconnues comme {r['nom']} (n°{r['numero']}) : vérifie qui est qui")
+                r["pilote"], r["nom"] = f"inconnu:#{r['numero']}", f"{r['nom']} ? #{r['numero']}"
         resultats.sort(key=lambda r: r["pos"])
         circuit = info.get("circuit")
         manche = self._manche_pour(circuit) if circuit is not None else None
@@ -307,10 +337,13 @@ class Enregistreur:
                 parts = [p for p in (s["participants"] or []) if p["nom"]]
                 tour = max((t["tour"] for t in (s["tours"] or []) if t["pos"] == 1), default=None)
                 humains = []
-                for p in parts:
-                    if not p["ia"]:
-                        j = self._joueur_par_nom(p["nom"])
-                        humains.append({"nom": p["nom"], "joueur": j["nom"] if j else None})
+                ambigus = self._noms_ambigus(s)
+                for i, p in enumerate(s["participants"] or []):
+                    if p["nom"] and not p["ia"]:
+                        j = self._joueur_humain(s, i, p, ambigus)
+                        humains.append({"nom": p["nom"], "numero": p["numero"], "ecurie": p["ecurie"],
+                                        "cle": self._cle_humain(p, ambigus), "local": i == s.get("voitureJoueur"),
+                                        "joueur": j["nom"] if j else None})
                 seance = {"type": tl.NOMS_SEANCES.get(info["type"], str(info["type"])),
                           "estCourse": info["type"] in tl.SEANCES_COURSE,
                           "circuit": nom_circuit(info["circuit"]), "enLigne": info["enLigne"],

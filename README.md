@@ -48,6 +48,19 @@ Selon les options en ligne du jeu, un joueur peut apparaître sous un nom géné
 - Le classement constructeurs additionne les points des deux voitures de chaque écurie, joueurs et IA compris.
 - Le barème, le titre et le calendrier sont dans `docs/data/saison.json`. Les joueurs se modifient depuis l'admin (*Réglages*).
 
+## Jeu de cartes
+
+La page **Cartes** (`docs/cartes/`) est un jeu de collection : 1 point au championnat = 1 booster de 5 cartes.
+
+- **La collection** compte 302 cartes, une par couple pilote × écurie depuis 2000.
+- **La rareté** dépend de ce que le pilote a fait dans cette écurie : Icône (3 titres ou plus), Légendaire (titre), Épique (victoire), Rare (podium), Peu commune (points) ou Commune.
+- **Les doublons** sont recyclés en fragments, qui servent à fabriquer les cartes manquantes.
+
+Fichiers :
+- `outils/catalogue.py` régénère `docs/cartes/catalogue.json` à partir des résultats officiels (API Jolpica, avec un cache local).
+- `serveur/` contient le serveur PHP (comptes, boosters, fragments) installé sur Hostinger. Voir `serveur/LISEZMOI.md` pour l'installation et `serveur/API.md` pour le fonctionnement.
+- Tant que `docs/cartes/config.js` ne contient pas l'adresse du serveur, la page tourne en **mode démo** : rien n'y est conservé.
+
 ## Réglages de l'enregistreur
 
 `enregistreur/config.json` est créé au premier lancement :

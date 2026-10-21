@@ -24,8 +24,8 @@ SIEGES_HUMAINS = [3, 17, 7, 11]
 TAILLE_SESSION = 753
 
 
-def entete(pid, uid):
-    return tl.ENTETE.pack(2025, 25, 1, 10, 1, pid, uid, 0.0, 0, 0, 0, 255)
+def entete(pid, uid, voiture=SIEGES_HUMAINS[0]):
+    return tl.ENTETE.pack(2025, 25, 1, 10, 1, pid, uid, 0.0, 0, 0, voiture, 255)
 
 
 def paquet_session(uid, circuit, type_seance, en_ligne, tours):
