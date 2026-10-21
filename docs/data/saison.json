@@ -19,7 +19,8 @@
    "nom": "Valentin",
    "alias": [
     "Deluxiio"
-   ]
+   ],
+   "boostersBonus": 5
   },
   {
    "id": "joueur2",
@@ -1388,5 +1389,5 @@
    ]
   }
  ],
- "maj": "2026-10-21T23:46:40"
+ "maj": "2026-10-22T00:28:54"
 }
