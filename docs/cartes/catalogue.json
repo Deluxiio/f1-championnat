@@ -24,7 +24,7 @@
    "regle": "Champion du monde avec cette écurie",
    "poids": 3,
    "fragments": 100,
-   "cout": 800,
+   "cout": 1800,
    "notes": [
     90,
     95
@@ -36,7 +36,7 @@
    "regle": "Au moins une victoire avec cette écurie",
    "poids": 7,
    "fragments": 20,
-   "cout": 160,
+   "cout": 1160,
    "notes": [
     81,
     89
@@ -48,7 +48,7 @@
    "regle": "Au moins un podium avec cette écurie",
    "poids": 14,
    "fragments": 5,
-   "cout": 40,
+   "cout": 840,
    "notes": [
     73,
     80
@@ -60,7 +60,7 @@
    "regle": "A marqué des points avec cette écurie",
    "poids": 25,
    "fragments": 2,
-   "cout": 16,
+   "cout": 516,
    "notes": [
     63,
     72
@@ -72,7 +72,7 @@
    "regle": "Aucun point avec cette écurie",
    "poids": 50,
    "fragments": 1,
-   "cout": 8,
+   "cout": 108,
    "notes": [
     50,
     62
