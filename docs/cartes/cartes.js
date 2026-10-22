@@ -1035,7 +1035,7 @@
       zone.appendChild(b);
       if (ins && ins.ouvertes) {
         const c = el('button', 'bouton secondaire', 'Créer un compte spectateur', { type: 'button', id: 'btn-creer-compte' });
-        c.addEventListener('click', () => ouvrirConnexion('spectateur'));
+        c.addEventListener('click', () => ouvrirConnexion('creation'));
         zone.appendChild(c);
       }
       return;
@@ -1061,8 +1061,11 @@
   }
 
   /* ---------- Connexion et inscription ---------- */
-  /* Le même formulaire sert aux pilotes (leur prénom, un mot de passe créé à la première connexion) et aux spectateurs (un pseudo,
-     un compte créé par « Créer mon compte »). Le choix « Pilote / Spectateur » n'existe que si le serveur gère les spectateurs. */
+  /* Le même formulaire sert aux pilotes (leur prénom, un mot de passe créé à la première connexion) et aux spectateurs (un pseudo :
+     « J'ai un compte » pour se connecter, « Créer un compte » pour s'inscrire). Le choix « Pilote / Spectateur » n'existe que si le
+     serveur gère les spectateurs. Un seul bouton d'action, dont le libellé suit l'intention : Entrée fait toujours ce qu'il annonce. */
+  const avecSpectateurs = () => !!$('connexion-mode');  // la page contient le choix Pilote / Spectateur (une ancienne page HTML en cache ne l'a pas)
+  /* `mode` : 'creation' (le bouton « Créer un compte spectateur »), 'spectateur', 'pilote', ou rien : le dernier mode utilisé. */
   function ouvrirConnexion(mode) {
     const select = $('connexion-nom');
     select.textContent = '';
@@ -1073,36 +1076,39 @@
     $('connexion-mdp').value = '';
     $('connexion-erreur').hidden = true;
     $('connexion-valider').disabled = false;
-    if (avecSpectateurs()) {
-      $('connexion-pseudo').value = stockage.lire(CLE_DERNIER_PSEUDO) || '';
-      $('connexion-creer').disabled = false;
-    }
-    const souhaite = typeof mode === 'string' ? mode : stockage.lire(CLE_DERNIER_MODE);
-    choisirModeConnexion(avecSpectateurs() && inscriptions() && souhaite === 'spectateur' ? 'spectateur' : 'pilote');
+    if (avecSpectateurs()) $('connexion-pseudo').value = stockage.lire(CLE_DERNIER_PSEUDO) || '';
+    const souhaite = typeof mode === 'string' ? mode : (stockage.lire(CLE_DERNIER_MODE) === 'spectateur' ? 'spectateur' : 'pilote');
+    if (avecSpectateurs() && inscriptions() && (souhaite === 'creation' || souhaite === 'spectateur')) choisirModeConnexion('spectateur', souhaite === 'creation');
+    else choisirModeConnexion('pilote');
     $('modale-connexion').hidden = false;
     (etat.modeConnexion === 'spectateur' ? $('connexion-pseudo') : select).focus();
   }
-  const avecSpectateurs = () => !!$('connexion-mode');  // la page contient le choix Pilote / Spectateur
-  function choisirModeConnexion(mode) {
-    etat.modeConnexion = mode;
+  /* Pilote ou spectateur ; pour un spectateur, `creation` choisit « Créer un compte » (possible seulement tant qu'il reste de la place). */
+  function choisirModeConnexion(mode, creation) {
     const spectateur = mode === 'spectateur', ins = inscriptions();
+    const peutCreer = spectateur && !!(ins && ins.ouvertes);
+    etat.modeConnexion = mode;
+    etat.creationCompte = peutCreer && !!creation;
     $('connexion-erreur').hidden = true;
     if (avecSpectateurs()) {
       $('connexion-mode').hidden = !ins;  // un serveur plus ancien ne connaît que les pilotes
       document.querySelectorAll('#connexion-mode button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'));
+      $('connexion-sous-mode').hidden = !peutCreer;
+      document.querySelectorAll('#connexion-sous-mode button').forEach((b) => b.setAttribute('aria-pressed', (b.dataset.sous === 'creation') === etat.creationCompte ? 'true' : 'false'));
       $('champ-pilote').hidden = spectateur;
       $('champ-pseudo').hidden = !spectateur;
-      $('connexion-creer').hidden = !(spectateur && ins && ins.ouvertes);
     }
+    $('connexion-valider').textContent = etat.creationCompte ? 'Créer mon compte' : 'Se connecter';
+    $('connexion-mdp').setAttribute('autocomplete', etat.creationCompte ? 'new-password' : 'current-password');
     majAideConnexion();
   }
   function majAideConnexion() {
     const aide = $('connexion-aide');
     if (etat.modeConnexion === 'spectateur') {
       const ins = inscriptions();
-      aide.textContent = ins && ins.ouvertes
-        ? 'Spectateur : vous ne jouez pas au championnat, mais vous avez votre collection, des boosters offerts et des pronostics. Déjà un compte ? Connectez-vous. Sinon choisissez un pseudo (3 à 20 caractères) et un mot de passe (4 minimum), puis « Créer mon compte ».'
-        : 'Les inscriptions de spectateurs sont fermées pour le moment. Si vous avez déjà un compte, connectez-vous avec votre pseudo.';
+      aide.textContent = etat.creationCompte
+        ? 'Spectateur : vous ne jouez pas au championnat, mais vous avez votre collection, des boosters offerts et des pronostics. Choisissez un pseudo (3 à 20 caractères) et un mot de passe (4 minimum) : retenez-les bien.'
+        : `Connectez-vous avec votre pseudo et votre mot de passe.${ins && ins.ouvertes ? '' : ' Les inscriptions de spectateurs sont fermées pour le moment.'}`;
       return;
     }
     const id = $('connexion-nom').value;
@@ -1112,11 +1118,12 @@
       : 'Première connexion ? Le mot de passe que vous saisissez devient le vôtre (4 caractères minimum) : retenez-le bien.';
   }
   function fermerConnexion() { $('modale-connexion').hidden = true; }
-  /* `creer` : « Créer mon compte » (nouveau spectateur) plutôt que « Se connecter » (pilote ou spectateur existant). */
-  async function validerConnexion(creer) {
-    const spectateur = etat.modeConnexion === 'spectateur';
+  /* Se connecter (pilote ou spectateur) ou créer le compte d'un nouveau spectateur selon le choix affiché. */
+  async function validerConnexion() {
+    const spectateur = etat.modeConnexion === 'spectateur' && avecSpectateurs();
+    const creer = spectateur && etat.creationCompte;
     const select = $('connexion-nom');
-    const nom = spectateur && avecSpectateurs() ? $('connexion-pseudo').value.trim() : (select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '');
+    const nom = spectateur ? $('connexion-pseudo').value.trim() : (select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '');
     const mdp = $('connexion-mdp').value;
     const erreur = $('connexion-erreur');
     const refuser = (message) => { erreur.textContent = message; erreur.hidden = false; };
@@ -1124,7 +1131,6 @@
     if (creer && (nom.length < 3 || nom.length > 20)) { refuser('Le pseudo doit faire entre 3 et 20 caractères.'); return; }
     if (mdp.length < 4) { refuser('Le mot de passe doit faire au moins 4 caractères.'); return; }
     $('connexion-valider').disabled = true;
-    if (avecSpectateurs()) $('connexion-creer').disabled = true;
     erreur.hidden = true;
     try {
       const r = creer ? await etat.api.inscription(nom, mdp) : await etat.api.connexion(nom, mdp);
@@ -1142,10 +1148,13 @@
       rendreTout();
       if (location.hash !== '#boosters' && location.hash !== '#pronostics') location.hash = '#boosters';
     } catch (err) {
-      refuser(err.message || 'Connexion impossible.');
+      const ins = inscriptions();
+      // Un pseudo inconnu à la connexion : on dit à un nouveau venu où créer son compte
+      refuser(spectateur && !creer && err.code === 404 && ins && ins.ouvertes
+        ? `${err.message} Pas encore de compte ? Choisissez « Créer un compte » ci-dessus.`
+        : (err.message || 'Connexion impossible.'));
     } finally {
       $('connexion-valider').disabled = false;
-      if (avecSpectateurs()) $('connexion-creer').disabled = false;
     }
   }
   function initialiserConnexion() {
@@ -1153,15 +1162,20 @@
     if (avecSpectateurs()) {
       $('connexion-mode').addEventListener('click', (e) => {
         const b = e.target.closest('button');
-        if (b && b.dataset.mode) choisirModeConnexion(b.dataset.mode);
+        if (!b || !b.dataset.mode) return;
+        // Un premier passage chez les spectateurs : sans pseudo mémorisé, on propose de créer le compte
+        choisirModeConnexion(b.dataset.mode, b.dataset.mode === 'spectateur' && !stockage.lire(CLE_DERNIER_PSEUDO));
       });
-      $('connexion-creer').addEventListener('click', () => validerConnexion(true));
+      $('connexion-sous-mode').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (b && b.dataset.sous) choisirModeConnexion('spectateur', b.dataset.sous === 'creation');
+      });
     }
     $('connexion-annuler').addEventListener('click', fermerConnexion);
     $('modale-connexion').addEventListener('click', (e) => { if (e.target === $('modale-connexion')) fermerConnexion(); });
     $('form-connexion').addEventListener('submit', (e) => {
       e.preventDefault();
-      validerConnexion(false);
+      validerConnexion();
     });
   }
   async function deconnecter() {

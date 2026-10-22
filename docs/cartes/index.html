@@ -193,6 +193,10 @@
       <button type="button" data-mode="pilote" aria-pressed="true">Pilote</button>
       <button type="button" data-mode="spectateur" aria-pressed="false">Spectateur</button>
     </div>
+    <div class="bascule connexion-mode" id="connexion-sous-mode" role="group" aria-label="Compte spectateur" hidden>
+      <button type="button" data-sous="connexion" aria-pressed="true">J’ai un compte</button>
+      <button type="button" data-sous="creation" aria-pressed="false">Créer un compte</button>
+    </div>
     <label class="champ" id="champ-pilote">
       <span>Prénom</span>
       <select id="connexion-nom" required></select>
@@ -209,7 +213,6 @@
     <p class="erreur" id="connexion-erreur" hidden></p>
     <div class="actions">
       <button type="submit" class="bouton" id="connexion-valider">Se connecter</button>
-      <button type="button" class="bouton secondaire" id="connexion-creer" hidden>Créer mon compte</button>
       <button type="button" class="bouton secondaire" id="connexion-annuler">Annuler</button>
     </div>
   </form>

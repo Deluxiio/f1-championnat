@@ -584,6 +584,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
   background: color-mix(in srgb, var(--spectateur) 22%, transparent); color: var(--spectateur);
   font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
 }
-.connexion-mode { margin-bottom: 14px; }
+.connexion-mode { display: flex; width: fit-content; max-width: 100%; margin-bottom: 12px; }   /* un choix par ligne dans la modale */
+.connexion-mode button { flex: 0 1 auto; }
 .joueurs .carte-joueur.spectateur { border-style: dashed; }
 #pronos-classement tr.est-moi td { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
