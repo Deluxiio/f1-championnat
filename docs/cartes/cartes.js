@@ -87,6 +87,11 @@
   }
   const rareteDe = (id) => etat.raretes.get(id) || { id, nom: id, regle: '', poids: 0, fragments: 0, cout: 0 };
   const nomEcurie = (id) => (etat.catalogue.ecuries[id] && etat.catalogue.ecuries[id].nom) || id;
+  /* Écurie affichée sur une carte : celle du catalogue ; pour les cartes des potes, la ou les écuries qu'ils pilotent dans le jeu
+     (la plus récente d'abord, voir appliquerCartesVivantes), et « La bande » tant qu'on ne les connaît pas. */
+  const ecurieDe = (c) => (c.ami && c.ecuriesEnJeu && c.ecuriesEnJeu.length ? c.ecuriesEnJeu.join(' / ') : nomEcurie(c.ecurie));
+  const cleRecherche = (c) => normaliser(`${c.prenom} ${c.nom} ${ecurieDe(c)} ${c.nationalite} ${c.pays || ''}`);
+  const titreTuile = (c) => `${c.prenom} ${c.nom} · ${ecurieDe(c)} · ${rareteDe(c.rarete).nom}`;
   function couleursEcurie(id) {
     const e = etat.catalogue.ecuries[id];
     const c = (e && e.couleurs) || [];
@@ -521,7 +526,7 @@
       etat.cartes.set(c.id, c);
       if (!etat.parRarete.has(c.rarete)) etat.parRarete.set(c.rarete, []);
       etat.parRarete.get(c.rarete).push(c);
-      c.cle = normaliser(`${c.prenom} ${c.nom} ${nomEcurie(c.ecurie)} ${c.nationalite} ${c.pays || ''}`);
+      c.cle = cleRecherche(c);
       if (c.pilote && !etat.pilotes.has(c.pilote)) etat.pilotes.set(c.pilote, { prenom: c.prenom, nom: c.nom });
     });
   }
@@ -546,6 +551,15 @@
     etat.catalogue.cartes.filter((c) => c.ami).forEach((c) => {
       const p = calcul.joueurs.find((x) => x.joueur && x.joueur.id === c.ami);
       if (!p) return;
+      /* Écuries du jeu de ce pote, la plus récente d'abord (il peut en changer en cours de saison). */
+      const ecuries = [];
+      for (let i = p.resultats.length - 1; i >= 0; i--) {
+        const r = p.resultats[i], nom = r && r.ecurie != null ? window.Champ.nomEcurie(r.ecurie) : null;
+        if (nom && !ecuries.includes(nom)) ecuries.push(nom);
+      }
+      c.ecuriesEnJeu = ecuries;
+      c.cle = cleRecherche(c);
+      majTuileEcurie(c);
       const s = p.stats, departs = p.resultats.filter((r) => r && r.statut !== 'absent').length;
       c.stats = Object.assign({}, c.stats, { titres: 0, victoires: s.victoires, podiums: s.podiums, poles: 0, departs, points: p.points, meilleur: s.meilleurResultat });
       if (departs === 0) return;
@@ -719,7 +733,7 @@
     const carte = el('div', `carte format r-${c.rarete}`);
     appliquerCouleurs(carte, couleursCarte(c));
     carte.setAttribute('role', 'img');
-    carte.setAttribute('aria-label', `${c.prenom} ${c.nom} (${nomEcurie(c.ecurie)}), carte ${r.nom}, note ${c.note}`);
+    carte.setAttribute('aria-label', `${c.prenom} ${c.nom} (${ecurieDe(c)}), carte ${r.nom}, note ${c.note}`);
     const c3d = el('div', 'carte-3d');
     const face = el('div', 'face');
 
@@ -755,7 +769,7 @@
     const identite = el('div', 'identite');
     identite.append(el('div', 'prenom', c.prenom), el('div', 'nom', c.nom));
     const meta = el('div', 'meta');
-    meta.append(drapeau(c.nationalite), el('span', null, c.nationalite), el('span', 'sep', '·'), el('span', 'ecurie', nomEcurie(c.ecurie)));
+    meta.append(drapeau(c.nationalite), el('span', null, c.nationalite), el('span', 'sep', '·'), el('span', 'ecurie', ecurieDe(c), { title: ecurieDe(c) }));
     identite.appendChild(meta);
     face.appendChild(identite);
 
@@ -805,9 +819,17 @@
   function creerMini(c) {
     const m = el('div', `mini r-${c.rarete} manque`);
     m.dataset.id = c.id;
-    m.title = `${c.prenom} ${c.nom} · ${nomEcurie(c.ecurie)} · ${rareteDe(c.rarete).nom}`;
-    m.append(el('span', 'mini-num', pad3(c.numero)), casqueSvg(), el('span', 'mini-nom', c.nom), el('span', 'mini-ecurie', nomEcurie(c.ecurie)), gemmes(c.rarete));
+    m.title = titreTuile(c);
+    m.append(el('span', 'mini-num', pad3(c.numero)), casqueSvg(), el('span', 'mini-nom', c.nom), el('span', 'mini-ecurie', ecurieDe(c)), gemmes(c.rarete));
     return m;
+  }
+  /* L'album est construit avant que la saison soit chargée : quand les écuries d'un pote arrivent, on met sa tuile à jour. */
+  function majTuileEcurie(c) {
+    const m = etat.tuiles.get(c.id);
+    if (!m) return;
+    m.title = titreTuile(c);
+    const e = m.querySelector('.mini-ecurie');
+    if (e) e.textContent = ecurieDe(c);
   }
   function marquerTuile(m, c, possede) {
     m.classList.toggle('manque', !possede);
@@ -1241,13 +1263,13 @@
     }
     const restantes = etat.pioches.filter((p) => !p.classList.contains('revele')).length;
     const detail = t.nouvelle ? 'nouvelle carte' : `doublon, +${pluriel(t.fragments, 'fragment')}`;
-    $('indication').textContent = `${c.prenom} ${c.nom} (${nomEcurie(c.ecurie)}) — ${rareteDe(c.rarete).nom}, ${detail}${restantes ? ` · encore ${pluriel(restantes, 'carte')}` : ''}`;
+    $('indication').textContent = `${c.prenom} ${c.nom} (${ecurieDe(c)}) — ${rareteDe(c.rarete).nom}, ${detail}${restantes ? ` · encore ${pluriel(restantes, 'carte')}` : ''}`;
     if (restantes === 0) {
       clearTimeout(etat.minuterie);
       etat.occupe = false;
       $('btn-tout-reveler').hidden = true;
       rendreBoosters();
-      $('indication').textContent = `${c.prenom} ${c.nom} (${nomEcurie(c.ecurie)}) — ${rareteDe(c.rarete).nom}, ${detail}. Booster terminé !`;
+      $('indication').textContent = `${c.prenom} ${c.nom} (${ecurieDe(c)}) — ${rareteDe(c.rarete).nom}, ${detail}. Booster terminé !`;
       rafraichirEtat().then((ok) => { if (ok && !etat.occupe) { rendreJoueurs(); rendreFil(); rendreCompte(); rendreBoosters(true); } });
     } else {
       planifierAuto();
@@ -1559,7 +1581,7 @@
     const infos = $('loupe-infos');
     infos.textContent = '';
     const l1 = el('p', 'ligne');
-    l1.append(el('b', null, `${c.prenom} ${c.nom}`), el('span', null, ` · ${nomEcurie(c.ecurie)} · ${c.saisons || ''}`));
+    l1.append(el('b', null, `${c.prenom} ${c.nom}`), el('span', null, ` · ${ecurieDe(c)} · ${c.saisons || ''}`));
     infos.appendChild(l1);
     const l2 = el('p', `ligne r-${c.rarete}`);
     l2.append(el('span', null, `N° ${pad3(c.numero)}/${etat.catalogue.cartes.length} · `), gemmes(c.rarete), el('span', null, ' '), el('span', 'rarete-nom', r.nom), el('span', null, ` · ${r.regle}`));
@@ -1612,7 +1634,7 @@
         if (typeof r.fragments === 'number') moi.fragments = r.fragments;
       }
       etat.nouvellesRecentes.add(c.id);
-      notifier(`${c.prenom} ${c.nom} (${nomEcurie(c.ecurie)}) fabriquée ! Il vous reste ${pluriel(r.fragments, 'fragment')}.`, 'succes');
+      notifier(`${c.prenom} ${c.nom} (${ecurieDe(c)}) fabriquée ! Il vous reste ${pluriel(r.fragments, 'fragment')}.`, 'succes');
       rendreCompte();
       rendreBoosters();
       mettreAJourAlbum();
@@ -1685,7 +1707,7 @@
       li.appendChild(past);
       li.appendChild(el('span', 'qui', j ? j.nom : entree.joueur));
       const quoi = el('span', 'quoi');
-      quoi.append(el('span', null, entree.fabriquee ? 'a fabriqué ' : 'a tiré '), el('b', null, `${c.prenom} ${c.nom}`), el('span', null, ` (${nomEcurie(c.ecurie)}) `), gemmes(c.rarete), el('span', null, ' '), el('span', 'rarete-nom', rareteDe(c.rarete).nom));
+      quoi.append(el('span', null, entree.fabriquee ? 'a fabriqué ' : 'a tiré '), el('b', null, `${c.prenom} ${c.nom}`), el('span', null, ` (${ecurieDe(c)}) `), gemmes(c.rarete), el('span', null, ' '), el('span', 'rarete-nom', rareteDe(c.rarete).nom));
       quoi.addEventListener('click', () => ouvrirLoupe(c, j));
       li.appendChild(quoi);
       if (entree.fabriquee) li.appendChild(el('span', 'badge', 'fabriquée'));
