@@ -30,6 +30,8 @@ Tous les réglages se font dans l'admin locale, bloc **Cartes**, et sont publié
 
 ## Appels
 
+Toutes les actions POST répondent 403 « Origine non autorisée » quand la requête vient d'un navigateur dont l'en-tête `Origin` n'est pas dans `ORIGINES_AUTORISEES` (sans `Origin` : enregistreur, curl, tests, elle est acceptée).
+
 ### `GET api.php?action=etat` — public
 ```json
 {

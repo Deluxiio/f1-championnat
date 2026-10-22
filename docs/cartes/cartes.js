@@ -1191,7 +1191,9 @@
         const b = e.target.closest('button');
         if (!b || !b.dataset.sous) return;
         choisirModeConnexion('spectateur', b.dataset.sous === 'creation');
-        if (b.dataset.sous === 'creation' && $('connexion-pseudo').value === stockage.lire(CLE_DERNIER_PSEUDO)) $('connexion-pseudo').value = '';  // pas le pseudo d'un compte existant
+        const champ = $('connexion-pseudo'), memorise = stockage.lire(CLE_DERNIER_PSEUDO) || '';
+        if (b.dataset.sous === 'creation' && champ.value === memorise) champ.value = '';          // pas le pseudo d'un compte existant pour en créer un autre
+        else if (b.dataset.sous === 'connexion' && champ.value === '') champ.value = memorise;     // et on le repropose pour se reconnecter
       });
     }
     $('connexion-annuler').addEventListener('click', fermerConnexion);
