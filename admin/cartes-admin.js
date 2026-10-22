@@ -95,7 +95,7 @@
 
     const chanceMythique = catalogue.chanceMythiqueParBooster;
     zone.appendChild(h("p", { class: "indice" }, chanceMythique > 0
-      ? `Cartes Mythiques (les 4 potes) : environ ${virgule(chanceMythique)} % des boosters en contiennent une, uniquement dans les boosters (jamais fabricable). Une Mythique que le joueur n'a pas encore passe avant un doublon ; un doublon vaut ${rarete("mythique") ? rarete("mythique").fragments : 0} fragments.`
+      ? `Cartes Mythiques (les 4 potes) : environ ${virgule(chanceMythique)} % des boosters en contiennent une (jamais plus d'une par booster), uniquement dans les boosters (jamais fabricable). Une Mythique que le joueur n'a pas encore passe avant un doublon ; un doublon vaut ${rarete("mythique") ? rarete("mythique").fragments : 0} fragments.`
       : "Cartes Mythiques désactivées : aucun booster n'en contient."));
 
     zone.appendChild(h("div", { class: "champs" },
@@ -120,7 +120,7 @@
         h("td", {}, h("strong", {}, r.nom)),
         h("td", { class: "num" }, String(compte(r.id))),
         h("td", {}, "Tirage à part"),
-        h("td", { class: "num" }, `${virgule((100 * (1 - Math.pow(1 - chanceMythique / 100, 1 / catalogue.cartesParBooster))).toFixed(2))} %`),
+        h("td", { class: "num" }, `${virgule((chanceMythique / catalogue.cartesParBooster).toFixed(2))} %`),
         h("td", { class: "num" }, `${virgule(chanceMythique)} %`),
         h("td", {}, entree(r, "fragments"), " fragments"),
         h("td", {}, "Impossible"),
@@ -294,9 +294,10 @@
       zone.appendChild(h("p", { class: "indice" }, "Le serveur des cartes ne gère pas encore les pronostics : renvoie la dernière version de api.php sur Hostinger."));
       return;
     }
+    // On indique le GP affiché : si, entre-temps, il a été réglé et le suivant ouvert, le serveur refuse au lieu d'agir sur le suivant
     const agir = async (action, confirmation) => {
       if (confirmation && !confirm(confirmation)) return;
-      try { await appelServeur(action, { cle: serveur.cleAdmin }); } catch (e) { alert(e.message); }
+      try { await appelServeur(action, { cle: serveur.cleAdmin, manche: p.manche }); } catch (e) { alert(e.message); }
       rendreComptes();
     };
     if (p.manche === null) {
@@ -310,10 +311,14 @@
       zone.appendChild(h("div", { class: "actions" },
         p.statut === "ouvert"
           ? h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosFermer") }, "Fermer maintenant")
-          : h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosOuvrir") }, "Rouvrir"),
+          : h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosOuvrir",
+            "Les paris de chacun sont révélés dès la fermeture : en rouvrant, chacun peut modifier le sien en connaissant ceux des autres. Rouvrir quand même ?") }, "Rouvrir"),
         h("button", { type: "button", class: "bouton danger", onclick: () => agir("pronosAnnuler",
           `Annuler les pronostics du GP ${p.gp} ? Aucun gain ne sera versé et le GP suivant s'ouvrira.`) }, "Annuler ce GP"),
       ));
+    }
+    if ((p.enAttente || []).length) {
+      zone.appendChild(h("p", { class: "indice" }, `Course à vérifier : ${p.enAttente.map((x) => `n°${x.manche} ${x.gp}`).join(", ")}. Les pronostics de ce GP seront réglés dès que tu auras corrigé la course dans la liste ci-dessus (Courses → Modifier → Enregistrer et publier).`));
     }
     const dernier = (p.historique || [])[0];
     if (dernier) {

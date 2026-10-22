@@ -27,6 +27,7 @@
     occupe: false, pioches: [], minuterie: null, nouvellesRecentes: new Set(),
     pilotes: new Map(), photosCassees: new Set(), creditsConstruits: false,
     offertsFin: null, prochainEssaiOfferts: 0, rafraichitOfferts: false, pauseOfferts: 10000, generation: 0,
+    monPari: null, suiviPari: null, brouillon: null, envoiPari: false, rafraichitPronos: false, pronosVu: {}, ongletAffiche: null,
   };
 
   /* ====================================================================
@@ -61,6 +62,9 @@
     const v = etat.catalogue ? etat.catalogue.chanceMythiqueParBooster : undefined;
     return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(100, v)) : 1;
   }
+  /* Les Mythiques ne sortent que si le serveur est à jour (il envoie alors le bloc « pronos », qui arrive avec elles) :
+     tant qu'il ne l'est pas, on ne promet pas de pourcentage. Sans nouvelles du serveur, on affiche le réglage normalement. */
+  const mythiquesActives = () => !etat.public || !!etat.public.pronos;
   /* Boosters offerts : 1 toutes les N minutes, mis en stock jusqu'à un plafond. Le serveur compte le temps ;
      ici on n'affiche que le stock et un compte à rebours. Sans champ « offerts » (ancien serveur), rien n'est affiché. */
   const offertsDe = (j) => (j && j.offerts) || null;
@@ -176,7 +180,7 @@
       connexion: (nom, motDePasse) => appel('connexion', { nom, motDePasse }),
       ouvrir: (jeton, nombre) => appel('ouvrir', { jeton, nombre }),
       fabriquer: (jeton, carte) => appel('fabriquer', { jeton, carte }),
-      pronostiquer: (jeton, meilleur, ordre) => appel('pronostiquer', { jeton, meilleur, ordre }),
+      pronostiquer: (jeton, meilleur, ordre, manche) => appel('pronostiquer', { jeton, meilleur, ordre, manche }),
       monPronostic: (jeton) => appel('monPronostic', { jeton }),
       deconnexion: (jeton) => appel('deconnexion', { jeton }),
     };
@@ -239,17 +243,17 @@
       const liste = parRarete[rarete] || catalogue.cartes;
       return liste[Math.floor(Math.random() * liste.length)];
     }
-    /* Cartes Mythiques : tirage à part, comme chanceMythiqueParCarte() / tirerMythique() de api.php.
-       `?mythique=100` force la chance (pour montrer l'effet), `?mythique=0` la supprime. */
-    function chanceMythiqueParCarte() {
+    /* Cartes Mythiques : comme chanceMythiqueParBooster() / boosterAvecMythique() / tirerMythique() de api.php — un seul tirage
+       par booster (jamais plus d'une Mythique), puis une place au hasard. `?mythique=100` force la chance (pour montrer l'effet),
+       `?mythique=0` la supprime. */
+    function chanceMythiqueParBooster() {
       const forcee = new URLSearchParams(location.search).get('mythique');
       const pourcent = forcee !== null && forcee !== '' && isFinite(Number(forcee)) ? Number(forcee) : chanceMythique();
-      const p = Math.max(0, Math.min(100, pourcent)) / 100;
-      return 1 - Math.pow(1 - p, 1 / Math.max(1, catalogue.cartesParBooster || 5));
+      return Math.max(0, Math.min(100, pourcent)) / 100;
     }
-    function tirerMythique(chance, possedees) {
-      const liste = parRarete.mythique || [];
-      if (chance <= 0 || !liste.length || Math.random() >= chance) return null;
+    const boosterAvecMythique = (chance) => chance > 0 && (parRarete.mythique || []).length > 0 && Math.random() < chance;
+    function tirerMythique(possedees) {
+      const liste = parRarete.mythique;
       const nouvelles = liste.filter((c) => !possedees.has(c.id));
       const choix = nouvelles.length ? nouvelles : liste;
       return choix[Math.floor(Math.random() * choix.length)];
@@ -321,7 +325,7 @@
         return { manche: n, gp: m.gp, resultat: m.resultat, gains: m.gains, paris: sansHorodatage(m.paris) };
       });
       classement.sort((a, b) => (b.boosters - a.boosters) || ((b.bonsMeilleur + b.bonsOrdre) - (a.bonsMeilleur + a.bonsOrdre)));
-      const vue = { actif: pronosActifsDemo(), manche: null, gp: null, statut: null, bases: null, forces: null, cotes: null, aParie: {}, historique: historique.slice(0, 6), classement };
+      const vue = { actif: pronosActifsDemo(), manche: null, gp: null, statut: null, bases: null, forces: null, cotes: null, aParie: {}, enAttente: [], historique: historique.slice(0, 6), classement };
       if (courante) {
         const [n, m] = courante;
         Object.assign(vue, { manche: n, gp: m.gp, statut: m.statut, bases: m.bases, forces: m.forces, cotes: m.cotes });
@@ -389,12 +393,14 @@
         const n = Math.max(1, Math.min(100, Math.floor(Number(nombre) || 1), dispo));
         const possedees = new Set(j.cartes);
         const boosters = [];
-        const chanceMythique = chanceMythiqueParCarte();
+        const chanceMyth = chanceMythiqueParBooster();
         for (let b = 0; b < n; b++) {
           const booster = [];
+          const placeMythique = boosterAvecMythique(chanceMyth) ? Math.floor(Math.random() * catalogue.cartesParBooster) : -1;
           for (let k = 0; k < catalogue.cartesParBooster; k++) {
-            const carte = tirerMythique(chanceMythique, possedees)
-              || tirerCarte(tirerRarete(k === catalogue.cartesParBooster - 1 ? catalogue.derniereCarteMin : null));
+            const carte = k === placeMythique
+              ? tirerMythique(possedees)
+              : tirerCarte(tirerRarete(k === catalogue.cartesParBooster - 1 ? catalogue.derniereCarteMin : null));
             if (possedees.has(carte.id)) {
               const frag = rareteLocale(carte.rarete).fragments;
               j.fragments += frag;
@@ -432,21 +438,22 @@
         sauver();
         return latence({ carte: carte.id, fragments: j.fragments });
       },
-      async pronostiquer(jeton, meilleur, ordre) {
+      async pronostiquer(jeton, meilleur, ordre, manche) {
         const { id } = joueurParJeton(jeton);
         synchroniserPronos();
         if (!pronosActifsDemo()) echec(409, 'Les pronostics ne sont pas activés.');
         const courante = mancheCourante();
         if (!courante) echec(409, 'Aucun GP à pronostiquer pour le moment.');
         const [n, m] = courante;
+        if (manche !== undefined && manche !== null && Number(manche) !== n) echec(409, 'Ce GP est terminé : un nouveau GP vient de s\'ouvrir, refais ton pronostic.');
         if (m.statut !== 'ouvert') echec(409, 'Les pronostics de ce GP sont fermés : la course a commencé.');
         const ids = Object.keys(m.forces);
         const m0 = meilleur === undefined ? null : meilleur, o0 = ordre === undefined ? null : ordre;
         if (m0 === null && o0 === null) echec(400, 'Choisis au moins un pronostic.');
-        if (m0 !== null && (m.bases.meilleur <= 0 || typeof m0 !== 'string' || !ids.includes(m0))) echec(400, 'Pronostic « meilleur d’entre nous » invalide.');
+        if (m0 !== null && (m.bases.meilleur <= 0 || typeof m0 !== 'string' || !ids.includes(m0))) echec(400, 'Pronostic « meilleur d\'entre nous » invalide.');
         if (o0 !== null) {
           const valide = m.bases.ordre > 0 && Array.isArray(o0) && o0.length === ids.length && o0.every((x) => typeof x === 'string') && ids.every((x) => o0.includes(x)) && new Set(o0).size === ids.length;
-          if (!valide) echec(400, `Pronostic « ordre d’arrivée » invalide : classe chacun des ${ids.length} joueurs une seule fois.`);
+          if (!valide) echec(400, `Pronostic « ordre d\'arrivée » invalide : classe chacun des ${ids.length} joueurs une seule fois.`);
         }
         const pari = { meilleur: m0, ordre: o0 === null ? null : o0.slice() };
         m.paris[id] = pari;
@@ -459,6 +466,13 @@
         const courante = mancheCourante();
         const pari = courante ? courante[1].paris[id] : null;
         return latence({ manche: courante ? courante[0] : null, statut: courante ? courante[1].statut : null, pari: pari ? detailPari(courante[1], pari) : null });
+      },
+      /* Réservé à la démo : ferme les pronostics du GP en cours (ce que fait l'enregistreur au départ de la course). */
+      async fermerPronos() {
+        synchroniserPronos();
+        const courante = mancheCourante();
+        if (courante && courante[1].statut === 'ouvert') { courante[1].statut = 'ferme'; sauver(); }
+        return latence({ ok: true });
       },
       /* Réservé à la démo : joue la course tout de suite (ordre au hasard, ou `?ordre=joueur2,joueur1,…`), les joueurs
          non connectés parient au hasard, puis le GP suivant s'ouvre. */
@@ -862,7 +876,7 @@
     etat.nouvellesRecentes.clear();
     etat.offertsFin = null;
     etat.monPari = null;
-    etat.cleMonPari = null;
+    etat.suiviPari = null;
     etat.brouillon = null;
   }
   function gererErreur(e) {
@@ -908,13 +922,15 @@
     mettreAJourAlbum();
     rendreJoueurs();
     rendreFil();
+    rendreTableRaretes();
     rendrePronos();
   }
   function rendreSousTitre() {
     if (etat.panne && !etat.public) return;
-    const total = etat.catalogue.cartes.length;
+    const nbMythiques = (etat.parRarete.get('mythique') || []).length;
+    const total = etat.catalogue.cartes.length - nbMythiques;
     const offerts = reglageOfferts();
-    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`
+    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}${nbMythiques ? `, plus les ${nbMythiques} cartes Mythiques de la bande` : ''}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`
       + (offerts ? ` En plus : 1 booster offert ${texteRythme(offerts.intervalle)} (${offerts.max} en stock au maximum).` : '');
     document.querySelectorAll('.ratio-boosters').forEach((n) => { n.textContent = texteRatio(); });
     document.querySelectorAll('.aide-offerts').forEach((n) => {
@@ -1407,7 +1423,7 @@
       tr.appendChild(el('td', null, r.regle));
       tr.appendChild(el('td', 'num', String((etat.parRarete.get(r.id) || []).length)));
       const mythique = r.id === 'mythique';  // tirage à part, uniquement dans les boosters
-      tr.appendChild(el('td', 'num', mythique ? `≈ ${formaterNombre(chanceMythique())} % par booster` : `${r.poids} %`));
+      tr.appendChild(el('td', 'num', mythique ? (mythiquesActives() ? `≈ ${formaterNombre(chanceMythique())} % par booster` : 'Bientôt (mise à jour du serveur)') : `${r.poids} %`));
       tr.appendChild(el('td', 'num', `+${pluriel(r.fragments, 'fragment')}`));
       tr.appendChild(el('td', 'num', mythique ? 'Impossible' : pluriel(r.cout, 'fragment')));
       tbody.appendChild(tr);
@@ -1550,7 +1566,9 @@
     infos.appendChild(l2);
     if (!possede && c.rarete === 'mythique') {
       infos.appendChild(el('p', 'cout', 'Carte manquante · elle ne se fabrique pas'));
-      infos.appendChild(el('p', 'ligne', `Une Mythique se trouve uniquement dans les boosters : environ ${formaterNombre(chanceMythique())} % de chance par booster, et tant qu’il vous en manque, c’est une nouvelle qui sort en premier.`));
+      infos.appendChild(el('p', 'ligne', mythiquesActives()
+        ? `Une Mythique se trouve uniquement dans les boosters : environ ${formaterNombre(chanceMythique())} % de chance par booster, et tant qu’il vous en manque, c’est une nouvelle qui sort en premier.`
+        : 'Une Mythique se trouvera uniquement dans les boosters : elles arrivent dès que le serveur du jeu sera mis à jour.'));
     } else if (!possede) {
       const cout = c.cout ?? r.cout;
       infos.appendChild(el('p', 'cout', `Carte manquante · fabrication : ${pluriel(cout, 'fragment')}`));
@@ -1697,13 +1715,16 @@
     if (lien) lien.hidden = !pronosVisibles();
     if (etat.afficherOnglet) etat.afficherOnglet();
   }
-  /* Le formulaire se remplit avec le pari déjà enregistré ; ce qu'on modifie reste dans le brouillon pendant les rafraîchissements. */
+  const clePari = (p) => (etat.session ? `${etat.session.joueur}|${p.manche}` : null);
+  const pariEnregistre = (p) => (etat.monPari && etat.monPari.manche === p.manche ? etat.monPari.pari : null);
+
+  /* Le formulaire se remplit avec le pari déjà enregistré ; ce qu'on modifie reste dans le brouillon pendant les rafraîchissements.
+     Le pari de l'ordre n'est joué que si on y touche (ou si on coche la case) : on n'enregistre jamais un ordre par défaut sans le savoir. */
   function brouillonPronos(p) {
-    const moi = joueurConnecte();
-    const cle = `${p.manche}|${moi ? moi.id : ''}`;
+    const cle = clePari(p);
     let b = etat.brouillon;
-    if (!b || b.cle !== cle) b = etat.brouillon = { cle, meilleur: null, ordre: ordreParDefaut(p), jouerOrdre: true, modifie: false, depuisSauvegarde: false };
-    const sauve = etat.monPari && etat.monPari.manche === p.manche ? etat.monPari.pari : null;
+    if (!b || b.cle !== cle) b = etat.brouillon = { cle, meilleur: null, ordre: ordreParDefaut(p), jouerOrdre: false, modifie: false, depuisSauvegarde: false };
+    const sauve = pariEnregistre(p);
     if (sauve && !b.modifie && !b.depuisSauvegarde) {
       b.meilleur = sauve.meilleur || null;
       b.ordre = sauve.ordre ? sauve.ordre.slice() : ordreParDefaut(p);
@@ -1712,17 +1733,29 @@
     }
     return b;
   }
+  /* Demande au serveur le pari déjà enregistré par ce joueur pour ce GP. Une réponse n'est gardée que si le joueur et le GP
+     sont toujours les mêmes (déconnexion / reconnexion ou GP suivant pendant la requête : réponse ignorée). */
   async function chargerMonPari() {
     const p = pronosDe();
-    if (!etat.session || !p || p.manche === null || etat.chargeMonPari || !etat.api.monPronostic) return;
-    const cle = `${etat.session.joueur}|${p.manche}`;
-    if (etat.cleMonPari === cle) return;
-    etat.chargeMonPari = true;
-    etat.cleMonPari = cle;  // une seule tentative par GP et par joueur (pas de boucle si le serveur ne répond pas)
-    try { etat.monPari = await etat.api.monPronostic(etat.session.jeton); }
-    catch (e) { if (e && e.code === 401) gererErreur(e); }
-    finally { etat.chargeMonPari = false; rendrePronos(); }
+    if (!etat.session || !p || p.manche === null || !etat.api.monPronostic) return;
+    const cle = clePari(p);
+    if (etat.suiviPari && etat.suiviPari.cle === cle) return;  // déjà demandé (en cours, réussi, ou en échec : « Réessayer » le relance)
+    const jeton = etat.session.jeton;
+    const suivi = etat.suiviPari = { cle, etat: 'chargement' };
+    rendrePronos();
+    try {
+      const r = await etat.api.monPronostic(jeton);
+      if (etat.suiviPari !== suivi) return;
+      etat.monPari = r;
+      suivi.etat = 'ok';
+    } catch (e) {
+      if (etat.suiviPari !== suivi) return;
+      if (e && e.code === 401) { gererErreur(e); return; }
+      suivi.etat = 'erreur';
+    }
+    rendrePronos();
   }
+  const texteParis = (meilleur, ordre) => (meilleur && ordre ? 'meilleur + ordre' : (meilleur ? 'meilleur' : 'ordre'));
   async function envoyerPari(p) {
     const b = etat.brouillon, moi = joueurConnecte();
     if (!b || !moi || etat.envoiPari) return;
@@ -1732,14 +1765,18 @@
     etat.envoiPari = true;
     rendrePronos();
     try {
-      const r = await etat.api.pronostiquer(etat.session.jeton, meilleur, ordre);
+      const r = await etat.api.pronostiquer(etat.session.jeton, meilleur, ordre, p.manche);
       etat.monPari = { manche: r.manche, statut: r.statut, pari: r.pari };
-      etat.cleMonPari = `${moi.id}|${r.manche}`;
+      etat.suiviPari = { cle: `${moi.id}|${r.manche}`, etat: 'ok' };
       b.modifie = false;
       b.depuisSauvegarde = false;
-      notifier('Pronostic enregistré ! Il reste secret jusqu’au départ de la course.', 'succes');
+      notifier(`Pronostic enregistré (${texteParis(meilleur, ordre)}) ! Il reste secret jusqu’à la fermeture.`, 'succes');
     } catch (e) {
-      if (e && e.code === 409) { notifier(e.message); await rafraichirEtat(false, true); } else gererErreur(e);
+      if (e && e.code === 409) {
+        notifier(e.message);
+        await rafraichirEtat(false, true);
+        etat.suiviPari = null; etat.monPari = null; etat.brouillon = null;  // le GP a peut-être changé : on repart du serveur
+      } else gererErreur(e);
     } finally {
       etat.envoiPari = false;
       rendrePronos();
@@ -1751,10 +1788,10 @@
     zone.textContent = '';
     if (p.manche !== null) {
       const gp = el('span', 'puce'); gp.append(el('b', null, `GP n°${p.manche}`), el('span', null, p.gp ? ` · ${p.gp}` : '')); zone.appendChild(gp);
-      zone.appendChild(el('span', `etat-pari ${p.statut}`, p.statut === 'ouvert' ? 'Pronostics ouverts' : 'Course en cours'));
+      zone.appendChild(el('span', `etat-pari ${p.statut}`, p.statut === 'ouvert' ? 'Pronostics ouverts' : 'Pronostics fermés'));
       if (p.statut === 'ouvert') {
         const n = Object.keys(p.aParie || {}).filter((id) => p.aParie[id]).length, total = Object.keys(p.aParie || {}).length;
-        const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${total}`), el('span', null, ' ont parié')); zone.appendChild(c);
+        const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${total}`), el('span', null, n > 1 ? ' ont parié' : ' a parié')); zone.appendChild(c);
       }
     }
     const regles = $('pronos-regles');
@@ -1766,19 +1803,29 @@
     }
   }
 
-  function chipCote(texte, cote, gain) {
-    const s = el('span', 'cote-ligne');
-    s.append(el('b', null, texte), el('span', 'cote', formaterCote(cote)), el('small', null, `+${pluriel(gain, 'booster')}`));
-    return s;
-  }
-
   function formulairePronos(p) {
+    const moi = joueurConnecte();
+    const suivi = etat.suiviPari && etat.suiviPari.cle === clePari(p) ? etat.suiviPari : null;
+    const aDejaParie = !!(p.aParie && p.aParie[moi.id]) || !!pariEnregistre(p);
+    // Un pari déjà enregistré doit être chargé avant d'afficher le formulaire : sinon un clic le remplacerait par l'ordre par défaut
+    if (aDejaParie && !pariEnregistre(p) && (!suivi || suivi.etat !== 'ok')) {
+      const attente = el('div', 'pari-form');
+      if (suivi && suivi.etat === 'erreur') {
+        attente.appendChild(el('p', 'aide', 'Impossible de charger votre pronostic pour le moment (le serveur ne répond pas).'));
+        const reessayer = el('button', 'bouton secondaire petit', 'Réessayer', { type: 'button', 'data-f': 'reessayer' });
+        reessayer.addEventListener('click', () => { etat.suiviPari = null; rendrePronos(); });
+        attente.appendChild(reessayer);
+      } else {
+        attente.appendChild(el('p', 'aide', 'Chargement de votre pronostic…'));
+      }
+      return attente;
+    }
     const b = brouillonPronos(p);
     const f = el('div', 'pari-form');
     if (p.bases.meilleur > 0) {
       const bloc = el('div', 'pari-bloc');
-      bloc.appendChild(el('h4', null, 'Qui sera le meilleur d’entre nous ?'));
-      const grille = el('div', 'choix-joueurs');
+      bloc.appendChild(el('h4', null, 'Qui sera le meilleur d’entre nous ?', { id: 'pari-meilleur-titre' }));
+      const grille = el('div', 'choix-joueurs', null, { role: 'group', 'aria-labelledby': 'pari-meilleur-titre' });
       Object.keys(p.cotes.meilleur).forEach((id) => {
         const cote = p.cotes.meilleur[id], gain = gainPronos(p.bases.meilleur, cote, p.bases.max);
         const bouton = el('button', 'choix', null, { type: 'button', 'aria-pressed': b.meilleur === id ? 'true' : 'false', 'data-f': `choix-${id}` });
@@ -1797,18 +1844,18 @@
       const caseJouer = el('input', null, null, { type: 'checkbox', 'data-f': 'jouer-ordre' });
       caseJouer.checked = b.jouerOrdre;
       caseJouer.addEventListener('change', () => { b.jouerOrdre = caseJouer.checked; b.modifie = true; rendrePronos(); });
-      jouer.append(caseJouer, el('span', null, ' Je joue aussi ce pari'));
+      jouer.append(caseJouer, el('span', null, ' Je joue aussi ce pari (déplacer un joueur le coche)'));
       bloc.appendChild(jouer);
       const liste = el('ol', 'ordre-liste' + (b.jouerOrdre ? '' : ' inactif'));
       b.ordre.forEach((id, i) => {
         const li = el('li');
         li.style.setProperty('--couleur', couleurJoueurId(id));
         li.append(el('span', 'place', String(i + 1)), el('span', 'pastille'), el('b', null, nomJoueur(id)));
-        const deplacer = (delta) => { const k = i + delta; [b.ordre[i], b.ordre[k]] = [b.ordre[k], b.ordre[i]]; b.modifie = true; rendrePronos(); };
+        const deplacer = (delta) => { const k = i + delta; [b.ordre[i], b.ordre[k]] = [b.ordre[k], b.ordre[i]]; b.jouerOrdre = true; b.modifie = true; rendrePronos(); };
         const haut = el('button', 'bouton secondaire petit', '↑', { type: 'button', 'aria-label': `Monter ${nomJoueur(id)}`, 'data-f': `haut-${id}` });
         const bas = el('button', 'bouton secondaire petit', '↓', { type: 'button', 'aria-label': `Descendre ${nomJoueur(id)}`, 'data-f': `bas-${id}` });
-        haut.disabled = i === 0 || !b.jouerOrdre;
-        bas.disabled = i === b.ordre.length - 1 || !b.jouerOrdre;
+        haut.disabled = i === 0;
+        bas.disabled = i === b.ordre.length - 1;
         haut.addEventListener('click', () => deplacer(-1));
         bas.addEventListener('click', () => deplacer(1));
         li.append(haut, bas);
@@ -1819,15 +1866,18 @@
       bloc.appendChild(el('p', 'ordre-cote', `Cote ${formaterCote(cote)} : +${pluriel(gainPronos(p.bases.ordre, cote, p.bases.max), 'booster')} si l’ordre est exact. Un absent est simplement retiré de l’ordre (la cote est alors recalculée).`));
       f.appendChild(bloc);
     }
-    const sauve = etat.monPari && etat.monPari.manche === p.manche ? etat.monPari.pari : null;
+    const sauve = pariEnregistre(p);
     const valider = el('button', 'bouton', sauve ? 'Modifier mon pronostic' : 'Valider mon pronostic', { type: 'button', 'data-f': 'valider' });
     valider.disabled = !!etat.envoiPari;
     valider.addEventListener('click', () => envoyerPari(p));
     const bas = el('div', 'actions pari-actions');
     bas.appendChild(valider);
-    bas.appendChild(el('span', 'pari-statut', sauve
-      ? (b.modifie ? 'Modifications non enregistrées.' : 'Pronostic enregistré : modifiable jusqu’au départ de la course.')
-      : 'Aucune mise : vous ne pouvez rien perdre.'));
+    const aEnregistrer = texteParis(p.bases.meilleur > 0 && b.meilleur, p.bases.ordre > 0 && b.jouerOrdre);
+    bas.appendChild(el('span', 'pari-statut', sauve && !b.modifie
+      ? 'Pronostic enregistré : modifiable jusqu’à la fermeture.'
+      : ((b.meilleur && p.bases.meilleur > 0) || (b.jouerOrdre && p.bases.ordre > 0)
+        ? `${sauve ? 'Modifications non enregistrées · ' : ''}Sera enregistré : ${aEnregistrer}. Aucune mise : vous ne pouvez rien perdre.`
+        : 'Choisissez un joueur, ou déplacez l’ordre, puis validez. Aucune mise : vous ne pouvez rien perdre.')));
     f.appendChild(bas);
     if (sauve) f.appendChild(el('p', 'aide pari-gains', resumePari(sauve)));
     return f;
@@ -1857,7 +1907,7 @@
       if (!pari) { const td = el('td', 'discret', 'N’a pas parié'); td.colSpan = 2; tr.appendChild(td); }
       else {
         tr.appendChild(el('td', null, pari.meilleur ? `${nomJoueur(pari.meilleur)} (${formaterCote(p.cotes.meilleur[pari.meilleur])})` : '–'));
-        tr.appendChild(el('td', null, pari.ordre ? pari.ordre.map(nomJoueur).join(' › ') : '–'));
+        tr.appendChild(el('td', 'ordre', pari.ordre ? pari.ordre.map(nomJoueur).join(' › ') : '–'));
       }
       corps.appendChild(tr);
     });
@@ -1871,6 +1921,10 @@
     zone.textContent = '';
     const connecte = !!joueurConnecte();
     $('pronos-hors-ligne').hidden = !(p.manche !== null && p.statut === 'ouvert' && p.actif && !etat.session);
+    const attente = (p.enAttente || []).map((x) => x.gp || `n°${x.manche}`);
+    if (attente.length) {
+      zone.appendChild(el('p', 'aide', `Résultat du GP ${attente.join(', ')} en cours de vérification : les gains seront versés dès qu’il sera validé.`));
+    }
     if (p.manche === null) {
       zone.appendChild(el('div', 'vide', p.actif
         ? 'Pas de Grand Prix à pronostiquer pour le moment : le prochain s’ouvrira dès que le précédent aura été enregistré.'
@@ -1883,7 +1937,7 @@
       if (connecte) {
         bloc.appendChild(formulairePronos(p));
       } else {
-        bloc.appendChild(el('p', 'aide', 'Cotes du moment (elles sont figées pour tout le GP). Connectez-vous pour faire votre pronostic.'));
+        bloc.appendChild(el('p', 'aide', 'Cotes du moment, figées pour tout le GP.'));
         const grille = el('div', 'choix-joueurs lecture');
         Object.keys(p.cotes.meilleur).forEach((id) => {
           const c = el('div', 'choix');
@@ -1896,18 +1950,27 @@
     } else if (p.statut === 'ouvert') {
       bloc.appendChild(el('p', 'aide', 'Les pronostics sont désactivés : ce GP sera réglé avec les paris déjà enregistrés.'));
     } else {
-      bloc.appendChild(el('p', 'aide', 'Les pronostics sont fermés : la course a commencé. Voici les paris de chacun. Le résultat est pris en compte quelques minutes après la course.'));
+      bloc.appendChild(el('p', 'aide', 'Les pronostics sont fermés. Voici les paris de chacun ; le résultat est pris en compte quelques minutes après la course.'));
       bloc.appendChild(parisReveles(p));
     }
     if (etat.demo) {
+      const ligne = el('div', 'pari-demo');
+      if (p.statut === 'ouvert' && etat.api.fermerPronos) {
+        const fermer = el('button', 'bouton secondaire petit', 'Fermer les pronostics (démo)', { type: 'button', 'data-f': 'fermer-demo' });
+        fermer.addEventListener('click', async () => {
+          fermer.disabled = true;
+          try { await etat.api.fermerPronos(); await rafraichirEtat(false, true); rendrePronos(); }
+          catch (e) { gererErreur(e); } finally { fermer.disabled = false; }
+        });
+        ligne.appendChild(fermer);
+      }
       const sim = el('button', 'bouton secondaire petit', 'Simuler la course (démo)', { type: 'button', 'data-f': 'simuler' });
       sim.addEventListener('click', async () => {
         sim.disabled = true;
-        try { await etat.api.simulerCourse(); await rafraichirEtat(false, true); etat.cleMonPari = null; etat.monPari = null; etat.brouillon = null; rendreTout(); }
-        catch (e) { gererErreur(e); }
+        try { await etat.api.simulerCourse(); await rafraichirEtat(false, true); etat.suiviPari = null; etat.monPari = null; etat.brouillon = null; rendreTout(); }
+        catch (e) { gererErreur(e); } finally { sim.disabled = false; }
       });
-      const ligne = el('div', 'pari-demo');
-      ligne.append(sim, el('span', 'discret', ' Mode démo : joue la course tout de suite (les autres joueurs parient au hasard) et ouvre le GP suivant.'));
+      ligne.append(sim, el('span', 'discret', ' Mode démo : ferme les pronostics, ou joue la course tout de suite (les autres joueurs parient au hasard) et ouvre le GP suivant.'));
       bloc.appendChild(ligne);
     }
     zone.appendChild(bloc);
@@ -1935,13 +1998,14 @@
         c.style.setProperty('--couleur', couleurJoueurId(id));
         arrivee.appendChild(c);
       });
-      if (h.resultat && h.resultat.absents && h.resultat.absents.length) arrivee.appendChild(el('span', 'discret', ` · absent : ${h.resultat.absents.map(nomJoueur).join(', ')}`));
+      const absents = (h.resultat && h.resultat.absents) || [];
+      if (absents.length) arrivee.appendChild(el('span', 'discret', ` · ${absents.length > 1 ? 'absents' : 'absent'} : ${absents.map(nomJoueur).join(', ')}`));
       carte.appendChild(arrivee);
       const parieurs = Object.keys(h.paris || {});
       if (parieurs.length) {
         const t = el('table', 'pronos-table');
         const tr0 = el('tr');
-        ['Joueur', 'Meilleur', 'Ordre', 'Gain'].forEach((x, i) => tr0.appendChild(el('th', i === 3 ? 'num' : null, x)));
+        ['Joueur', 'Meilleur', 'Gain', 'Ordre'].forEach((x, i) => tr0.appendChild(el('th', i === 2 ? 'num' : null, x)));  // l'ordre, la colonne la plus large, à la fin
         t.appendChild(el('thead')).appendChild(tr0);
         const corps = el('tbody');
         parieurs.forEach((id) => {
@@ -1949,9 +2013,9 @@
           const tr = el('tr');
           tr.appendChild(el('td', null, nomJoueur(id)));
           const m = el('td'); if (pari.meilleur) { m.appendChild(el('span', g.meilleur > 0 ? 'juste' : 'rate', g.meilleur > 0 ? '✓ ' : '✗ ')); m.appendChild(el('span', null, nomJoueur(pari.meilleur))); } else m.textContent = '–';
-          const o = el('td'); if (pari.ordre) { o.appendChild(el('span', g.ordre > 0 ? 'juste' : 'rate', g.ordre > 0 ? '✓ ' : '✗ ')); o.appendChild(el('span', null, pari.ordre.map(nomJoueur).join(' › '))); } else o.textContent = '–';
+          const o = el('td', 'ordre'); if (pari.ordre) { o.appendChild(el('span', g.ordre > 0 ? 'juste' : 'rate', g.ordre > 0 ? '✓ ' : '✗ ')); o.appendChild(el('span', null, pari.ordre.map(nomJoueur).join(' › '))); } else o.textContent = '–';
           const gain = g.meilleur + g.ordre;
-          tr.append(m, o, el('td', 'num' + (gain > 0 ? ' juste' : ''), gain > 0 ? `+${gain}` : '0'));
+          tr.append(m, el('td', 'num' + (gain > 0 ? ' juste' : ''), gain > 0 ? `+${gain}` : '0'), o);
           corps.appendChild(tr);
         });
         t.appendChild(corps);
@@ -1968,44 +2032,56 @@
     const t = $('pronos-classement');
     t.textContent = '';
     const tr0 = el('tr');
-    ['#', 'Joueur', 'Paris', 'Bon « meilleur »', 'Bon « ordre »', 'Boosters gagnés'].forEach((x, i) => tr0.appendChild(el('th', i >= 2 ? 'num' : null, x)));
+    ['#', 'Joueur', 'Boosters gagnés', 'Paris', 'Bon « meilleur »', 'Bon « ordre »'].forEach((x, i) => tr0.appendChild(el('th', i >= 2 ? 'num' : null, x)));
     t.appendChild(el('thead')).appendChild(tr0);
     const corps = el('tbody');
     (p.classement || []).forEach((c, i) => {
       const tr = el('tr');
       tr.append(el('td', null, String(i + 1)), el('td', null, nomJoueur(c.joueur)),
-        el('td', 'num', String(c.paris)), el('td', 'num', String(c.bonsMeilleur)), el('td', 'num', String(c.bonsOrdre)), el('td', 'num', String(c.boosters)));
+        el('td', 'num total', String(c.boosters)), el('td', 'num', String(c.paris)), el('td', 'num', String(c.bonsMeilleur)), el('td', 'num', String(c.bonsOrdre)));
       corps.appendChild(tr);
     });
     t.appendChild(corps);
   }
-  /* Une seule fois par GP réglé : « +N boosters » quand ses pronostics ont rapporté (la mémoire est le navigateur ; première visite : rien). */
+  /* Une seule fois par GP réglé : « +N boosters » quand ses pronostics ont rapporté. La mémoire est le navigateur (et, si le stockage
+     est bloqué, la page elle-même) ; à la première visite, on mémorise où on en est sans rien annoncer. */
   function signalerGainsPronos(p) {
     const moi = joueurConnecte();
     if (!moi) return;
     const cle = `f1cartes.${etat.demo ? 'demo.' : ''}pronos.vu.${moi.id}`;
     const dernier = (p.historique || []).length ? Math.max(...p.historique.map((h) => h.manche)) : 0;
-    const vu = stockage.lire(cle);
-    if (typeof vu !== 'number') { stockage.ecrire(cle, dernier); return; }  // première visite : on mémorise où on en est, sans rien annoncer
+    const lu = stockage.lire(cle);
+    const vu = typeof lu === 'number' ? lu : (typeof etat.pronosVu[cle] === 'number' ? etat.pronosVu[cle] : null);
+    const noter = (n) => { etat.pronosVu[cle] = n; stockage.ecrire(cle, n); };
+    if (vu === null) { noter(dernier); return; }
     if (vu >= dernier) return;
-    stockage.ecrire(cle, dernier);
+    noter(dernier);
     const nouveaux = p.historique.filter((h) => h.manche > vu && !(h.resultat && h.resultat.annulee));
     const total = nouveaux.reduce((s, h) => { const g = (h.gains && h.gains[moi.id]) || { meilleur: 0, ordre: 0 }; return s + g.meilleur + g.ordre; }, 0);
     if (total > 0) notifier(`Pronostics : +${pluriel(total, 'booster')} gagné${total > 1 ? 's' : ''} (${nouveaux.map((h) => h.gp).join(', ')}) !`, 'succes');
   }
+  /* Toute erreur de rendu de cet onglet (données inattendues venues du serveur) reste dans l'onglet : le reste de la page et ses minuteries continuent. */
   function rendrePronos() {
+    try { dessinerPronos(); } catch (e) { console.error(e); }
+  }
+  function dessinerPronos() {
     majOngletPronos();
     const p = pronosDe();
     if (!p || !pronosVisibles() || !$('pronos-gp')) return;  // sans le bloc HTML (ancienne page en cache), rien à dessiner
     const moi = joueurConnecte();
-    if (moi && etat.monPari && etat.monPari.manche === p.manche && etat.monPari.pari && p.aParie) p.aParie[moi.id] = true;
+    if (moi && pariEnregistre(p) && p.aParie) p.aParie[moi.id] = true;
     const actif = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.f : null;
     rendreEtatPronos(p);
     rendreGpPronos(p);
     rendreHistoriquePronos(p);
     rendreClassementPronos(p);
-    if (actif) {
-      const cible = Array.from(document.querySelectorAll('#pronos-gp [data-f]')).find((n) => n.dataset.f === actif);
+    if (actif) {  // le focus clavier reste sur le même bouton ; s'il est devenu inactif (↑ en tête), sur son voisin
+      const noeuds = Array.from(document.querySelectorAll('#pronos-gp [data-f]'));
+      let cible = noeuds.find((n) => n.dataset.f === actif);
+      if (cible && cible.disabled) {
+        const frere = actif.startsWith('haut-') ? actif.replace('haut-', 'bas-') : (actif.startsWith('bas-') ? actif.replace('bas-', 'haut-') : null);
+        cible = frere ? noeuds.find((n) => n.dataset.f === frere) : null;
+      }
       if (cible && !cible.disabled) cible.focus();
     }
     signalerGainsPronos(p);
@@ -2090,9 +2166,16 @@
   }
   /* Sur l'onglet Pronostics, l'état est relu à l'arrivée puis toutes les 45 s (ouverture, fermeture, résultats). */
   async function rafraichirPronos() {
-    if (!etat.public || etat.occupe || etat.envoiPari || etat.rafraichitPronos) return;
+    if (!etat.public || !pronosVisibles() || etat.occupe || etat.envoiPari || etat.rafraichitPronos) return;
     etat.rafraichitPronos = true;
-    try { if (await rafraichirEtat(false, true) && !etat.occupe) rendreTout(true); } finally { etat.rafraichitPronos = false; }
+    try {
+      if (await rafraichirEtat(false, true) && !etat.occupe) {
+        if (etat.suiviPari && etat.suiviPari.etat === 'erreur') etat.suiviPari = null;  // on retente de charger son pari
+        rendreCompte();
+        rendreBoosters(true);
+        rendrePronos();
+      }
+    } finally { etat.rafraichitPronos = false; }
   }
 
   async function demarrer() {

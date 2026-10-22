@@ -118,8 +118,9 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 }
 .r-mythique .rarete-nom {
   background: linear-gradient(90deg, #ff4b3a, #ffd200, #ffffff, #ffd200, #ff4b3a); background-size: 200% 100%;
-  -webkit-background-clip: text; background-clip: text; color: transparent; animation: reflet-nom 4s linear infinite;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+.carte.r-mythique .rarete-nom { animation: reflet-nom 4s linear infinite; }  /* le nom ne brille que sur la carte, pas dans les tableaux */
 @keyframes reflet-nom { to { background-position: -200% 0; } }
 
 /* Couleurs et cadres par rareté */
@@ -544,6 +545,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 .pari-demo { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--bordure); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .discret { color: var(--discret); }
 .pronos-table tr.est-moi td { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.pronos-table td.ordre { white-space: normal; min-width: 12em; }  /* l'ordre passe à la ligne : le tableau reste lisible sur mobile */
 .pronos-resultat { background: var(--surface); border: 1px solid var(--bordure); border-radius: 12px; padding: 14px 16px; margin: 0 0 12px; }
 .pronos-resultat h4 { margin: 0 0 6px; }
 .pronos-resultat .aide { margin: 0; }

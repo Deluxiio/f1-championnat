@@ -41,3 +41,6 @@ Les boosters offerts à l'heure demandent la dernière version de `api.php`. Pou
 Les cartes Mythiques et les pronostics demandent eux aussi la dernière version de `api.php`. Pour vérifier, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : la réponse doit contenir un bloc `"pronos"` et, pour chaque joueur, `"boostersPronos"`. Tant que l'ancienne version est en ligne, l'onglet *Pronostics* reste caché.
 
 Pour que les pronostics se ferment tout seuls au départ d'une course, l'enregistreur (sur ton PC) appelle ce serveur avec la clé `CLE_ADMIN` de `config.php` : le fichier `serveur/config.php` doit donc aussi être présent sur le PC de l'enregistreur, avec la même clé que sur Hostinger. Sinon, l'enregistreur le dit dans son journal et tu fermes les pronostics à la main dans l'admin (*Cartes → Pronostics du GP*).
+
+## Sauvegarde des données
+Les collections sont dans `donnees/etat.json`. Avant chaque modification, le serveur en garde une copie dans `donnees/etat.json.bak` (même dossier protégé). Si `etat.json` devenait illisible, le serveur reprend la copie ; si les deux le sont, il répond « fichier des données illisible » sans rien effacer. Pour tout remettre à zéro, supprime les deux fichiers.

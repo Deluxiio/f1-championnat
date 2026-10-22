@@ -9,8 +9,10 @@ date_default_timezone_set('Europe/Paris');
 const FICHIER_ETAT = __DIR__ . '/donnees/etat.json';
 const CACHE_SAISON = __DIR__ . '/donnees/cache-saison.json';
 const CACHE_CATALOGUE = __DIR__ . '/donnees/cache-catalogue.json';
+const FICHIER_COPIE = FICHIER_ETAT . '.bak';  // dernière version lisible de l'état, au cas où une écriture serait interrompue
 const DUREE_JETON = 180 * 86400;
 const TAILLE_FIL = 30;
+const DUREE_FERMETURE_AVANCE = 3 * 3600;  // une fermeture « à l'avance » n'est honorée que pendant 3 heures
 
 $origine = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origine, ORIGINES_AUTORISEES, true)) {
@@ -29,8 +31,13 @@ header('Cache-Control: no-store');
 
 function repondre(array $donnees, int $code = 200): never
 {
+    $json = json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($json === false) {  // valeur impossible à encoder (ex. un nombre infini venu des données) : mieux vaut une erreur claire qu'une page vide
+        $code = 500;
+        $json = '{"erreur":"Réponse impossible à fabriquer : données invalides."}';
+    }
     http_response_code($code);
-    echo json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo $json;
     exit;
 }
 
@@ -99,7 +106,8 @@ function pointsJoueurs(array $saison): array
                 continue;
             }
             if (isset($r['pointsForces']) && $r['pointsForces'] !== '') {
-                $points[$id] += (float) $r['pointsForces'];
+                $forces = (float) $r['pointsForces'];
+                $points[$id] += is_finite($forces) ? $forces : 0.0;
             } elseif (($r['statut'] ?? '') === 'fini') {
                 $points[$id] += $saison['bareme'][$r['pos'] - 1] ?? 0;
             }
@@ -118,23 +126,46 @@ function joueurVierge(): array
     return ['hash' => null, 'jetons' => [], 'echecs' => [], 'ouverts' => 0, 'fragments' => 0, 'cartes' => [], 'fabriquees' => []];
 }
 
-/** Exécute $action sur l'état, sous verrou exclusif, puis l'enregistre. */
+/** Décode un état enregistré : null si ce n'est pas un état lisible. */
+function decoderEtat(string $brut): ?array
+{
+    $etat = json_decode($brut, true);
+    if (!is_array($etat) || !is_array($etat['joueurs'] ?? null)) {
+        return null;
+    }
+    $etat['fil'] = is_array($etat['fil'] ?? null) ? $etat['fil'] : [];
+    return $etat;
+}
+
+/**
+ * Exécute $action sur l'état, sous verrou exclusif, puis l'enregistre. Un fichier illisible n'est jamais remplacé par un état
+ * vierge (ce serait perdre tous les comptes) : on repart de la dernière copie lisible, sinon on s'arrête avec une erreur.
+ */
 function modifierEtat(callable $action): mixed
 {
     $f = fopen(FICHIER_ETAT, 'c+');
     if ($f === false || !flock($f, LOCK_EX)) {
         erreur(500, "Le serveur n'arrive pas à enregistrer les données (droits du dossier donnees ?).");
     }
-    $brut = stream_get_contents($f);
-    $etat = $brut ? json_decode($brut, true) : null;
-    if (!is_array($etat)) {
-        $etat = etatVierge();
-    }
     try {
+        $brut = (string) stream_get_contents($f);
+        $etat = $brut === '' ? etatVierge() : decoderEtat($brut);
+        if ($etat === null) {
+            $etat = is_file(FICHIER_COPIE) ? decoderEtat((string) file_get_contents(FICHIER_COPIE)) : null;
+            if ($etat === null) {
+                erreur(500, "Le fichier des données est illisible : rien n'a été modifié. Préviens Valentin.");
+            }
+        } elseif ($brut !== '') {
+            @copy(FICHIER_ETAT, FICHIER_COPIE);
+        }
         $resultat = $action($etat);
+        $json = json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {  // vérifié avant d'effacer le fichier : une valeur impossible à encoder ne doit rien détruire
+            erreur(500, "Les données n'ont pas pu être enregistrées (valeur invalide) : rien n'a été modifié.");
+        }
         ftruncate($f, 0);
         rewind($f);
-        fwrite($f, json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        fwrite($f, $json);
         fflush($f);
     } finally {
         flock($f, LOCK_UN);
@@ -143,13 +174,30 @@ function modifierEtat(callable $action): mixed
     return $resultat;
 }
 
+/**
+ * Lit l'état sans le modifier (verrou partagé : jamais de lecture d'une écriture à moitié faite). Si le fichier existe mais
+ * est illisible, on lit la dernière copie lisible ; s'il n'existe pas ou est vide, l'état est vierge.
+ */
 function lireEtat(): array
 {
-    if (!is_file(FICHIER_ETAT)) {
-        return etatVierge();
+    foreach ([FICHIER_ETAT, FICHIER_COPIE] as $fichier) {
+        $f = is_file($fichier) ? @fopen($fichier, 'r') : false;
+        if ($f === false) {
+            return etatVierge();
+        }
+        flock($f, LOCK_SH);
+        $brut = (string) stream_get_contents($f);
+        flock($f, LOCK_UN);
+        fclose($f);
+        if ($brut === '') {
+            return etatVierge();
+        }
+        $etat = decoderEtat($brut);
+        if ($etat !== null) {
+            return $etat;
+        }
     }
-    $etat = json_decode((string) file_get_contents(FICHIER_ETAT), true);
-    return is_array($etat) ? $etat : etatVierge();
+    return etatVierge();
 }
 
 function corps(): array
@@ -434,30 +482,38 @@ function reglerManchePronos(array &$etat, array &$m, array $course, array $saiso
 /**
  * Règle les manches dont la course est enregistrée, puis ouvre les pronostics du prochain GP (cotes figées à l'ouverture).
  * À appeler sous verrou (modifierEtat) ; sans effet si rien n'est à faire. Renvoie true si l'état a changé.
+ * Une course « à vérifier » (joueur non reconnu…) n'est pas réglée : le classement serait faux et le crédit définitif.
+ * Elle l'est dès que l'admin l'a corrigée (la saison est relue à chaque appel).
  */
 function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $maintenant): bool
 {
     $change = false;
     $etat['pronos']['manches'] ??= [];
     $manches = &$etat['pronos']['manches'];
+    $enCours = false;  // un GP non réglé dont la course n'est pas encore enregistrée
     foreach ($manches as $n => &$m) {
         if (($m['statut'] ?? '') === 'regle') {
             continue;
         }
         $course = courseDeManche($saison, (int) $n);
-        if ($course !== null) {
+        if ($course === null) {
+            $enCours = true;
+        } elseif (empty($course['aVerifier'])) {
             reglerManchePronos($etat, $m, $course, $saison, $maintenant);
             $change = true;
         }
     }
     unset($m);
-    if (pronosActifs($catalogue)) {
+    if (!$enCours && pronosActifs($catalogue)) {
         $gp = prochaineManchePronos($saison, $manches);
         if ($gp !== null && !isset($manches[(int) $gp['manche']])) {
+            $n = (int) $gp['manche'];
             [$base, $baseOrdre, $max, $lissage] = reglagesPronos($catalogue);
             $forces = forcesPronos($saison, $lissage);
-            $manches[(int) $gp['manche']] = [
-                'statut' => isset($etat['pronos']['fermesAvance'][(int) $gp['manche']]) ? 'ferme' : 'ouvert',
+            $fermeeAvance = isset($etat['pronos']['fermesAvance'][$n]) && $maintenant - (int) $etat['pronos']['fermesAvance'][$n] < DUREE_FERMETURE_AVANCE;
+            unset($etat['pronos']['fermesAvance'][$n]);
+            $manches[$n] = [
+                'statut' => $fermeeAvance ? 'ferme' : 'ouvert',
                 'gp' => (string) ($gp['gp'] ?? ''), 'ouvertLe' => $maintenant,
                 'bases' => ['meilleur' => $base, 'ordre' => $baseOrdre, 'max' => $max],
                 'forces' => $forces, 'cotes' => ['meilleur' => cotesMeilleur($forces, $base, $max)], 'paris' => [],
@@ -469,15 +525,23 @@ function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $
     return $change;
 }
 
-/** Le GP dont les pronostics sont en cours (ouverts ou fermés, pas encore réglés) : [numéro, données] ou null. */
-function mancheCourantePronos(array $etat): ?array
+/**
+ * Le GP dont les pronostics sont en cours : le premier non réglé dont la course n'est pas encore enregistrée (ouvert, ou fermé
+ * le temps de la course) ; à défaut, un GP dont le résultat attend sa vérification. [numéro, données] ou null.
+ */
+function mancheCourantePronos(array $etat, array $saison): ?array
 {
+    $enAttente = null;
     foreach (($etat['pronos']['manches'] ?? []) as $n => $m) {
-        if (($m['statut'] ?? '') !== 'regle') {
+        if (($m['statut'] ?? '') === 'regle') {
+            continue;
+        }
+        if (courseDeManche($saison, (int) $n) === null) {
             return [(int) $n, $m];
         }
+        $enAttente ??= [(int) $n, $m];
     }
-    return null;
+    return $enAttente;
 }
 
 /**
@@ -505,18 +569,23 @@ function detailPari(array $m, array $pari): array
 function vuePronos(array $etat, array $saison, array $catalogue): array
 {
     $manches = $etat['pronos']['manches'] ?? [];
-    $courante = mancheCourantePronos($etat);
+    $courante = mancheCourantePronos($etat, $saison);
     $historique = [];
+    $enAttente = [];  // courses enregistrées mais à vérifier par l'admin : les gains arriveront après sa validation
     $classement = [];
     foreach ($saison['joueurs'] as $j) {
         $classement[$j['id']] = ['joueur' => $j['id'], 'boosters' => 0, 'bonsMeilleur' => 0, 'bonsOrdre' => 0, 'paris' => 0];
     }
     foreach ($manches as $n => $m) {
         if (($m['statut'] ?? '') !== 'regle') {
+            if (courseDeManche($saison, (int) $n) !== null) {
+                $enAttente[] = ['manche' => (int) $n, 'gp' => (string) ($m['gp'] ?? '')];
+            }
             continue;
         }
         $historique[] = ['manche' => (int) $n, 'gp' => (string) ($m['gp'] ?? ''), 'resultat' => $m['resultat'] ?? null,
-                         'gains' => $m['gains'] ?? [], 'paris' => array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris'] ?? [])];
+                         'gains' => (object) ($m['gains'] ?? []),
+                         'paris' => (object) array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris'] ?? [])];
         if (!empty($m['resultat']['annulee'])) {
             continue;  // GP annulé : ni paris comptés, ni gains
         }
@@ -536,7 +605,7 @@ function vuePronos(array $etat, array $saison, array $catalogue): array
     $classement = array_values($classement);
     usort($classement, fn ($a, $b) => [$b['boosters'], $b['bonsMeilleur'] + $b['bonsOrdre']] <=> [$a['boosters'], $a['bonsMeilleur'] + $a['bonsOrdre']]);
     $vue = ['actif' => $actif, 'manche' => null, 'gp' => null, 'statut' => null, 'bases' => null, 'forces' => null, 'cotes' => null,
-            'aParie' => [], 'historique' => array_slice($historique, 0, 6), 'classement' => $classement];
+            'aParie' => [], 'enAttente' => $enAttente, 'historique' => array_slice($historique, 0, 6), 'classement' => $classement];
     if ($courante !== null) {
         [$n, $m] = $courante;
         $vue['manche'] = $n;
@@ -549,7 +618,7 @@ function vuePronos(array $etat, array $saison, array $catalogue): array
             $vue['aParie'][$j['id']] = isset($m['paris'][$j['id']]);
         }
         if ($m['statut'] !== 'ouvert') {
-            $vue['paris'] = array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris']);
+            $vue['paris'] = (object) array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris']);
         }
     }
     return $vue;
@@ -583,8 +652,11 @@ function tirer(array $catalogue, array $parRarete, bool $derniere): string
         }
     }
     $total = array_sum(array_column($candidates, 'poids'));
-    if ($total < 1) {  // réglage absurde (dernière carte « au minimum Mythique », qui n'a pas de poids) : la rareté la plus basse permise
-        $liste = $parRarete[end($candidates)['id']];
+    if ($total < 1) {
+        if ($derniere) {  // aucune rareté permise n'a de poids (ex. dernière carte « au minimum Mythique ») : on ignore ce minimum
+            return tirer($catalogue, $parRarete, false);
+        }
+        $liste = $parRarete[end($candidates)['id']];  // catalogue sans aucun poids : la rareté la plus basse
         return $liste[random_int(0, count($liste) - 1)];
     }
     $x = random_int(1, $total);
@@ -599,25 +671,23 @@ function tirer(array $catalogue, array $parRarete, bool $derniere): string
     return $liste[random_int(0, count($liste) - 1)];
 }
 
-/** Chance (de 0 à 1) qu'une carte tirée soit une Mythique, pour qu'un booster sur 100 en contienne une (réglage chanceMythiqueParBooster, en %). */
-function chanceMythiqueParCarte(array $catalogue): float
+/** Chance (de 0 à 1) qu'un booster contienne une carte Mythique (réglage chanceMythiqueParBooster, en % ; 1 % par défaut). */
+function chanceMythiqueParBooster(array $catalogue): float
 {
     $pourcent = is_numeric($catalogue['chanceMythiqueParBooster'] ?? null) ? (float) $catalogue['chanceMythiqueParBooster'] : 1.0;
-    $p = max(0.0, min(100.0, $pourcent)) / 100;
-    $cartes = max(1, (int) ($catalogue['cartesParBooster'] ?? 5));
-    return 1 - (1 - $p) ** (1 / $cartes);
+    return max(0.0, min(100.0, $pourcent)) / 100;
 }
 
-/**
- * Tirage ultra rare d'une carte Mythique (les cartes des potes) : null si le sort n'est pas tombé.
- * Une Mythique que le joueur n'a pas encore passe avant un doublon.
- */
-function tirerMythique(float $chance, array $parRarete, array $possedees): ?string
+/** Ce booster contient-il une Mythique ? Un seul tirage, avec exactement la chance réglée : jamais plus d'une par booster. */
+function boosterAvecMythique(float $chance, array $parRarete): bool
 {
-    $liste = $parRarete['mythique'] ?? [];
-    if ($chance <= 0 || !$liste || random_int(1, 1000000) > (int) round($chance * 1000000)) {
-        return null;
-    }
+    return $chance > 0 && !empty($parRarete['mythique']) && random_int(1, 1000000) <= (int) round($chance * 1000000);
+}
+
+/** Une carte Mythique au hasard (les cartes des potes) : une que le joueur n'a pas encore passe avant un doublon. */
+function tirerMythique(array $parRarete, array $possedees): string
+{
+    $liste = $parRarete['mythique'];
     $nouvelles = array_values(array_filter($liste, fn ($id) => !isset($possedees[$id])));
     $choix = $nouvelles ?: $liste;
     return $choix[random_int(0, count($choix) - 1)];
@@ -723,7 +793,7 @@ if ($action === 'ouvrir') {
     $catalogue = catalogue();
     [$cartes, $parRarete, $raretes] = indexer($catalogue);
     [$intervalle, $maxOffert] = reglagesOfferts($catalogue);
-    $chanceMythique = chanceMythiqueParCarte($catalogue);
+    $chanceMythique = chanceMythiqueParBooster($catalogue);
     $maintenant = time();
     $nombre = max(1, min(100, (int) ($entree['nombre'] ?? 1)));
     $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre, $intervalle, $maxOffert, $maintenant, $chanceMythique) {
@@ -741,9 +811,12 @@ if ($action === 'ouvrir') {
         $boosters = [];
         for ($b = 0; $b < $aOuvrir; $b++) {
             $booster = [];
+            // Au plus une Mythique par booster : un seul tirage (la chance réglée), puis une place au hasard dans le booster
+            $placeMythique = boosterAvecMythique($chanceMythique, $parRarete) ? random_int(0, max(0, (int) $catalogue['cartesParBooster'] - 1)) : -1;
             for ($k = 0; $k < $catalogue['cartesParBooster']; $k++) {
-                $carte = tirerMythique($chanceMythique, $parRarete, $j['cartes'])
-                    ?? tirer($catalogue, $parRarete, $k === $catalogue['cartesParBooster'] - 1);
+                $carte = $k === $placeMythique
+                    ? tirerMythique($parRarete, $j['cartes'])
+                    : tirer($catalogue, $parRarete, $k === $catalogue['cartesParBooster'] - 1);
                 $rarete = $cartes[$carte]['rarete'];
                 if (isset($j['cartes'][$carte])) {
                     $gain = $raretes[$rarete]['fragments'];
@@ -822,10 +895,13 @@ if ($action === 'pronostiquer' || $action === 'monPronostic') {
     $saison = saison();
     $catalogue = catalogue();
     $maintenant = time();
-    $resultat = modifierEtat(function (array &$etat) use ($action, $entree, $saison, $catalogue, $maintenant) {
+    // La page indique le GP sur lequel le joueur parie : si, entre-temps, il a été réglé et le suivant ouvert, on refuse
+    // (le pari irait sinon sur un GP que le joueur n'a pas sous les yeux)
+    $voulu = isset($entree['manche']) && is_numeric($entree['manche']) ? (int) $entree['manche'] : null;
+    $resultat = modifierEtat(function (array &$etat) use ($action, $entree, $saison, $catalogue, $maintenant, $voulu) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
         synchroniserPronos($etat, $saison, $catalogue, $maintenant);
-        $courante = mancheCourantePronos($etat);
+        $courante = mancheCourantePronos($etat, $saison);
         if ($action === 'monPronostic') {
             $pari = $courante !== null ? ($courante[1]['paris'][$id] ?? null) : null;
             return ['manche' => $courante[0] ?? null, 'statut' => $courante[1]['statut'] ?? null,
@@ -838,6 +914,9 @@ if ($action === 'pronostiquer' || $action === 'monPronostic') {
             return [409, 'Aucun GP à pronostiquer pour le moment.'];
         }
         [$n, $m] = $courante;
+        if ($voulu !== null && $voulu !== $n) {
+            return [409, 'Ce GP est terminé : un nouveau GP vient de s\'ouvrir, refais ton pronostic.'];
+        }
         if ($m['statut'] !== 'ouvert') {
             return [409, 'Les pronostics de ce GP sont fermés : la course a commencé.'];
         }
@@ -880,30 +959,36 @@ if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pro
     $saison = saison();
     $catalogue = catalogue();
     $maintenant = time();
-    // L'enregistreur indique le GP qui démarre ; sans numéro (bouton de l'admin), c'est le GP en cours
-    $cible = $action === 'pronosFermer' && isset($entree['manche']) && is_numeric($entree['manche']) ? (int) $entree['manche'] : null;
-    $resultat = modifierEtat(function (array &$etat) use ($action, $saison, $catalogue, $maintenant, $cible) {
+    // L'appelant indique le GP visé (celui qui démarre pour l'enregistreur, celui que la page d'admin affiche) pour ne pas agir
+    // sur un autre si, entre-temps, un GP a été réglé. Sans numéro, on agit sur le GP en cours.
+    $voulu = isset($entree['manche']) && is_numeric($entree['manche']) ? (int) $entree['manche'] : null;
+    $resultat = modifierEtat(function (array &$etat) use ($action, $saison, $catalogue, $maintenant, $voulu) {
         synchroniserPronos($etat, $saison, $catalogue, $maintenant);
-        if ($cible !== null) {
-            $m = $etat['pronos']['manches'][$cible] ?? null;
+        if ($action === 'pronosFermer' && $voulu !== null) {
+            $m = $etat['pronos']['manches'][$voulu] ?? null;
             if ($m === null) {
                 // GP pas encore ouvert (le précédent n'est pas encore réglé) : il s'ouvrira déjà fermé
-                $gp = array_values(array_filter($saison['calendrier'], fn ($x) => (int) $x['manche'] === $cible))[0] ?? null;
-                if ($gp !== null && courseDeManche($saison, $cible) === null) {
-                    $etat['pronos']['fermesAvance'][$cible] = $maintenant;
-                    return ['ok' => true, 'manche' => $cible, 'gp' => (string) ($gp['gp'] ?? ''), 'statut' => 'ferme'];
+                $gp = array_values(array_filter($saison['calendrier'], fn ($x) => (int) $x['manche'] === $voulu))[0] ?? null;
+                if ($gp !== null && courseDeManche($saison, $voulu) === null) {
+                    $change = !isset($etat['pronos']['fermesAvance'][$voulu]) || $maintenant - (int) $etat['pronos']['fermesAvance'][$voulu] >= DUREE_FERMETURE_AVANCE;
+                    $etat['pronos']['fermesAvance'][$voulu] = $maintenant;
+                    return ['ok' => true, 'manche' => $voulu, 'gp' => (string) ($gp['gp'] ?? ''), 'statut' => 'ferme', 'change' => $change];
                 }
-                return ['ok' => true, 'manche' => $cible, 'gp' => null, 'statut' => null];
+                return ['ok' => true, 'manche' => $voulu, 'gp' => null, 'statut' => null, 'change' => false];
             }
-            if ($m['statut'] === 'ouvert') {
-                $etat['pronos']['manches'][$cible]['statut'] = 'ferme';
-                $etat['pronos']['manches'][$cible]['fermeLe'] = $maintenant;
+            $change = $m['statut'] === 'ouvert';
+            if ($change) {
+                $etat['pronos']['manches'][$voulu]['statut'] = 'ferme';
+                $etat['pronos']['manches'][$voulu]['fermeLe'] = $maintenant;
             }
-            return ['ok' => true, 'manche' => $cible, 'gp' => $m['gp'] ?? '', 'statut' => $etat['pronos']['manches'][$cible]['statut']];
+            return ['ok' => true, 'manche' => $voulu, 'gp' => $m['gp'] ?? '', 'statut' => $etat['pronos']['manches'][$voulu]['statut'], 'change' => $change];
         }
-        $courante = mancheCourantePronos($etat);
+        $courante = mancheCourantePronos($etat, $saison);
+        if ($voulu !== null && ($courante === null || $courante[0] !== $voulu)) {
+            return [409, 'Le GP a changé entre-temps : recharge la page.'];
+        }
         if ($courante === null) {
-            return ['ok' => true, 'manche' => null, 'gp' => null, 'statut' => null];
+            return ['ok' => true, 'manche' => null, 'gp' => null, 'statut' => null, 'change' => false];
         }
         [$n, $m] = $courante;
         $statut = $m['statut'];
@@ -913,7 +998,7 @@ if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pro
         } elseif ($action === 'pronosOuvrir' && $statut === 'ferme') {
             $statut = 'ouvert';
             unset($etat['pronos']['manches'][$n]['fermeLe']);
-        } elseif ($action === 'pronosAnnuler') {
+        } elseif ($action === 'pronosAnnuler' && $statut !== 'regle') {
             // GP qui n'aura pas lieu : aucun gain, et les pronostics passent au GP suivant
             $statut = 'regle';
             $etat['pronos']['manches'][$n] += ['gains' => []];
@@ -924,8 +1009,11 @@ if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pro
         if ($action === 'pronosAnnuler') {
             synchroniserPronos($etat, $saison, $catalogue, $maintenant);
         }
-        return ['ok' => true, 'manche' => $n, 'gp' => $m['gp'] ?? '', 'statut' => $statut];
+        return ['ok' => true, 'manche' => $n, 'gp' => $m['gp'] ?? '', 'statut' => $statut, 'change' => $statut !== $m['statut']];
     });
+    if (isset($resultat[0]) && is_int($resultat[0])) {
+        erreur($resultat[0], $resultat[1]);
+    }
     repondre($resultat);
 }
 

@@ -256,16 +256,16 @@ class Enregistreur:
                                   headers={"Content-Type": "text/plain;charset=UTF-8"})
                 with urlopen(requete, timeout=15) as r:
                     reponse = json.load(r)
-                if reponse.get("statut") == "ferme":
+                if isinstance(reponse, dict) and reponse.get("change") and reponse.get("statut") == "ferme":
                     self.log(f"Pronostics fermés ({raison}) : GP n°{reponse.get('manche')} {reponse.get('gp') or ''}".rstrip())
-                return
+                return  # déjà fermés (ex. au départ) : rien à dire
             except HTTPError as e:
                 if e.code in (403, 404):  # clé refusée ou ancienne version de api.php : réessayer ne change rien
                     self.log(f"Pronostics : fermeture refusée par le serveur ({e.code}) — vérifie CLE_ADMIN et la version de api.php")
                     return
                 erreur = f"erreur {e.code}"
-            except (OSError, ValueError) as e:
-                erreur = str(e)
+            except Exception as e:  # réseau, réponse coupée, JSON inattendu… : ce thread ne doit jamais mourir en silence
+                erreur = str(e) or type(e).__name__
         self.log(f"Pronostics : impossible de les fermer ({erreur}) — ferme-les à la main dans l'admin")
 
     # --- Construction des courses ----------------------------------------
