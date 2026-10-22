@@ -137,27 +137,39 @@ function decoderEtat(string $brut): ?array
     return $etat;
 }
 
+/** La dernière copie lisible de l'état (etat.json.bak), ou null. */
+function lireCopie(): ?array
+{
+    $brut = is_file(FICHIER_COPIE) ? (string) @file_get_contents(FICHIER_COPIE) : '';
+    return $brut === '' ? null : decoderEtat($brut);
+}
+
 /**
- * Exécute $action sur l'état, sous verrou exclusif, puis l'enregistre. Un fichier illisible n'est jamais remplacé par un état
- * vierge (ce serait perdre tous les comptes) : on repart de la dernière copie lisible, sinon on s'arrête avec une erreur.
+ * Exécute $action sur l'état, sous verrou exclusif, puis l'enregistre. Un fichier abîmé, ou vide alors qu'il existait (écriture
+ * interrompue), n'est jamais remplacé par un état vierge — ce serait perdre tous les comptes : on repart de la dernière copie
+ * lisible, sinon on s'arrête avec une erreur. Seul un fichier absent est une installation neuve.
  */
 function modifierEtat(callable $action): mixed
 {
+    $existait = is_file(FICHIER_ETAT);
     $f = fopen(FICHIER_ETAT, 'c+');
     if ($f === false || !flock($f, LOCK_EX)) {
         erreur(500, "Le serveur n'arrive pas à enregistrer les données (droits du dossier donnees ?).");
     }
     try {
         $brut = (string) stream_get_contents($f);
-        $etat = $brut === '' ? etatVierge() : decoderEtat($brut);
-        if ($etat === null) {
-            $etat = is_file(FICHIER_COPIE) ? decoderEtat((string) file_get_contents(FICHIER_COPIE)) : null;
-            if ($etat === null) {
+        $avant = $brut;  // ce qu'il faut remettre si l'écriture échoue
+        $etat = $brut === '' ? null : decoderEtat($brut);
+        if ($etat !== null) {
+            @copy(FICHIER_ETAT, FICHIER_COPIE);
+        } elseif ($brut !== '' || $existait) {
+            $etat = lireCopie();
+            if ($etat === null && $brut !== '') {
                 erreur(500, "Le fichier des données est illisible : rien n'a été modifié. Préviens Valentin.");
             }
-        } elseif ($brut !== '') {
-            @copy(FICHIER_ETAT, FICHIER_COPIE);
+            $avant = $etat !== null ? (string) json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
         }
+        $etat ??= etatVierge();
         $resultat = $action($etat);
         $json = json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {  // vérifié avant d'effacer le fichier : une valeur impossible à encoder ne doit rien détruire
@@ -165,8 +177,13 @@ function modifierEtat(callable $action): mixed
         }
         ftruncate($f, 0);
         rewind($f);
-        fwrite($f, $json);
-        fflush($f);
+        if (fwrite($f, $json) !== strlen($json) || !fflush($f)) {  // disque plein ? on remet l'ancien contenu au lieu de laisser un fichier tronqué
+            ftruncate($f, 0);
+            rewind($f);
+            fwrite($f, $avant);
+            fflush($f);
+            erreur(500, "Les données n'ont pas pu être enregistrées (disque plein ?) : rien n'a été modifié.");
+        }
     } finally {
         flock($f, LOCK_UN);
         fclose($f);
@@ -175,29 +192,23 @@ function modifierEtat(callable $action): mixed
 }
 
 /**
- * Lit l'état sans le modifier (verrou partagé : jamais de lecture d'une écriture à moitié faite). Si le fichier existe mais
- * est illisible, on lit la dernière copie lisible ; s'il n'existe pas ou est vide, l'état est vierge.
+ * Lit l'état sans le modifier (verrou partagé : jamais de lecture d'une écriture à moitié faite). Si le fichier est abîmé, ou vide
+ * alors qu'il existe, on lit la dernière copie lisible ; absent, l'état est vierge.
  */
 function lireEtat(): array
 {
-    foreach ([FICHIER_ETAT, FICHIER_COPIE] as $fichier) {
-        $f = is_file($fichier) ? @fopen($fichier, 'r') : false;
-        if ($f === false) {
-            return etatVierge();
-        }
-        flock($f, LOCK_SH);
-        $brut = (string) stream_get_contents($f);
-        flock($f, LOCK_UN);
-        fclose($f);
-        if ($brut === '') {
-            return etatVierge();
-        }
-        $etat = decoderEtat($brut);
-        if ($etat !== null) {
-            return $etat;
-        }
+    if (!is_file(FICHIER_ETAT)) {
+        return etatVierge();
     }
-    return etatVierge();
+    $f = @fopen(FICHIER_ETAT, 'r');
+    if ($f === false) {
+        return etatVierge();
+    }
+    flock($f, LOCK_SH);
+    $brut = (string) stream_get_contents($f);
+    flock($f, LOCK_UN);
+    fclose($f);
+    return ($brut === '' ? null : decoderEtat($brut)) ?? lireCopie() ?? etatVierge();
 }
 
 function corps(): array
@@ -501,9 +512,19 @@ function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $
         } elseif (empty($course['aVerifier'])) {
             reglerManchePronos($etat, $m, $course, $saison, $maintenant);
             $change = true;
+        } elseif (($m['statut'] ?? '') === 'ouvert') {
+            // course enregistrée mais à vérifier : le résultat est connu, on ne parie plus
+            $m['statut'] = 'ferme';
+            $m['fermeLe'] = $maintenant;
+            $change = true;
         }
     }
     unset($m);
+    foreach (($etat['pronos']['fermesAvance'] ?? []) as $cle => $depuis) {  // fermetures « à l'avance » restées sans suite
+        if ($maintenant - (int) $depuis >= DUREE_FERMETURE_AVANCE) {
+            unset($etat['pronos']['fermesAvance'][$cle]);
+        }
+    }
     if (!$enCours && pronosActifs($catalogue)) {
         $gp = prochaineManchePronos($saison, $manches);
         if ($gp !== null && !isset($manches[(int) $gp['manche']])) {
@@ -651,7 +672,7 @@ function tirer(array $catalogue, array $parRarete, bool $derniere): string
             break;
         }
     }
-    $total = array_sum(array_column($candidates, 'poids'));
+    $total = (int) array_sum(array_column($candidates, 'poids'));
     if ($total < 1) {
         if ($derniere) {  // aucune rareté permise n'a de poids (ex. dernière carte « au minimum Mythique ») : on ignore ce minimum
             return tirer($catalogue, $parRarete, false);
@@ -915,7 +936,7 @@ if ($action === 'pronostiquer' || $action === 'monPronostic') {
         }
         [$n, $m] = $courante;
         if ($voulu !== null && $voulu !== $n) {
-            return [409, 'Ce GP est terminé : un nouveau GP vient de s\'ouvrir, refais ton pronostic.'];
+            return [409, 'Le GP a changé entre-temps : refais ton pronostic sur le GP affiché.'];
         }
         if ($m['statut'] !== 'ouvert') {
             return [409, 'Les pronostics de ce GP sont fermés : la course a commencé.'];
@@ -992,6 +1013,9 @@ if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pro
         }
         [$n, $m] = $courante;
         $statut = $m['statut'];
+        if ($action === 'pronosOuvrir' && courseDeManche($saison, $n) !== null) {
+            return [409, 'La course de ce GP est déjà enregistrée : les pronostics ne peuvent plus être rouverts.'];
+        }
         if ($action === 'pronosFermer' && $statut === 'ouvert') {
             $statut = 'ferme';
             $etat['pronos']['manches'][$n]['fermeLe'] = $maintenant;

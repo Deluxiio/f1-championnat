@@ -445,7 +445,7 @@
         const courante = mancheCourante();
         if (!courante) echec(409, 'Aucun GP à pronostiquer pour le moment.');
         const [n, m] = courante;
-        if (manche !== undefined && manche !== null && Number(manche) !== n) echec(409, 'Ce GP est terminé : un nouveau GP vient de s\'ouvrir, refais ton pronostic.');
+        if (manche !== undefined && manche !== null && Number(manche) !== n) echec(409, 'Le GP a changé entre-temps : refais ton pronostic sur le GP affiché.');
         if (m.statut !== 'ouvert') echec(409, 'Les pronostics de ce GP sont fermés : la course a commencé.');
         const ids = Object.keys(m.forces);
         const m0 = meilleur === undefined ? null : meilleur, o0 = ordre === undefined ? null : ordre;
@@ -1791,7 +1791,7 @@
       zone.appendChild(el('span', `etat-pari ${p.statut}`, p.statut === 'ouvert' ? 'Pronostics ouverts' : 'Pronostics fermés'));
       if (p.statut === 'ouvert') {
         const n = Object.keys(p.aParie || {}).filter((id) => p.aParie[id]).length, total = Object.keys(p.aParie || {}).length;
-        const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${total}`), el('span', null, n > 1 ? ' ont parié' : ' a parié')); zone.appendChild(c);
+        const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${total}`), el('span', null, n === 1 ? ' a parié' : ' ont parié')); zone.appendChild(c);
       }
     }
     const regles = $('pronos-regles');
@@ -1816,7 +1816,7 @@
         reessayer.addEventListener('click', () => { etat.suiviPari = null; rendrePronos(); });
         attente.appendChild(reessayer);
       } else {
-        attente.appendChild(el('p', 'aide', 'Chargement de votre pronostic…'));
+        attente.appendChild(el('p', 'aide', 'Chargement de votre pronostic…', { role: 'status' }));
       }
       return attente;
     }
@@ -1923,7 +1923,9 @@
     $('pronos-hors-ligne').hidden = !(p.manche !== null && p.statut === 'ouvert' && p.actif && !etat.session);
     const attente = (p.enAttente || []).map((x) => x.gp || `n°${x.manche}`);
     if (attente.length) {
-      zone.appendChild(el('p', 'aide', `Résultat du GP ${attente.join(', ')} en cours de vérification : les gains seront versés dès qu’il sera validé.`));
+      zone.appendChild(el('p', 'aide', attente.length > 1
+        ? `Résultats des GP ${attente.join(', ')} en cours de vérification : les gains seront versés dès que les courses auront été validées.`
+        : `Résultat du GP ${attente[0]} en cours de vérification : les gains seront versés dès que la course aura été validée.`));
     }
     if (p.manche === null) {
       zone.appendChild(el('div', 'vide', p.actif
@@ -2171,9 +2173,7 @@
     try {
       if (await rafraichirEtat(false, true) && !etat.occupe) {
         if (etat.suiviPari && etat.suiviPari.etat === 'erreur') etat.suiviPari = null;  // on retente de charger son pari
-        rendreCompte();
-        rendreBoosters(true);
-        rendrePronos();
+        rendreTout(true);
       }
     } finally { etat.rafraichitPronos = false; }
   }

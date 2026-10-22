@@ -546,6 +546,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 .discret { color: var(--discret); }
 .pronos-table tr.est-moi td { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
 .pronos-table td.ordre { white-space: normal; min-width: 12em; }  /* l'ordre passe à la ligne : le tableau reste lisible sur mobile */
+.pronos-table th { white-space: normal; }
 .pronos-resultat { background: var(--surface); border: 1px solid var(--bordure); border-radius: 12px; padding: 14px 16px; margin: 0 0 12px; }
 .pronos-resultat h4 { margin: 0 0 6px; }
 .pronos-resultat .aide { margin: 0; }

@@ -308,11 +308,12 @@
       const total = Object.keys(p.aParie || {}).length, nb = Object.values(p.aParie || {}).filter(Boolean).length;
       zone.appendChild(h("p", {}, h("strong", {}, `GP n°${p.manche} · ${p.gp}`), p.statut === "ouvert" ? " — pronostics ouverts" : " — pronostics fermés (course en cours)",
         `. ${nb} / ${total} ont parié.`, p.actif ? "" : " (Pronostics désactivés : plus de nouveau pari possible.)"));
+      const courseEnregistree = (p.enAttente || []).some((x) => x.manche === p.manche);  // résultat connu : on ne peut plus rouvrir
       zone.appendChild(h("div", { class: "actions" },
         p.statut === "ouvert"
           ? h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosFermer") }, "Fermer maintenant")
-          : h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosOuvrir",
-            "Les paris de chacun sont révélés dès la fermeture : en rouvrant, chacun peut modifier le sien en connaissant ceux des autres. Rouvrir quand même ?") }, "Rouvrir"),
+          : (courseEnregistree ? null : h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosOuvrir",
+            "Les paris de chacun sont révélés dès la fermeture : en rouvrant, chacun peut modifier le sien en connaissant ceux des autres. Rouvrir quand même ?") }, "Rouvrir")),
         h("button", { type: "button", class: "bouton danger", onclick: () => agir("pronosAnnuler",
           `Annuler les pronostics du GP ${p.gp} ? Aucun gain ne sera versé et le GP suivant s'ouvrira.`) }, "Annuler ce GP"),
       ));
