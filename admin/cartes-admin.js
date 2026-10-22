@@ -111,7 +111,7 @@
       : "Pronostics désactivés (0 aux deux paris) : plus aucun GP ne s'ouvre. Celui déjà ouvert sera quand même réglé après sa course."));
 
     zone.appendChild(h("div", { class: "champs" },
-      champ("Spectateurs : nombre maximum de comptes", "spectateursMax", 0, 500, "0 = inscriptions fermées (les comptes existants restent)"),
+      champ("Spectateurs : nombre maximum de comptes", "spectateursMax", 0, 100, "0 = inscriptions fermées (les comptes existants restent)"),
       champ("Spectateurs : boosters offerts à l'inscription", "boostersDepartSpectateur", 0, 100, "En plus des boosters offerts à l'heure, qui démarrent à l'inscription"),
     ));
     zone.appendChild(h("p", { class: "indice" }, catalogue.spectateursMax > 0
@@ -315,9 +315,13 @@
         ? "Aucun GP ouvert aux pronostics : le prochain s'ouvre dès que le précédent est enregistré."
         : "Pronostics désactivés (réglages ci-dessus : 0 aux deux paris)."));
     } else {
-      const total = Object.keys(p.aParie || {}).length, nb = Object.values(p.aParie || {}).filter(Boolean).length;
+      const spectateurs = new Set((etat.spectateurs || []).map((x) => x.id));
+      const ids = Object.keys(p.aParie || {});
+      const pilotes = ids.filter((id) => !spectateurs.has(id)), invites = ids.filter((id) => spectateurs.has(id));
+      const parie = (liste) => liste.filter((id) => p.aParie[id]).length;
       zone.appendChild(h("p", {}, h("strong", {}, `GP n°${p.manche} · ${p.gp}`), p.statut === "ouvert" ? " — pronostics ouverts" : " — pronostics fermés (course en cours)",
-        `. ${nb} / ${total} ont parié.`, p.actif ? "" : " (Pronostics désactivés : plus de nouveau pari possible.)"));
+        `. ${parie(pilotes)} / ${pilotes.length} ont parié`, invites.length ? ` (et ${parie(invites)} / ${invites.length} spectateur${invites.length > 1 ? "s" : ""})` : "", ".",
+        p.actif ? "" : " (Pronostics désactivés : plus de nouveau pari possible.)"));
       const courseEnregistree = (p.enAttente || []).some((x) => x.manche === p.manche);  // résultat connu : on ne peut plus rouvrir
       zone.appendChild(h("div", { class: "actions" },
         p.statut === "ouvert"
@@ -333,7 +337,7 @@
     }
     const dernier = (p.historique || [])[0];
     if (dernier) {
-      const nom = (id) => (etat.joueurs.find((j) => j.id === id) || { nom: id }).nom;
+      const nom = (id) => (etat.joueurs.concat(etat.spectateurs || []).find((j) => j.id === id) || { nom: id }).nom;
       zone.appendChild(h("p", { class: "indice" }, dernier.resultat && dernier.resultat.annulee
         ? `Dernier GP réglé : n°${dernier.manche} ${dernier.gp} (annulé, aucun gain).`
         : `Dernier GP réglé : n°${dernier.manche} ${dernier.gp} — arrivée ${(dernier.resultat ? dernier.resultat.classement : []).map(nom).join(" › ")}. Gains : ${
@@ -365,7 +369,7 @@
       h("thead", {}, h("tr", {}, ["Joueur", "Mot de passe", "Cartes", "Boosters ouverts", "À ouvrir", "Dont pronostics", "Fragments", ""].map((t) => h("th", {}, t)))),
       h("tbody", {}, etat.joueurs.map((j) => h("tr", {},
         h("td", {}, h("strong", {}, j.nom)),
-        h("td", {}, j.compte ? "Défini" : "Pas encore"),
+        h("td", {}, j.compte ? "Défini" : "À choisir"),
         h("td", { class: "num" }, `${j.nbCartes} / ${etat.totalCartes}`),
         h("td", { class: "num" }, `${j.boostersOuverts} / ${j.boostersGagnes}`),
         h("td", { class: "num" }, j.offerts ? `${j.boostersDispo} (dont ${j.offerts.stock} offerts)` : String(j.boostersDispo)),

@@ -168,9 +168,8 @@ function modifierEtat(callable $action): mixed
         $brut = (string) stream_get_contents($f);
         $avant = $brut;  // ce qu'il faut remettre si l'écriture échoue
         $etat = $brut === '' ? null : decoderEtat($brut);
-        if ($etat !== null) {
-            @copy(FICHIER_ETAT, FICHIER_COPIE);
-        } elseif ($brut !== '' || $existait) {
+        $principalLisible = $etat !== null;
+        if (!$principalLisible && ($brut !== '' || $existait)) {
             $etat = lireCopie();
             if ($etat === null && $brut !== '') {
                 erreur(500, "Le fichier des données est illisible : rien n'a été modifié. Préviens Valentin.");
@@ -182,6 +181,12 @@ function modifierEtat(callable $action): mixed
         $json = json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {  // vérifié avant d'effacer le fichier : une valeur impossible à encoder ne doit rien détruire
             erreur(500, "Les données n'ont pas pu être enregistrées (valeur invalide) : rien n'a été modifié.");
+        }
+        if ($principalLisible) {
+            if ($json === $brut) {
+                return $resultat;  // rien n'a changé (un refus, une lecture) : ni réécriture ni copie, même sous une rafale de requêtes
+            }
+            @copy(FICHIER_ETAT, FICHIER_COPIE);  // la dernière version lisible, juste avant de l'écraser
         }
         ftruncate($f, 0);
         rewind($f);
@@ -225,6 +230,12 @@ function corps(): array
     return is_array($donnees) ? $donnees : [];
 }
 
+/** Une valeur du corps de la requête lue comme du texte : tout ce qui n'est pas une chaîne (nombre, tableau, null) devient vide, jamais « Array ». */
+function texte(array $entree, string $cle): string
+{
+    return is_string($entree[$cle] ?? null) ? $entree[$cle] : '';
+}
+
 function joueurParNom(array $saison, string $nom): ?array
 {
     foreach ($saison['joueurs'] as $j) {
@@ -246,7 +257,7 @@ function reglagesSpectateurs(array $catalogue): array
 {
     $nombre = fn (string $cle, float $defaut, float $min, float $max): float =>
         is_numeric($catalogue[$cle] ?? null) ? max($min, min($max, (float) $catalogue[$cle])) : $defaut;
-    return [(int) $nombre('spectateursMax', 30, 0, 500), (int) $nombre('boostersDepartSpectateur', 1, 0, 100)];
+    return [(int) $nombre('spectateursMax', 30, 0, 100), (int) $nombre('boostersDepartSpectateur', 1, 0, 100)];
 }
 
 /** Forme comparable d'un nom : minuscules, sans accents ni séparateurs (« Marie-Jo », « marie jo » et « MARIEJO » ne font qu'un). */
@@ -262,18 +273,19 @@ function cleNom(string $nom): string
 }
 
 /**
- * Vérifie le pseudo d'un spectateur : [pseudo nettoyé, null] ou [null, message]. Lettres latines (accents compris) et chiffres,
- * avec entre deux mots un espace, un point, un tiret ou une apostrophe : pas de lettres d'un autre alphabet qui ressembleraient
- * à celles d'un pilote. Le prénom, le pseudo et les alias des pilotes sont réservés.
+ * Vérifie le pseudo d'un spectateur : [pseudo nettoyé, null] ou [null, message]. Lettres de l'alphabet français (accents compris) et
+ * chiffres, avec entre deux mots un espace, un point, un tiret ou une apostrophe : pas de lettres d'un autre alphabet ni de formes
+ * proches (ı, ł, ſ…) qui ressembleraient à celles d'un pilote, de sorte que la clé comparée (cleNom) est toujours en a-z et 0-9.
+ * Le prénom, le pseudo et les alias des pilotes, les mots réservés et les identifiants « specN » sont réservés.
  */
 function pseudoValide(string $brut, array $saison): array
 {
-    $pseudo = trim((string) preg_replace('/\s+/u', ' ', $brut));
+    $pseudo = trim((string) preg_replace('/\s+/u', ' ', $brut), ' ');  // les blancs deviennent un seul espace ; trim() sans la liste par défaut, qui retirerait aussi un caractère nul
     $longueur = mb_strlen($pseudo);
     if ($longueur < PSEUDO_MIN || $longueur > PSEUDO_MAX) {
         return [null, 'Le pseudo doit faire entre ' . PSEUDO_MIN . ' et ' . PSEUDO_MAX . ' caractères.'];
     }
-    $mot = '[a-zA-Z0-9\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{017F}]+';
+    $mot = '[a-zA-Z0-9ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØŒÙÚÛÜÝŸàáâãäåæçèéêëìíîïñòóôõöøœùúûüýÿß]+';  // exactement les lettres que cleNom replie en a-z
     if (!preg_match("/^$mot(?:[ ._'’-]$mot)*$/u", $pseudo)) {
         return [null, "Le pseudo ne peut contenir que des lettres, des chiffres et, entre deux mots, un espace, un point, un tiret ou une apostrophe."];
     }
@@ -287,7 +299,7 @@ function pseudoValide(string $brut, array $saison): array
             $reserves[] = cleNom((string) $nom);
         }
     }
-    if (in_array($cle, $reserves, true)) {
+    if (in_array($cle, $reserves, true) || preg_match('/^spec[0-9]+$/', $cle)) {
         return [null, 'Ce pseudo est réservé : choisis-en un autre.'];
     }
     return [$pseudo, null];
@@ -301,11 +313,55 @@ function spectateurParNom(array $etat, string $nom): ?string
         return null;
     }
     foreach ($etat['joueurs'] as $id => $e) {
-        if (estSpectateur($e) && ($e['cle'] ?? cleNom((string) ($e['nom'] ?? ''))) === $cle) {
+        if (estSpectateur($e) && cleNom((string) ($e['nom'] ?? '')) === $cle) {  // recalculée à chaque fois : jamais une clé périmée
             return (string) $id;
         }
     }
     return null;
+}
+
+/**
+ * Empreinte (HMAC) de la connexion du visiteur : son adresse IPv4, ou le préfixe /64 d'une adresse IPv6 (un abonné en a des milliards,
+ * changer d'adresse ne coûterait rien), jamais l'adresse elle-même. Sert aux limites d'inscription, oubliées au bout d'une heure.
+ */
+function empreinteConnexion(): string
+{
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    $binaire = @inet_pton($ip);
+    if ($binaire !== false && strlen($binaire) === 16) {
+        $ip = substr($binaire, 0, 12) === str_repeat("\0", 10) . "\xff\xff"
+            ? (string) inet_ntop(substr($binaire, 12))  // IPv4 présentée en IPv6 (::ffff:a.b.c.d)
+            : bin2hex(substr($binaire, 0, 8));
+    }
+    return hash_hmac('sha256', $ip, CLE_ADMIN);
+}
+
+/**
+ * Ce qui empêche une inscription maintenant : [code, message], ou null. Appelé d'abord en simple lecture (un refus ne coûte ni verrou
+ * ni écriture), puis sous verrou au moment d'enregistrer. Du moins cher au plus utile : limites contre les robots, place, pseudo libre.
+ */
+function obstacleInscription(array $etat, string $pseudo, int $plafond, int $maintenant, string $connexion): ?array
+{
+    $recentes = array_filter($etat['inscriptions'] ?? [], fn ($i) => (int) ($i['t'] ?? 0) > $maintenant - DUREE_INSCRIPTIONS);
+    if (count($recentes) >= INSCRIPTIONS_PAR_HEURE) {
+        return [429, 'Trop d\'inscriptions en peu de temps : réessaie dans une heure.'];
+    }
+    if (count(array_filter($recentes, fn ($i) => ($i['c'] ?? '') === $connexion)) >= INSCRIPTIONS_PAR_IP) {
+        return [429, 'Trop de comptes créés depuis cette connexion : réessaie dans une heure.'];
+    }
+    $cle = cleNom($pseudo);
+    $nb = 0;
+    $pris = false;
+    foreach ($etat['joueurs'] as $e) {
+        if (estSpectateur($e)) {
+            $nb++;
+            $pris = $pris || cleNom((string) ($e['nom'] ?? '')) === $cle;
+        }
+    }
+    if ($nb >= $plafond) {
+        return [409, 'Le nombre maximum de spectateurs est atteint pour le moment.'];
+    }
+    return $pris ? [409, 'Ce pseudo est déjà pris : choisis-en un autre.'] : null;
 }
 
 /** Supprime un compte et tout ce qui s'y rapporte : jetons, tirages du fil, paris et gains des pronostics. Son identifiant n'est jamais réutilisé. */
@@ -902,23 +958,38 @@ if ($action === 'etat' && $methode === 'GET') {
 if ($methode !== 'POST') {
     erreur(405, 'Action inconnue.');
 }
+if ($origine !== '' && !in_array($origine, ORIGINES_AUTORISEES, true)) {
+    // Un navigateur envoie toujours l'origine de la page qui appelle : celle d'un autre site n'a pas à créer de comptes ni à parier
+    // (le CORS n'empêche que de lire la réponse, pas d'écrire). Sans origine (enregistreur, tests, curl) : accepté.
+    erreur(403, 'Origine non autorisée.');
+}
 $entree = corps();
 
 if ($action === 'connexion') {
-    // Un pilote du championnat (son prénom) ou un spectateur (son pseudo) : le même formulaire, le même mot de passe
+    // Un pilote du championnat (son prénom) ou un spectateur (son pseudo) : le même formulaire, le même mot de passe.
+    // La page dit sur quel onglet on se connecte (`role` : « pilote » ou « spectateur ») : un nom tapé dans l'onglet Spectateur ne touche
+    // jamais le compte d'un pilote (ni son premier mot de passe), et inversement. Sans `role` (enregistreur, ancienne page), on cherche dans les deux.
     $saison = saison();
-    $nom = (string) ($entree['nom'] ?? '');
-    $motDePasse = (string) ($entree['motDePasse'] ?? '');
-    if (!joueurParNom($saison, $nom) && spectateurParNom(lireEtat(), $nom) === null) {
+    $nom = texte($entree, 'nom');
+    $motDePasse = texte($entree, 'motDePasse');
+    $role = texte($entree, 'role');
+    $trouver = function (array $etat) use ($saison, $nom, $role): ?array {  // [identifiant, nom affiché] ou null
+        $joueur = $role === 'spectateur' ? null : joueurParNom($saison, $nom);
+        if ($joueur !== null) {
+            return [(string) $joueur['id'], (string) $joueur['nom']];
+        }
+        $id = $role === 'pilote' ? null : spectateurParNom($etat, $nom);
+        return $id === null ? null : [$id, (string) ($etat['joueurs'][$id]['nom'] ?? $id)];
+    };
+    if ($trouver(lireEtat()) === null) {
         erreur(404, 'Compte inconnu : vérifie ton prénom (pilote) ou ton pseudo (spectateur).');  // rien n'est écrit pour un nom inconnu
     }
-    $resultat = modifierEtat(function (array &$etat) use ($saison, $nom, $motDePasse) {
-        $joueur = joueurParNom($saison, $nom);
-        $id = $joueur['id'] ?? spectateurParNom($etat, $nom);
-        if ($id === null) {
+    $resultat = modifierEtat(function (array &$etat) use ($trouver, $motDePasse) {
+        $trouve = $trouver($etat);
+        if ($trouve === null) {
             return [404, 'Compte inconnu : vérifie ton prénom (pilote) ou ton pseudo (spectateur).'];
         }
-        $affiche = $joueur['nom'] ?? (string) ($etat['joueurs'][$id]['nom'] ?? $id);
+        [$id, $affiche] = $trouve;
         $j = &$etat['joueurs'][$id];
         $j ??= joueurVierge();
         $j['echecs'] = array_values(array_filter($j['echecs'], fn ($t) => $t > time() - 600));
@@ -942,7 +1013,7 @@ if ($action === 'connexion') {
         $j['jetons'][] = ['h' => hash('sha256', $jeton), 'exp' => time() + DUREE_JETON];
         $j['jetons'] = array_slice($j['jetons'], -5);
         $j['echecs'] = [];
-        return ['jeton' => $jeton, 'joueur' => (string) $id, 'nom' => $affiche, 'role' => estSpectateur($j) ? 'spectateur' : 'pilote', 'premiereConnexion' => $premiere];
+        return ['jeton' => $jeton, 'joueur' => $id, 'nom' => $affiche, 'role' => estSpectateur($j) ? 'spectateur' : 'pilote', 'premiereConnexion' => $premiere];
     });
     if (isset($resultat[0]) && is_int($resultat[0])) {
         if ($resultat[0] === 401) {
@@ -959,14 +1030,15 @@ if ($action === 'inscription') {
     $saison = saison();
     $catalogue = catalogue();
     [$plafond, $depart] = reglagesSpectateurs($catalogue);
+    $depart = min($depart, reglagesOfferts($catalogue)[1]);  // jamais plus que le stock maximum : l'excédent disparaîtrait en silence
     if ($plafond <= 0) {
         erreur(403, 'Les inscriptions de spectateurs sont fermées pour le moment.');
     }
-    [$pseudo, $probleme] = pseudoValide((string) ($entree['nom'] ?? ''), $saison);
+    [$pseudo, $probleme] = pseudoValide(texte($entree, 'nom'), $saison);
     if ($pseudo === null) {
         erreur(400, $probleme);
     }
-    $motDePasse = (string) ($entree['motDePasse'] ?? '');
+    $motDePasse = texte($entree, 'motDePasse');
     if (mb_strlen($motDePasse) < MOT_DE_PASSE_MIN) {
         erreur(400, 'Choisis un mot de passe d\'au moins ' . MOT_DE_PASSE_MIN . ' caractères.');
     }
@@ -974,29 +1046,18 @@ if ($action === 'inscription') {
         erreur(400, 'Mot de passe trop long (' . MOT_DE_PASSE_MAX . ' caractères au maximum).');
     }
     $maintenant = time();
-    $connexion = hash_hmac('sha256', (string) ($_SERVER['REMOTE_ADDR'] ?? ''), CLE_ADMIN);  // jamais l'adresse elle-même ; oubliée au bout d'une heure
-    $resultat = modifierEtat(function (array &$etat) use ($pseudo, $motDePasse, $saison, $plafond, $depart, $maintenant, $connexion) {
-        $cle = cleNom($pseudo);
-        $nb = 0;
-        foreach ($etat['joueurs'] as $e) {
-            if (estSpectateur($e)) {
-                $nb++;
-                if (($e['cle'] ?? cleNom((string) ($e['nom'] ?? ''))) === $cle) {
-                    return [409, 'Ce pseudo est déjà pris : choisis-en un autre.'];
-                }
-            }
+    $connexion = empreinteConnexion();
+    $obstacle = obstacleInscription(lireEtat(), $pseudo, $plafond, $maintenant, $connexion);  // un refus évident : ni verrou, ni écriture, ni calcul du mot de passe
+    if ($obstacle !== null) {
+        erreur($obstacle[0], $obstacle[1]);
+    }
+    $empreinteMdp = password_hash($motDePasse, PASSWORD_DEFAULT);  // lent (≈ 70 ms) : fait avant le verrou
+    $resultat = modifierEtat(function (array &$etat) use ($pseudo, $empreinteMdp, $saison, $plafond, $depart, $maintenant, $connexion) {
+        $obstacle = obstacleInscription($etat, $pseudo, $plafond, $maintenant, $connexion);  // refait sous verrou : un autre visiteur a pu passer entre-temps
+        if ($obstacle !== null) {
+            return $obstacle;
         }
-        if ($nb >= $plafond) {
-            return [409, 'Le nombre maximum de spectateurs est atteint pour le moment.'];
-        }
-        $recentes = array_values(array_filter($etat['inscriptions'] ?? [], fn ($i) => (int) ($i['t'] ?? 0) > $maintenant - DUREE_INSCRIPTIONS));
-        $etat['inscriptions'] = $recentes;
-        if (count($recentes) >= INSCRIPTIONS_PAR_HEURE) {
-            return [429, 'Trop d\'inscriptions en peu de temps : réessaie dans une heure.'];
-        }
-        if (count(array_filter($recentes, fn ($i) => ($i['c'] ?? '') === $connexion)) >= INSCRIPTIONS_PAR_IP) {
-            return [429, 'Trop de comptes créés depuis cette connexion : réessaie dans une heure.'];
-        }
+        $etat['inscriptions'] = array_values(array_filter($etat['inscriptions'] ?? [], fn ($i) => (int) ($i['t'] ?? 0) > $maintenant - DUREE_INSCRIPTIONS));
         $n = (int) ($etat['prochainSpectateur'] ?? 0);
         do {  // un numéro jamais utilisé, jamais réutilisé après une suppression
             $n++;
@@ -1006,8 +1067,8 @@ if ($action === 'inscription') {
         $etat['prochainSpectateur'] = $n;
         $jeton = bin2hex(random_bytes(24));
         $etat['joueurs'][$id] = array_merge(joueurVierge(), [
-            'role' => 'spectateur', 'nom' => $pseudo, 'cle' => $cle, 'cree' => $maintenant,
-            'hash' => password_hash($motDePasse, PASSWORD_DEFAULT),
+            'role' => 'spectateur', 'nom' => $pseudo, 'cree' => $maintenant,
+            'hash' => $empreinteMdp,
             'jetons' => [['h' => hash('sha256', $jeton), 'exp' => $maintenant + DUREE_JETON]],
             'offerts' => ['stock' => $depart, 'depuis' => $maintenant],  // son compteur démarre à l'inscription
         ]);
@@ -1029,7 +1090,7 @@ if ($action === 'ouvrir') {
     $maintenant = time();
     $nombre = max(1, min(100, (int) ($entree['nombre'] ?? 1)));
     $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre, $intervalle, $maxOffert, $maintenant, $chanceMythique) {
-        $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
+        $id = authentifier($etat, texte($entree, 'jeton'));
         appliquerReglagesOfferts($etat, $saison, $intervalle, $maxOffert, $maintenant);
         synchroniserPronos($etat, $saison, $catalogue, $maintenant);  // les gains d'un GP tout juste réglé comptent tout de suite
         $ancre = (int) $etat['offertsDepuis'];
@@ -1093,7 +1154,7 @@ if ($action === 'ouvrir') {
 if ($action === 'fabriquer') {
     $catalogue = catalogue();
     [$cartes, , $raretes] = indexer($catalogue);
-    $carte = (string) ($entree['carte'] ?? '');
+    $carte = texte($entree, 'carte');
     if (!isset($cartes[$carte])) {
         erreur(404, 'Carte inconnue.');
     }
@@ -1102,7 +1163,7 @@ if ($action === 'fabriquer') {
     }
     $cout = (int) ($cartes[$carte]['cout'] ?? $raretes[$cartes[$carte]['rarete']]['cout']);
     $resultat = modifierEtat(function (array &$etat) use ($entree, $carte, $cout, $cartes) {
-        $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
+        $id = authentifier($etat, texte($entree, 'jeton'));
         $j = &$etat['joueurs'][$id];
         if (isset($j['cartes'][$carte])) {
             return 'Tu as déjà cette carte.';
@@ -1132,7 +1193,7 @@ if ($action === 'pronostiquer' || $action === 'monPronostic') {
     // (le pari irait sinon sur un GP que le joueur n'a pas sous les yeux)
     $voulu = isset($entree['manche']) && is_numeric($entree['manche']) ? (int) $entree['manche'] : null;
     $resultat = modifierEtat(function (array &$etat) use ($action, $entree, $saison, $catalogue, $maintenant, $voulu) {
-        $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
+        $id = authentifier($etat, texte($entree, 'jeton'));
         synchroniserPronos($etat, $saison, $catalogue, $maintenant);
         $courante = mancheCourantePronos($etat, $saison);
         if ($action === 'monPronostic') {
@@ -1185,7 +1246,7 @@ if ($action === 'pronostiquer' || $action === 'monPronostic') {
 
 if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pronosAnnuler') {
     // Appelées par l'enregistreur (fermeture au départ de la course) ou depuis l'admin ; idempotentes.
-    if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
+    if (!hash_equals(CLE_ADMIN, texte($entree, 'cle'))) {
         usleep(800000);
         erreur(403, 'Clé administrateur incorrecte.');
     }
@@ -1255,7 +1316,7 @@ if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pro
 
 if ($action === 'deconnexion') {
     modifierEtat(function (array &$etat) use ($entree) {
-        $empreinte = hash('sha256', (string) ($entree['jeton'] ?? ''));
+        $empreinte = hash('sha256', texte($entree, 'jeton'));
         foreach ($etat['joueurs'] as &$j) {
             $j['jetons'] = array_values(array_filter($j['jetons'], fn ($t) => !hash_equals($t['h'], $empreinte)));
         }
@@ -1266,12 +1327,12 @@ if ($action === 'deconnexion') {
 if ($action === 'reinitialiser') {
     // Efface le mot de passe d'un compte (pilote : son prénom ; spectateur : son pseudo) : la collection est conservée,
     // et le prochain mot de passe saisi à la connexion devient le nouveau.
-    if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
+    if (!hash_equals(CLE_ADMIN, texte($entree, 'cle'))) {
         usleep(800000);
         erreur(403, 'Clé administrateur incorrecte.');
     }
     $saison = saison();
-    $nom = (string) ($entree['nom'] ?? '');
+    $nom = texte($entree, 'nom');
     $resultat = modifierEtat(function (array &$etat) use ($saison, $nom) {
         $joueur = joueurParNom($saison, $nom);
         $id = $joueur['id'] ?? spectateurParNom($etat, $nom);
@@ -1293,11 +1354,11 @@ if ($action === 'reinitialiser') {
 
 if ($action === 'supprimerSpectateur') {
     // Supprime définitivement le compte d'un spectateur (collection, paris et tirages compris). Jamais un pilote du championnat.
-    if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
+    if (!hash_equals(CLE_ADMIN, texte($entree, 'cle'))) {
         usleep(800000);
         erreur(403, 'Clé administrateur incorrecte.');
     }
-    $id = (string) ($entree['id'] ?? '');
+    $id = texte($entree, 'id');
     $resultat = modifierEtat(function (array &$etat) use ($id) {
         if (!isset($etat['joueurs'][$id]) || !estSpectateur($etat['joueurs'][$id])) {
             return [404, 'Spectateur inconnu.'];

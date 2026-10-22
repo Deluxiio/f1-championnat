@@ -81,8 +81,8 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 @keyframes notif { from { opacity: 0; transform: translate(-50%, 10px); } }
 
 /* --- Modale de connexion ----------------------------------------------- */
-.modale { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); padding: 16px; }
-.modale-contenu { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--bordure); border-radius: 12px; padding: 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+.modale { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); padding: 16px; overflow-y: auto; }
+.modale-contenu { margin: auto; width: min(400px, 100%); background: var(--surface); border: 1px solid var(--bordure); border-radius: 12px; padding: 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
 .modale-contenu h2 { margin-bottom: 14px; }
 .champ { display: block; margin-bottom: 12px; }
 .champ span { display: block; font-size: 0.82rem; font-weight: 700; color: var(--encre-2); margin-bottom: 4px; }
@@ -588,3 +588,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 .connexion-mode button { flex: 0 1 auto; }
 .joueurs .carte-joueur.spectateur { border-style: dashed; }
 #pronos-classement tr.est-moi td { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.joueurs .carte-joueur .nom { min-width: 0; }
+.joueurs .carte-joueur .nom-texte { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.joueurs .carte-joueur .ligne-role { margin-top: 2px; }
+.joueurs .carte-joueur .ligne-role .badge-role { margin-left: 0; }

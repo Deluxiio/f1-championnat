@@ -28,7 +28,7 @@
     filtres: { recherche: '', rarete: '', ecurie: '', possession: 'toutes' },
     occupe: false, pioches: [], minuterie: null, nouvellesRecentes: new Set(),
     pilotes: new Map(), photosCassees: new Set(), creditsConstruits: false,
-    offertsFin: null, prochainEssaiOfferts: 0, rafraichitOfferts: false, pauseOfferts: 10000, generation: 0,
+    offertsFin: null, prochainEssaiOfferts: 0, rafraichitOfferts: false, pauseOfferts: 10000, generation: 0, requetesEtat: 0, etatApplique: 0,
     monPari: null, suiviPari: null, brouillon: null, envoiPari: false, rafraichitPronos: false, pronosVu: {}, ongletAffiche: null,
   };
 
@@ -184,7 +184,7 @@
     }
     return {
       etat: () => appel('etat'),
-      connexion: (nom, motDePasse) => appel('connexion', { nom, motDePasse }),
+      connexion: (nom, motDePasse, role) => appel('connexion', role ? { nom, motDePasse, role } : { nom, motDePasse }),  // role : l'onglet choisi (pilote / spectateur)
       inscription: (nom, motDePasse) => appel('inscription', { nom, motDePasse }),
       ouvrir: (jeton, nombre) => appel('ouvrir', { jeton, nombre }),
       fabriquer: (jeton, carte) => appel('fabriquer', { jeton, carte }),
@@ -287,17 +287,29 @@
       if (spectateurDemo(j)) Object.assign(vue, { role: 'spectateur', cree: j.cree || 0 });
       return vue;
     }
-    /* Spectateurs (mêmes règles que pseudoValide() / cleNom() de api.php) : un pseudo en lettres latines et chiffres, des mots séparés
-       par un espace, un point, un tiret ou une apostrophe ; unique, et jamais le nom d'un pilote. Le plafond vient du catalogue. */
-    const cleNom = (nom) => normaliser(nom).replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/ß/g, 'ss').replace(/[^\p{L}\p{N}]+/gu, '');
-    const MOT_PSEUDO = '[a-zA-Z0-9\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u017F]+';
+    /* === Spectateurs : règles du pseudo — mêmes règles que pseudoValide() / cleNom() de api.php (testées l'une contre l'autre) === */
+    const REPLI = { à: 'a', á: 'a', â: 'a', ã: 'a', ä: 'a', å: 'a', æ: 'ae', ç: 'c', è: 'e', é: 'e', ê: 'e', ë: 'e', ì: 'i', í: 'i', î: 'i', ï: 'i', ñ: 'n',
+      ò: 'o', ó: 'o', ô: 'o', õ: 'o', ö: 'o', ø: 'o', œ: 'oe', ù: 'u', ú: 'u', û: 'u', ü: 'u', ý: 'y', ÿ: 'y', ß: 'ss' };
+    const cleNom = (nom) => String(nom || '').toLowerCase().replace(/./gu, (c) => REPLI[c] || c).replace(/[^\p{L}\p{N}]+/gu, '');
+    const MOT_PSEUDO = '[a-zA-Z0-9ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØŒÙÚÛÜÝŸàáâãäåæçèéêëìíîïñòóôõöøœùúûüýÿß]+';  // exactement les lettres que cleNom replie en a-z
     const FORME_PSEUDO = new RegExp(`^${MOT_PSEUDO}(?:[ ._'’-]${MOT_PSEUDO})*$`);
     const MOTS_RESERVES = ['admin', 'administrateur', 'moderateur', 'modo', 'spectateur', 'invite', 'anonyme', 'serveur', 'systeme', 'championnat'];
-    const plafondSpectateurs = () => Math.trunc(Math.max(0, Math.min(500, Number(catalogue.spectateursMax ?? 30) || 0)));
+    /* Un pseudo : [pseudo nettoyé, null] ou [null, motif] ; `reserves` = clés (cleNom) du prénom, de l'id et des alias des pilotes. */
+    function pseudoValide(brut, reserves) {
+      const pseudo = String(brut || '').replace(/[\u0009-\u000D\u0020\u0085\u00A0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/g, ' ').replace(/^ | $/g, '');  // les blancs Unicode deviennent un seul espace, comme côté serveur
+      if (pseudo.length < 3 || pseudo.length > 20) return [null, 'longueur'];
+      if (!FORME_PSEUDO.test(pseudo)) return [null, 'forme'];
+      const cle = cleNom(pseudo);
+      if (cle.length < 3) return [null, 'court'];
+      if (reserves.concat(MOTS_RESERVES).includes(cle) || /^spec[0-9]+$/.test(cle)) return [null, 'reserve'];
+      return [pseudo, null];
+    }
+    /* === fin des règles du pseudo === */
+    const plafondSpectateurs = () => Math.trunc(Math.max(0, Math.min(100, Number(catalogue.spectateursMax ?? 30) || 0)));
     const idsSpectateurs = () => Object.keys(donnees.joueurs).filter((id) => spectateurDemo(donnees.joueurs[id]));
     function spectateurParNom(nom) {
       const cle = cleNom(nom);
-      return cle ? idsSpectateurs().find((id) => (donnees.joueurs[id].cle || cleNom(donnees.joueurs[id].nom)) === cle) || null : null;
+      return cle ? idsSpectateurs().find((id) => cleNom(donnees.joueurs[id].nom) === cle) || null : null;
     }
 
     /* ---------- Pronostics : mêmes règles que api.php. En démo : un championnat fictif, et un bouton « Simuler la course » ---------- */
@@ -400,9 +412,9 @@
           fil: donnees.fil.slice(0, 30), totalCartes: catalogue.cartes.length, pronos: vuePronos(),
         });
       },
-      async connexion(nom, motDePasse) {
-        const joueur = JOUEURS_DEMO.find((j) => normaliser(j.nom) === normaliser(nom));
-        const id = joueur ? joueur.id : spectateurParNom(nom);
+      async connexion(nom, motDePasse, role) {
+        const joueur = role === 'spectateur' ? null : JOUEURS_DEMO.find((j) => normaliser(j.nom) === normaliser(nom));
+        const id = joueur ? joueur.id : (role === 'pilote' ? null : spectateurParNom(nom));
         if (!id) echec(404, 'Compte inconnu : vérifiez votre prénom (pilote) ou votre pseudo (spectateur).');
         const j = donnees.joueurs[id];
         if (typeof motDePasse !== 'string' || motDePasse.length < 4) echec(400, 'Le mot de passe doit faire au moins 4 caractères.');
@@ -416,20 +428,19 @@
       },
       async inscription(nom, motDePasse) {
         if (plafondSpectateurs() <= 0) echec(403, 'Les inscriptions de spectateurs sont fermées pour le moment.');
-        const pseudo = String(nom || '').replace(/\s+/g, ' ').trim();
-        if (pseudo.length < 3 || pseudo.length > 20) echec(400, 'Le pseudo doit faire entre 3 et 20 caractères.');
-        if (!FORME_PSEUDO.test(pseudo)) echec(400, 'Le pseudo ne peut contenir que des lettres, des chiffres et, entre deux mots, un espace, un point, un tiret ou une apostrophe.');
-        const cle = cleNom(pseudo);
-        if (cle.length < 3) echec(400, 'Le pseudo doit contenir au moins 3 lettres ou chiffres.');
-        const reserves = MOTS_RESERVES.concat(JOUEURS_DEMO.map((j) => cleNom(j.nom)), JOUEURS_DEMO.map((j) => cleNom(j.id)), catalogue.cartes.filter((c) => c.ami).map((c) => cleNom(c.nom)));
-        if (reserves.includes(cle)) echec(400, 'Ce pseudo est réservé : choisissez-en un autre.');
+        const reserves = JOUEURS_DEMO.map((j) => cleNom(j.nom)).concat(JOUEURS_DEMO.map((j) => cleNom(j.id)), catalogue.cartes.filter((c) => c.ami).map((c) => cleNom(c.nom)));
+        const [pseudo, motif] = pseudoValide(nom, reserves);
+        if (motif === 'longueur') echec(400, 'Le pseudo doit faire entre 3 et 20 caractères.');
+        if (motif === 'forme') echec(400, 'Le pseudo ne peut contenir que des lettres, des chiffres et, entre deux mots, un espace, un point, un tiret ou une apostrophe.');
+        if (motif === 'court') echec(400, 'Le pseudo doit contenir au moins 3 lettres ou chiffres.');
+        if (motif === 'reserve') echec(400, 'Ce pseudo est réservé : choisissez-en un autre.');
         if (typeof motDePasse !== 'string' || motDePasse.length < 4) echec(400, 'Choisissez un mot de passe d\'au moins 4 caractères.');
         if (motDePasse.length > 100) echec(400, 'Mot de passe trop long (100 caractères au maximum).');
-        if (spectateurParNom(pseudo)) echec(409, 'Ce pseudo est déjà pris : choisissez-en un autre.');
         if (idsSpectateurs().length >= plafondSpectateurs()) echec(409, 'Le nombre maximum de spectateurs est atteint pour le moment.');
+        if (spectateurParNom(pseudo)) echec(409, 'Ce pseudo est déjà pris : choisissez-en un autre.');
         donnees.suivant = (donnees.suivant || 0) + 1;
         const id = `spec${donnees.suivant}`;
-        donnees.joueurs[id] = { role: 'spectateur', nom: pseudo, cle, cree: maintenantS(), motDePasse, boostersOuverts: 0, fragments: 0, cartes: [], offerts: { stock: 3, depuis: maintenantS() } };
+        donnees.joueurs[id] = { role: 'spectateur', nom: pseudo, cree: maintenantS(), motDePasse, boostersOuverts: 0, fragments: 0, cartes: [], offerts: { stock: 3, depuis: maintenantS() } };
         const jeton = 'demo-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
         donnees.jetons[jeton] = id;
         sauver();
@@ -973,13 +984,17 @@
     etat.offertsFin = o && typeof o.prochainDans === 'number' ? Date.now() + o.prochainDans * 1000 : null;
   }
   async function rafraichirEtat(initial, silencieux) {
-    const generation = etat.generation;
+    const generation = etat.generation, session = etat.session, numero = ++etat.requetesEtat;
     try {
       const publique = await etat.api.etat();
       if (generation !== etat.generation) return true;  // un booster a été ouvert pendant la requête : cette réponse est déjà périmée
+      if (numero < etat.etatApplique) return true;       // une requête plus récente a déjà été appliquée : cette réponse tardive ne la remplace pas
+      etat.etatApplique = numero;
       etat.public = publique;
       etat.panne = false;
-      if (etat.session && !compteParId(etat.session.joueur)) {  // le serveur répond mais ne connaît plus ce compte (supprimé par l'admin) : la session ne sert plus
+      // Le serveur répond mais ne connaît plus ce compte (supprimé par l'admin) : la session ne sert plus. Seulement si c'est la session
+      // qui existait quand la requête est partie : un compte créé pendant la requête ne figure pas encore dans sa réponse.
+      if (etat.session && etat.session === session && !compteParId(etat.session.joueur)) {
         effacerSession();
         notifier('Ce compte n’existe plus : reconnectez-vous ou créez-en un autre.');
       }
@@ -1076,10 +1091,11 @@
     $('connexion-mdp').value = '';
     $('connexion-erreur').hidden = true;
     $('connexion-valider').disabled = false;
-    if (avecSpectateurs()) $('connexion-pseudo').value = stockage.lire(CLE_DERNIER_PSEUDO) || '';
     const souhaite = typeof mode === 'string' ? mode : (stockage.lire(CLE_DERNIER_MODE) === 'spectateur' ? 'spectateur' : 'pilote');
     if (avecSpectateurs() && inscriptions() && (souhaite === 'creation' || souhaite === 'spectateur')) choisirModeConnexion('spectateur', souhaite === 'creation');
     else choisirModeConnexion('pilote');
+    // Le pseudo du dernier compte se propose pour se reconnecter, jamais pour en créer un autre (il serait « déjà pris »)
+    if (avecSpectateurs()) $('connexion-pseudo').value = etat.creationCompte ? '' : (stockage.lire(CLE_DERNIER_PSEUDO) || '');
     $('modale-connexion').hidden = false;
     (etat.modeConnexion === 'spectateur' ? $('connexion-pseudo') : select).focus();
   }
@@ -1107,7 +1123,7 @@
     if (etat.modeConnexion === 'spectateur') {
       const ins = inscriptions();
       aide.textContent = etat.creationCompte
-        ? 'Spectateur : vous ne jouez pas au championnat, mais vous avez votre collection, des boosters offerts et des pronostics. Choisissez un pseudo (3 à 20 caractères) et un mot de passe (4 minimum) : retenez-les bien.'
+        ? 'Spectateur : pas de championnat, mais votre collection, des boosters offerts et des pronostics. Choisissez un pseudo (3 à 20 caractères) et un mot de passe (4 minimum).'
         : `Connectez-vous avec votre pseudo et votre mot de passe.${ins && ins.ouvertes ? '' : ' Les inscriptions de spectateurs sont fermées pour le moment.'}`;
       return;
     }
@@ -1128,23 +1144,28 @@
     const erreur = $('connexion-erreur');
     const refuser = (message) => { erreur.textContent = message; erreur.hidden = false; };
     if (!nom) { refuser(spectateur ? 'Saisissez votre pseudo.' : 'Choisissez votre prénom.'); return; }
+    if (spectateur && comptesPilotes().some((j) => normaliser(j.nom) === normaliser(nom))) {  // un prénom de pilote tapé ici : on renvoie vers le bon onglet
+      refuser(`« ${nom} » est le prénom d’un pilote du championnat : les pilotes se connectent avec l’onglet Pilote.`);
+      return;
+    }
     if (creer && (nom.length < 3 || nom.length > 20)) { refuser('Le pseudo doit faire entre 3 et 20 caractères.'); return; }
     if (mdp.length < 4) { refuser('Le mot de passe doit faire au moins 4 caractères.'); return; }
     $('connexion-valider').disabled = true;
     erreur.hidden = true;
     try {
-      const r = creer ? await etat.api.inscription(nom, mdp) : await etat.api.connexion(nom, mdp);
-      etat.session = { jeton: r.jeton, joueur: r.joueur, nom: r.nom || nom, role: r.role || 'pilote' };
+      const r = creer ? await etat.api.inscription(nom, mdp) : await etat.api.connexion(nom, mdp, avecSpectateurs() && inscriptions() ? (spectateur ? 'spectateur' : 'pilote') : undefined);
+      const nomAffiche = r.nom || nom, role = r.role || (spectateur ? 'spectateur' : 'pilote');
+      etat.session = { jeton: r.jeton, joueur: r.joueur, nom: nomAffiche, role };
       stockage.ecrire(CLE_SESSION, etat.session);
-      stockage.ecrire(CLE_DERNIER_MODE, spectateur ? 'spectateur' : 'pilote');
-      if (spectateur) stockage.ecrire(CLE_DERNIER_PSEUDO, etat.session.nom); else stockage.ecrire(CLE_DERNIER_NOM, r.joueur);
+      stockage.ecrire(CLE_DERNIER_MODE, role === 'spectateur' ? 'spectateur' : 'pilote');
+      if (role === 'spectateur') stockage.ecrire(CLE_DERNIER_PSEUDO, nomAffiche); else stockage.ecrire(CLE_DERNIER_NOM, r.joueur);
       etat.albumJoueur = r.joueur;
       fermerConnexion();
       await rafraichirEtat();
       const moi = joueurConnecte(), pret = moi ? moi.boostersDispo : 0;
       notifier(creer
-        ? `Bienvenue ${etat.session.nom} ! Votre compte spectateur est créé${pret > 0 ? ` : ${pluriel(pret, 'booster')} ${pret > 1 ? 'vous attendent' : 'vous attend'}` : ''}.`
-        : (r.premiereConnexion ? `Bienvenue ${etat.session.nom} ! Votre mot de passe est enregistré.` : `Bonjour ${etat.session.nom} !`), 'succes');
+        ? `Bienvenue ${nomAffiche} ! Votre compte spectateur est créé${pret > 0 ? ` : ${pluriel(pret, 'booster')} ${pret > 1 ? 'vous attendent' : 'vous attend'}` : ''}.`
+        : (r.premiereConnexion ? `Bienvenue ${nomAffiche} ! Votre mot de passe est enregistré.` : `Bonjour ${nomAffiche} !`), 'succes');
       rendreTout();
       if (location.hash !== '#boosters' && location.hash !== '#pronostics') location.hash = '#boosters';
     } catch (err) {
@@ -1168,7 +1189,9 @@
       });
       $('connexion-sous-mode').addEventListener('click', (e) => {
         const b = e.target.closest('button');
-        if (b && b.dataset.sous) choisirModeConnexion('spectateur', b.dataset.sous === 'creation');
+        if (!b || !b.dataset.sous) return;
+        choisirModeConnexion('spectateur', b.dataset.sous === 'creation');
+        if (b.dataset.sous === 'creation' && $('connexion-pseudo').value === stockage.lire(CLE_DERNIER_PSEUDO)) $('connexion-pseudo').value = '';  // pas le pseudo d'un compte existant
       });
     }
     $('connexion-annuler').addEventListener('click', fermerConnexion);
@@ -1191,6 +1214,7 @@
      ==================================================================== */
   function rendreBoosters(doux) {
     const moi = joueurConnecte();
+    if (estSpectateur(moi)) document.querySelectorAll('#boosters .ratio-boosters').forEach((n) => { n.textContent = 'Un booster'; });  // pas de « 1 point = 1 booster » pour qui n'a pas de points (l'aide de l'onglet Collections, elle, décrit le jeu)
     document.querySelectorAll('.aide-spectateur').forEach((n) => {
       n.hidden = !estSpectateur(moi);
       n.textContent = estSpectateur(moi) ? ' Vous êtes spectateur : vous ne marquez pas de points, vos boosters viennent des boosters offerts et de vos pronostics.' : '';
@@ -1795,11 +1819,10 @@
     const d = el('div', 'carte-joueur' + (spectateur ? ' spectateur' : ''), null, { role: 'button', tabindex: '0' });
     d.style.setProperty('--couleur', couleurJoueur(j));
     const nom = el('div', 'nom');
-    const gauche = el('span', null, j.nom);
-    if (spectateur) gauche.appendChild(el('span', 'badge-role', 'Spectateur'));
-    nom.appendChild(gauche);
+    nom.appendChild(el('span', 'nom-texte', j.nom, { title: j.nom }));
     if (etat.session && j.id === etat.session.joueur) nom.appendChild(el('span', 'moi', 'moi'));
     d.appendChild(nom);
+    if (spectateur) d.appendChild(el('div', 'ligne-role', null)).appendChild(el('span', 'badge-role', 'Spectateur'));
     const pts = el('div', 'points', String(j.nbCartes));
     pts.appendChild(el('small', null, `/ ${total} cartes`));
     d.appendChild(pts);
@@ -1818,7 +1841,7 @@
     d.appendChild(rar);
     const offerts = offertsDe(j);
     d.appendChild(el('div', 'detail', spectateur
-      ? `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''}${j.boostersPronos > 0 ? ` · ${j.boostersPronos} gagné${j.boostersPronos > 1 ? 's' : ''} aux pronostics` : ''}`
+      ? `${pluriel(j.boostersDispo, 'booster')} à ouvrir${j.boostersPronos > 0 ? ` · ${j.boostersPronos} gagné${j.boostersPronos > 1 ? 's' : ''} aux pronostics` : ''}`
       : `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''} · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
     d.appendChild(el('div', 'detail', `${pluriel(j.fragments, 'fragment')}${j.compte ? '' : ' · pas encore de mot de passe'}`));
     const b = el('button', 'bouton secondaire petit', 'Voir l’album', { type: 'button' });
@@ -2205,7 +2228,9 @@
         parieurs.forEach((id) => {
           const pari = h.paris[id], g = (h.gains && h.gains[id]) || { meilleur: 0, ordre: 0 };
           const tr = el('tr');
-          tr.appendChild(el('td', null, nomJoueur(id)));
+          const qui = el('td', null, nomJoueur(id));
+          if (estSpectateur(compteParId(id))) qui.appendChild(el('span', 'badge-role', 'Spectateur'));
+          tr.appendChild(qui);
           const m = el('td'); if (pari.meilleur) { m.appendChild(el('span', g.meilleur > 0 ? 'juste' : 'rate', g.meilleur > 0 ? '✓ ' : '✗ ')); m.appendChild(el('span', null, nomJoueur(pari.meilleur))); } else m.textContent = '–';
           const o = el('td', 'ordre'); if (pari.ordre) { o.appendChild(el('span', g.ordre > 0 ? 'juste' : 'rate', g.ordre > 0 ? '✓ ' : '✗ ')); o.appendChild(el('span', null, pari.ordre.map(nomJoueur).join(' › '))); } else o.textContent = '–';
           const gain = g.meilleur + g.ordre;
@@ -2381,7 +2406,7 @@
     $('btn-reinit-demo').addEventListener('click', () => {
       stockage.effacer(CLE_DEMO);
       stockage.effacer(CLE_SESSION);
-      JOUEURS_DEMO.forEach((j) => stockage.effacer(`f1cartes.demo.pronos.vu.${j.id}`));
+      try { Object.keys(localStorage).filter((k) => k.startsWith('f1cartes.demo.pronos.vu.')).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* stockage indisponible */ }
       location.reload();
     });
     document.querySelectorAll('[data-action="connexion"]').forEach((b) => b.addEventListener('click', ouvrirConnexion));
