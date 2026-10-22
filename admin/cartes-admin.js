@@ -29,6 +29,8 @@
     const d = await api("GET", "/api/catalogue");
     catalogue = d.catalogue;
     revision = d.revision;
+    catalogue.minutesParBoosterOffert ??= 60;   // boosters offerts : valeurs par défaut d'un catalogue plus ancien
+    catalogue.stockMaxBoostersOfferts ??= 10;
     const saison = window.Admin.saison();
     bonus = Object.fromEntries((saison ? saison.joueurs : []).map((j) => [j.id, j.boostersBonus || 0]));
     modifie = false;
@@ -59,14 +61,23 @@
     const zone = vider("cartes-economie");
     const champ = (libelle, cle, min, max, aide) => h("label", {}, libelle,
       h("input", { type: "number", min: String(min), max: String(max), value: catalogue[cle], title: aide,
-        onchange: (e) => { catalogue[cle] = nombre(e.target.value, min, max); marquer(); rendreEconomie(); rendreBoosters(); } }));
+        onchange: (e) => {
+          if (e.target.value.trim() === "") { rendreEconomie(); return; }   // champ vidé : on garde l'ancienne valeur
+          catalogue[cle] = nombre(e.target.value, min, max); marquer(); rendreEconomie(); rendreBoosters();
+        } }));
     zone.appendChild(h("div", { class: "champs" },
       champ("Points pour 1 booster", "pointsParBooster", 1, 100, "Ex. 5 : un booster tous les 5 points"),
       champ("Cartes par booster", "cartesParBooster", 1, 10),
       h("label", {}, "Dernière carte au minimum",
         h("select", { onchange: (e) => { catalogue.derniereCarteMin = e.target.value; marquer(); rendreEconomie(); } },
           catalogue.raretes.map((r) => option(r.id, r.nom, r.id === catalogue.derniereCarteMin)))),
+      champ("Minutes entre deux boosters offerts", "minutesParBoosterOffert", 0, 10080, "0 = désactivé. Ex. 60 : 1 booster offert par heure à chaque joueur"),
+      champ("Stock maximum de boosters offerts", "stockMaxBoostersOfferts", 1, 100, "Quand le stock est plein, le compteur s'arrête jusqu'à la prochaine ouverture"),
     ));
+    const minutes = catalogue.minutesParBoosterOffert;
+    zone.appendChild(h("p", { class: "indice" }, minutes > 0
+      ? `Boosters offerts : chaque joueur en reçoit 1 toutes les ${minutes} minutes, sans rien faire, et les garde en stock jusqu'à ${catalogue.stockMaxBoostersOfferts}. Ils s'ouvrent avant ceux gagnés avec les points. Si tu baisses le stock maximum, les stocks plus grands sont ramenés au nouveau plafond.`
+      : "Boosters offerts désactivés : plus aucun nouveau booster n'est offert (le stock restant reste utilisable)."));
 
     const total = catalogue.raretes.reduce((s, r) => s + r.poids, 0);
     const compte = (id) => catalogue.cartes.filter((c) => c.rarete === id).length;
@@ -111,7 +122,7 @@
         );
       })),
     )));
-    zone.appendChild(h("p", { class: "indice" }, "Le bonus sert à offrir des boosters (un cadeau, une compensation après un bug…). Un nombre négatif en retire."));
+    zone.appendChild(h("p", { class: "indice" }, "Le bonus sert à offrir des boosters (un cadeau, une compensation après un bug…). Un nombre négatif en retire. Les boosters offerts à l'heure (réglage ci-dessus) s'ajoutent à ce total et ne sont pas comptés ici."));
   }
 
   // --- Catalogue ---------------------------------------------------------------
@@ -258,7 +269,7 @@
         h("td", {}, j.compte ? "Défini" : "Pas encore"),
         h("td", { class: "num" }, `${j.nbCartes} / ${etat.totalCartes}`),
         h("td", { class: "num" }, `${j.boostersOuverts} / ${j.boostersGagnes}`),
-        h("td", { class: "num" }, String(j.boostersDispo)),
+        h("td", { class: "num" }, j.offerts ? `${j.boostersDispo} (dont ${j.offerts.stock} offerts)` : String(j.boostersDispo)),
         h("td", { class: "num" }, String(j.fragments)),
         h("td", {}, j.compte ? h("button", { type: "button", class: "bouton secondaire", onclick: async () => {
           if (!confirm(`Réinitialiser le mot de passe de ${j.nom} ? Sa collection est conservée ; il choisira un nouveau mot de passe à sa prochaine connexion.`)) return;

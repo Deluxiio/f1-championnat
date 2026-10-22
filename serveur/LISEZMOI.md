@@ -35,3 +35,5 @@ Un joueur qui a oublié son mot de passe peut être réinitialisé avec la clé 
 
 ## Mise à jour
 Si `api.php` change, renvoie simplement ce fichier : les collections (`donnees/etat.json`) ne sont pas touchées.
+
+Les boosters offerts à l'heure demandent la dernière version de `api.php`. Pour vérifier qu'elle est en place, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : chaque joueur doit avoir un bloc `"offerts"` (sauf si tu as désactivé les boosters offerts dans l'admin : 0 minute). Tant que l'ancienne version est en ligne, la page n'affiche simplement rien à ce sujet.

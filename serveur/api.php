@@ -1,5 +1,5 @@
 <?php
-// Serveur du jeu de cartes F1 25 : comptes, boosters, fragments, fabrication.
+// Serveur du jeu de cartes F1 25 : comptes, boosters (gagnés avec les points et offerts à l'heure), fragments, fabrication.
 // Contrat complet : API.md. Les données sont dans donnees/etat.json (dossier protégé).
 declare(strict_types=1);
 
@@ -196,6 +196,85 @@ function boostersGagnes(array $saison, array $catalogue, string $id): int
     return max(0, (int) floor((pointsJoueurs($saison)[$id] ?? 0) / $ratio) + $bonus);
 }
 
+/** Réglages des boosters offerts (catalogue.json) : [intervalle en secondes, stock maximum]. Intervalle 0 = désactivé. */
+function reglagesOfferts(array $catalogue): array
+{
+    $nombre = fn ($valeur, float $defaut): float => is_numeric($valeur) ? (float) $valeur : $defaut;
+    $minutes = (int) max(0, min(525600, $nombre($catalogue['minutesParBoosterOffert'] ?? null, 60)));  // au plus 1 an
+    $max = (int) max(1, min(1000, $nombre($catalogue['stockMaxBoostersOfferts'] ?? null, 10)));
+    return [$minutes * 60, $max];
+}
+
+/**
+ * Boosters offerts : +1 toutes les $intervalle secondes, jusqu'à $max en stock.
+ * $o = ['stock' => n, 'depuis' => t] enregistré pour le joueur ; sans enregistrement, il compte depuis $ancre
+ * (mise en service du système). Le stock ne dépasse jamais $max ; quand il est plein le compteur s'arrête,
+ * et il repart à l'ouverture d'un booster.
+ * Renvoie [stock, depuis] : le prochain booster arrive à depuis + $intervalle.
+ */
+function calculerOfferts(?array $o, int $maintenant, int $intervalle, int $max, int $ancre): array
+{
+    $stock = min($max, max(0, (int) ($o['stock'] ?? 0)));
+    $depuis = min($maintenant, (int) ($o['depuis'] ?? $ancre));
+    if ($intervalle <= 0) {
+        return [$stock, $maintenant];
+    }
+    $arrives = intdiv($maintenant - $depuis, $intervalle);
+    if ($stock + $arrives >= $max) {
+        return [$max, $maintenant];
+    }
+    return [$stock + $arrives, $depuis + $arrives * $intervalle];
+}
+
+/** Ce que l'API montre des boosters offerts d'un joueur (null : système désactivé et stock vide). */
+function vueOfferts(array $e, int $maintenant, int $intervalle, int $max, int $ancre): ?array
+{
+    [$stock, $depuis] = calculerOfferts($e['offerts'] ?? null, $maintenant, $intervalle, $max, $ancre);
+    if ($intervalle <= 0 && $stock === 0) {
+        return null;
+    }
+    return [
+        'stock' => $stock, 'max' => $max, 'intervalle' => $intervalle,
+        'prochainDans' => $intervalle > 0 && $stock < $max ? max(0, $depuis + $intervalle - $maintenant) : null,
+        'ouverts' => (int) ($e['offertsOuverts'] ?? 0),
+    ];
+}
+
+/** Faut-il (ré)enregistrer la date de départ et les réglages des boosters offerts ? Vrai au premier appel et après un changement. */
+function reglagesOffertsAChanger(array $etat, int $intervalle, int $max): bool
+{
+    $r = $etat['offertsReglages'] ?? null;
+    return !is_array($r) || !isset($etat['offertsDepuis']) || $r['intervalle'] !== $intervalle || $r['max'] !== $max;
+}
+
+/**
+ * À appeler dans modifierEtat. Au premier appel, note la date de départ des boosters offerts et les réglages en vigueur.
+ * Quand l'admin change un réglage (durée, stock maximum, activation), les comptes de tous les joueurs sont d'abord arrêtés
+ * à cet instant avec les anciens réglages : le changement ne vaut que pour la suite, rien n'est crédité après coup
+ * (réactiver le système ou monter le plafond ne remplit donc pas les stocks d'un coup). Seul un plafond abaissé
+ * ramène les stocks plus grands au nouveau plafond.
+ */
+function appliquerReglagesOfferts(array &$etat, array $saison, int $intervalle, int $max, int $maintenant): void
+{
+    $ancre = $etat['offertsDepuis'] ??= $maintenant;
+    $anciens = $etat['offertsReglages'] ?? null;
+    if (is_array($anciens) && ($anciens['intervalle'] !== $intervalle || $anciens['max'] !== $max)) {
+        foreach ($saison['joueurs'] as $j) {
+            $e = &$etat['joueurs'][$j['id']];
+            $e ??= joueurVierge();
+            [$stock, $depuis] = calculerOfferts($e['offerts'] ?? null, $maintenant, (int) $anciens['intervalle'], (int) $anciens['max'], (int) $ancre);
+            $e['offerts'] = ['stock' => $stock, 'depuis' => $depuis];
+            unset($e);
+        }
+    }
+    $etat['offertsReglages'] = ['intervalle' => $intervalle, 'max' => $max];
+}
+
+function etatModifiable(): bool
+{
+    return is_file(FICHIER_ETAT) ? is_writable(FICHIER_ETAT) : is_writable(dirname(FICHIER_ETAT));
+}
+
 function indexer(array $catalogue): array
 {
     $parRarete = [];
@@ -251,17 +330,32 @@ if ($action === 'etat' && $methode === 'GET') {
     $saison = saison();
     $catalogue = catalogue();
     $etat = lireEtat();
+    $maintenant = time();
+    [$intervalle, $maxOffert] = reglagesOfferts($catalogue);
+    if (reglagesOffertsAChanger($etat, $intervalle, $maxOffert) && etatModifiable()) {
+        // première fois, ou réglages changés dans l'admin : enregistré une seule fois (voir appliquerReglagesOfferts)
+        $etat = modifierEtat(function (array &$e) use ($saison, $intervalle, $maxOffert, $maintenant) {
+            appliquerReglagesOfferts($e, $saison, $intervalle, $maxOffert, $maintenant);
+            return $e;
+        });
+    }
+    $ancre = (int) ($etat['offertsDepuis'] ?? $maintenant);
     $points = pointsJoueurs($saison);
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
         $gagnes = boostersGagnes($saison, $catalogue, $j['id']);
-        $joueurs[] = [
+        $offerts = vueOfferts($e, $maintenant, $intervalle, $maxOffert, $ancre);
+        $joueur = [
             'id' => $j['id'], 'nom' => $j['nom'], 'compte' => $e['hash'] !== null, 'points' => $points[$j['id']],
             'boostersGagnes' => $gagnes, 'boostersOuverts' => $e['ouverts'],
-            'boostersDispo' => max(0, $gagnes - $e['ouverts']), 'fragments' => $e['fragments'],
+            'boostersDispo' => max(0, $gagnes - $e['ouverts']) + ($offerts['stock'] ?? 0), 'fragments' => $e['fragments'],
             'cartes' => array_keys($e['cartes']), 'nbCartes' => count($e['cartes']),
         ];
+        if ($offerts !== null) {
+            $joueur['offerts'] = $offerts;
+        }
+        $joueurs[] = $joueur;
     }
     repondre(['joueurs' => $joueurs, 'fil' => $etat['fil'], 'totalCartes' => count($catalogue['cartes'])]);
 }
@@ -314,16 +408,22 @@ if ($action === 'ouvrir') {
     $saison = saison();
     $catalogue = catalogue();
     [$cartes, $parRarete, $raretes] = indexer($catalogue);
+    [$intervalle, $maxOffert] = reglagesOfferts($catalogue);
+    $maintenant = time();
     $nombre = max(1, min(100, (int) ($entree['nombre'] ?? 1)));
-    $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre) {
+    $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre, $intervalle, $maxOffert, $maintenant) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
+        appliquerReglagesOfferts($etat, $saison, $intervalle, $maxOffert, $maintenant);
+        $ancre = (int) $etat['offertsDepuis'];
         $j = &$etat['joueurs'][$id];
-        $dispo = boostersGagnes($saison, $catalogue, $id) - $j['ouverts'];
-        if ($dispo <= 0) {
-            return null;
+        [$offerts, $depuis] = calculerOfferts($j['offerts'] ?? null, $maintenant, $intervalle, $maxOffert, $ancre);
+        $dispoPoints = max(0, boostersGagnes($saison, $catalogue, $id) - $j['ouverts']);
+        if ($dispoPoints + $offerts <= 0) {
+            return ['aucun' => $intervalle > 0 ? max(0, $depuis + $intervalle - $maintenant) : null];
         }
+        $aOuvrir = min($nombre, $dispoPoints + $offerts);
         $boosters = [];
-        for ($b = 0; $b < min($nombre, $dispo); $b++) {
+        for ($b = 0; $b < $aOuvrir; $b++) {
             $booster = [];
             for ($k = 0; $k < $catalogue['cartesParBooster']; $k++) {
                 $carte = tirer($catalogue, $parRarete, $k === $catalogue['cartesParBooster'] - 1);
@@ -340,14 +440,29 @@ if ($action === 'ouvrir') {
                     }
                 }
             }
-            $j['ouverts']++;
+            // Les boosters offerts passent en premier : leur stock est plafonné, ceux gagnés avec les points ne disparaissent pas
+            if ($offerts > 0) {
+                $offerts--;
+                $j['offertsOuverts'] = ($j['offertsOuverts'] ?? 0) + 1;
+            } else {
+                $j['ouverts']++;
+            }
             $boosters[] = $booster;
         }
-        return ['boosters' => $boosters, 'fragments' => $j['fragments'],
-                'boostersDispo' => boostersGagnes($saison, $catalogue, $id) - $j['ouverts']];
+        $j['offerts'] = ['stock' => $offerts, 'depuis' => $depuis];
+        $reponse = ['boosters' => $boosters, 'fragments' => $j['fragments'], 'boostersOuverts' => $j['ouverts'],
+                    'boostersDispo' => max(0, boostersGagnes($saison, $catalogue, $id) - $j['ouverts']) + $offerts];
+        $vue = vueOfferts($j, $maintenant, $intervalle, $maxOffert, $ancre);
+        if ($vue !== null) {
+            $reponse['offerts'] = $vue;
+        }
+        return $reponse;
     });
-    if ($resultat === null) {
-        erreur(409, 'Aucun booster disponible : marque des points au prochain GP !');
+    if (array_key_exists('aucun', $resultat)) {
+        $attente = $resultat['aucun'];
+        erreur(409, $attente === null
+            ? 'Aucun booster disponible : marque des points au prochain GP !'
+            : 'Aucun booster disponible : le prochain booster offert arrive dans ' . max(1, intdiv($attente + 59, 60)) . ' min, ou marque des points au prochain GP !');
     }
     repondre($resultat);
 }

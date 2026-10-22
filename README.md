@@ -55,6 +55,7 @@ La page **Cartes** (`docs/cartes/`) est un jeu de collection : 1 point au champi
 - **La collection** compte environ 710 cartes, une par couple pilote × écurie depuis 1980.
 - **La rareté** dépend de ce que le pilote a fait dans cette écurie : Icône (3 titres ou plus), Légendaire (titre), Épique (victoire), Rare (podium), Peu commune (points) ou Commune.
 - **Les doublons** sont recyclés en fragments, qui servent à fabriquer les cartes manquantes.
+- **Les boosters offerts** : en plus de ceux gagnés avec les points, chaque joueur reçoit 1 booster par heure, même sans jouer. Ils s'accumulent dans un stock de 10 au maximum (quand le stock est plein, le compteur s'arrête jusqu'à la prochaine ouverture) et s'ouvrent avant les boosters gagnés avec les points. Le délai et le stock maximum se règlent dans l'admin (*Cartes → Économie*) ; 0 minute désactive le système.
 
 Fichiers :
 - `outils/catalogue.py` régénère `docs/cartes/catalogue.json` à partir des résultats officiels (API Jolpica, avec un cache local).

@@ -47,7 +47,7 @@
 </svg>
 
 <div class="bandeau-demo" id="bandeau-demo" hidden>
-  <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chacun a 40 boosters pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
+  <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chacun a 40 boosters (et 3 boosters offerts) pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
   <button type="button" class="lien-bouton" id="btn-reinit-demo">Réinitialiser la démo</button>
 </div>
 
@@ -79,7 +79,7 @@
       <h2>Boosters</h2>
       <div class="puces" id="boosters-compteur"></div>
     </div>
-    <p class="aide"><span class="ratio-boosters">1 point au championnat = 1 booster</span> de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.</p>
+    <p class="aide"><span class="ratio-boosters">1 point au championnat = 1 booster</span> de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.<span class="aide-offerts" data-forme="longue" hidden></span></p>
 
     <div class="vide" id="boosters-hors-ligne" hidden>
       <p>Connectez-vous pour ouvrir vos boosters.</p>
@@ -92,6 +92,12 @@
         <button type="button" class="bouton secondaire" id="btn-ouvrir-10">Ouvrir 10</button>
         <button type="button" class="bouton secondaire" id="btn-ouvrir-tout">Tout ouvrir</button>
         <button type="button" class="bouton secondaire" id="btn-tout-reveler" hidden>Tout révéler</button>
+      </div>
+      <div class="offerts" id="offerts" hidden>
+        <strong>Boosters offerts</strong>
+        <span class="offerts-stock" id="offerts-stock"></span>
+        <div class="offerts-barre" aria-hidden="true"><i id="offerts-progres"></i></div>
+        <span class="offerts-texte" id="offerts-texte"></span>
       </div>
       <p class="indication" id="indication"></p>
       <div class="scene" id="scene">
@@ -141,7 +147,7 @@
 
   <section id="collections" class="section" role="tabpanel" hidden>
     <div class="section-tete"><h2>Collections des joueurs</h2></div>
-    <p class="aide">Boosters gagnés : <span class="ratio-boosters">1 point au championnat = 1 booster</span>. Cliquez sur un joueur pour feuilleter son album.</p>
+    <p class="aide">Boosters gagnés : <span class="ratio-boosters">1 point au championnat = 1 booster</span>. Cliquez sur un joueur pour feuilleter son album.<span class="aide-offerts" data-forme="courte" hidden></span></p>
     <div class="cartes joueurs" id="joueurs"></div>
     <h3>Dernières grosses cartes</h3>
     <p class="aide">Les 30 dernières cartes Épique ou mieux obtenues, la plus récente en premier.</p>

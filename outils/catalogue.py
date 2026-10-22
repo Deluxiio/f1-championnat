@@ -266,7 +266,8 @@ def main():
 
     # Les réglages faits dans l'admin (économie, raretés, cartes modifiées) survivent à une régénération
     ancien = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
-    reglages = {"pointsParBooster": 1, "cartesParBooster": 5, "derniereCarteMin": "peu_commune"}
+    reglages = {"pointsParBooster": 1, "cartesParBooster": 5, "derniereCarteMin": "peu_commune",
+                "minutesParBoosterOffert": 60, "stockMaxBoostersOfferts": 10}
     reglages.update({k: ancien[k] for k in reglages if k in ancien})
     anciennes = {r["id"]: r for r in ancien.get("raretes", [])}
     raretes = [{**r, **{k: anciennes[r["id"]][k] for k in ("poids", "fragments", "cout") if k in anciennes.get(r["id"], {})}}

@@ -6,6 +6,8 @@
  "pointsParBooster": 1,
  "cartesParBooster": 5,
  "derniereCarteMin": "peu_commune",
+ "minutesParBoosterOffert": 60,
+ "stockMaxBoostersOfferts": 10,
  "raretes": [
   {
    "id": "icone",

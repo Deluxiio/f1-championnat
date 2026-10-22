@@ -25,6 +25,7 @@
     filtres: { recherche: '', rarete: '', ecurie: '', possession: 'toutes' },
     occupe: false, pioches: [], minuterie: null, nouvellesRecentes: new Set(),
     pilotes: new Map(), photosCassees: new Set(), creditsConstruits: false,
+    offertsFin: null, prochainEssaiOfferts: 0, rafraichitOfferts: false, pauseOfferts: 10000, generation: 0,
   };
 
   /* ====================================================================
@@ -54,6 +55,26 @@
     const ratio = (etat.catalogue && etat.catalogue.pointsParBooster) || 1;
     return ratio === 1 ? '1 point au championnat = 1 booster' : `${ratio} points au championnat = 1 booster`;
   };
+  /* Boosters offerts : 1 toutes les N minutes, mis en stock jusqu'à un plafond. Le serveur compte le temps ;
+     ici on n'affiche que le stock et un compte à rebours. Sans champ « offerts » (ancien serveur), rien n'est affiché. */
+  const offertsDe = (j) => (j && j.offerts) || null;
+  function texteRythme(secondes) {
+    const min = Math.round(secondes / 60);
+    if (min === 1) return 'toutes les minutes';
+    if (min === 60) return 'toutes les heures';
+    if (min === 1440) return 'tous les jours';
+    if (min % 1440 === 0) return `tous les ${min / 1440} jours`;
+    return min % 60 === 0 ? `toutes les ${min / 60} heures` : `toutes les ${min} minutes`;
+  }
+  function reglageOfferts() {  // null si le serveur ne connaît pas les boosters offerts ou si le système est désactivé
+    const o = (etat.public ? etat.public.joueurs : []).map((j) => j.offerts).find((x) => x && x.intervalle > 0);
+    return o ? { intervalle: o.intervalle, max: o.max } : null;
+  }
+  function dureeCourte(secondes) {
+    const s = Math.max(0, Math.ceil(secondes));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return h ? `${h} h ${String(m).padStart(2, '0')} min` : `${m}:${String(s % 60).padStart(2, '0')}`;
+  }
   const rareteDe = (id) => etat.raretes.get(id) || { id, nom: id, regle: '', poids: 0, fragments: 0, cout: 0 };
   const nomEcurie = (id) => (etat.catalogue.ecuries[id] && etat.catalogue.ecuries[id].nom) || id;
   function couleursEcurie(id) {
@@ -137,6 +158,33 @@
     const parRarete = {};
     catalogue.cartes.forEach((c) => { (parRarete[c.rarete] = parRarete[c.rarete] || []).push(c); });
 
+    /* Boosters offerts : mêmes règles que calculerOfferts() / vueOfferts() de api.php (temps en secondes).
+       En démo, chaque joueur démarre avec 3 boosters offerts pour voir le système, puis le temps réel s'écoule. */
+    const maintenantS = () => Math.floor(Date.now() / 1000);
+    const reglagesOfferts = () => ({
+      intervalle: Math.trunc(Math.max(0, Math.min(525600, Number(catalogue.minutesParBoosterOffert ?? 60) || 0))) * 60,
+      max: Math.trunc(Math.max(1, Math.min(1000, Number(catalogue.stockMaxBoostersOfferts ?? 10) || 1))),
+    });
+    function calculerOfferts(j, maintenant) {
+      const { intervalle, max } = reglagesOfferts();
+      if (!j.offerts) { j.offerts = { stock: 3, depuis: maintenant }; sauver(); }
+      const stock = Math.min(max, Math.max(0, j.offerts.stock));
+      const depuis = Math.min(maintenant, j.offerts.depuis);
+      if (intervalle <= 0) return { stock, depuis: maintenant };
+      const arrives = Math.floor((maintenant - depuis) / intervalle);
+      if (stock + arrives >= max) return { stock: max, depuis: maintenant };
+      return { stock: stock + arrives, depuis: depuis + arrives * intervalle };
+    }
+    function vueOfferts(j, maintenant) {
+      const { intervalle, max } = reglagesOfferts();
+      const { stock, depuis } = calculerOfferts(j, maintenant);
+      if (intervalle <= 0 && stock === 0) return null;
+      return {
+        stock, max, intervalle, ouverts: j.offertsOuverts || 0,
+        prochainDans: intervalle > 0 && stock < max ? Math.max(0, depuis + intervalle - maintenant) : null,
+      };
+    }
+
     function joueurParJeton(jeton) {
       const id = donnees.jetons[jeton];
       if (!id || !donnees.joueurs[id]) echec(401, 'Session expirée : reconnectez-vous.');
@@ -160,11 +208,15 @@
     }
     function vueJoueur(id) {
       const j = donnees.joueurs[id];
-      return {
+      const offerts = vueOfferts(j, maintenantS());
+      const vue = {
         id, nom: j.nom, compte: j.motDePasse !== null, points: BOOSTERS_DEMO,
-        boostersGagnes: BOOSTERS_DEMO, boostersOuverts: j.boostersOuverts, boostersDispo: Math.max(0, BOOSTERS_DEMO - j.boostersOuverts),
+        boostersGagnes: BOOSTERS_DEMO, boostersOuverts: j.boostersOuverts,
+        boostersDispo: Math.max(0, BOOSTERS_DEMO - j.boostersOuverts) + (offerts ? offerts.stock : 0),
         fragments: j.fragments, cartes: j.cartes.slice(), nbCartes: j.cartes.length,
       };
+      if (offerts) vue.offerts = offerts;
+      return vue;
     }
 
     return {
@@ -186,7 +238,10 @@
       },
       async ouvrir(jeton, nombre) {
         const { id, j } = joueurParJeton(jeton);
-        const dispo = BOOSTERS_DEMO - j.boostersOuverts;
+        const maintenant = maintenantS();
+        const calcul = calculerOfferts(j, maintenant);
+        let offerts = calcul.stock;
+        const dispo = Math.max(0, BOOSTERS_DEMO - j.boostersOuverts) + offerts;
         if (dispo <= 0) echec(409, 'Aucun booster disponible.');
         const n = Math.max(1, Math.min(100, Math.floor(Number(nombre) || 1), dispo));
         const possedees = new Set(j.cartes);
@@ -205,11 +260,18 @@
               ajouterAuFil(id, carte, false);
             }
           }
-          j.boostersOuverts++;
+          if (offerts > 0) { offerts--; j.offertsOuverts = (j.offertsOuverts || 0) + 1; } else { j.boostersOuverts++; }
           boosters.push(booster);
         }
+        j.offerts = { stock: offerts, depuis: calcul.depuis };
         sauver();
-        return latence({ boosters, fragments: j.fragments, boostersDispo: Math.max(0, BOOSTERS_DEMO - j.boostersOuverts) });
+        const reponse = {
+          boosters, fragments: j.fragments, boostersOuverts: j.boostersOuverts,
+          boostersDispo: Math.max(0, BOOSTERS_DEMO - j.boostersOuverts) + offerts,
+        };
+        const vue = vueOfferts(j, maintenant);
+        if (vue) reponse.offerts = vue;
+        return latence(reponse);
       },
       async fabriquer(jeton, carteId) {
         const { id, j } = joueurParJeton(jeton);
@@ -564,6 +626,7 @@
     stockage.effacer(CLE_SESSION);
     etat.albumJoueur = null;
     etat.nouvellesRecentes.clear();
+    etat.offertsFin = null;
   }
   function gererErreur(e) {
     if (e && e.code === 401) {
@@ -575,15 +638,25 @@
     }
     notifier((e && e.message) || 'Une erreur est survenue.');
   }
-  async function rafraichirEtat(initial) {
+  /* Date (locale) d'arrivée du prochain booster offert, calculée à partir des secondes restantes données par le serveur :
+     l'horloge du navigateur n'a donc aucune influence sur le moment où le booster arrive. */
+  function synchroniserOfferts() {
+    const o = offertsDe(joueurConnecte());
+    etat.offertsFin = o && typeof o.prochainDans === 'number' ? Date.now() + o.prochainDans * 1000 : null;
+  }
+  async function rafraichirEtat(initial, silencieux) {
+    const generation = etat.generation;
     try {
-      etat.public = await etat.api.etat();
+      const publique = await etat.api.etat();
+      if (generation !== etat.generation) return true;  // un booster a été ouvert pendant la requête : cette réponse est déjà périmée
+      etat.public = publique;
       etat.panne = false;
+      synchroniserOfferts();
       return true;
     } catch (e) {
       etat.panne = true;
       if (initial) $('sous-titre').textContent = `Serveur injoignable — ${e.message}`;
-      notifier(e.message);
+      if (!silencieux) notifier(e.message);
       return false;
     }
   }
@@ -591,10 +664,10 @@
   /* ====================================================================
      Rendu général
      ==================================================================== */
-  function rendreTout() {
+  function rendreTout(doux) {
     rendreSousTitre();
     rendreCompte();
-    rendreBoosters();
+    rendreBoosters(doux);
     mettreAJourAlbum();
     rendreJoueurs();
     rendreFil();
@@ -602,8 +675,17 @@
   function rendreSousTitre() {
     if (etat.panne && !etat.public) return;
     const total = etat.catalogue.cartes.length;
-    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`;
+    const offerts = reglageOfferts();
+    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`
+      + (offerts ? ` En plus : 1 booster offert ${texteRythme(offerts.intervalle)} (${offerts.max} en stock au maximum).` : '');
     document.querySelectorAll('.ratio-boosters').forEach((n) => { n.textContent = texteRatio(); });
+    document.querySelectorAll('.aide-offerts').forEach((n) => {
+      n.hidden = !offerts;
+      if (!offerts) return;
+      n.textContent = n.dataset.forme === 'courte'
+        ? ` Boosters offerts : 1 ${texteRythme(offerts.intervalle)}, ${offerts.max} en stock au maximum.`
+        : ` Chaque joueur reçoit aussi 1 booster offert ${texteRythme(offerts.intervalle)}, mis en stock jusqu’à ${offerts.max} : quand le stock est plein, le compteur s’arrête jusqu’à la prochaine ouverture. Les boosters offerts s’ouvrent en premier.`;
+    });
   }
   function rendreCompte() {
     const zone = $('compte');
@@ -701,7 +783,7 @@
   /* ====================================================================
      Boosters
      ==================================================================== */
-  function rendreBoosters() {
+  function rendreBoosters(doux) {
     const moi = joueurConnecte();
     $('boosters-hors-ligne').hidden = !!etat.session;
     $('boosters-zone').hidden = !etat.session;
@@ -711,21 +793,79 @@
     if (!moi) {
       if (etat.session) compteur.appendChild(el('span', 'puce', etat.panne ? 'Serveur injoignable' : 'Données indisponibles'));
       b1.disabled = b10.disabled = bt.disabled = true;
+      if ($('offerts')) $('offerts').hidden = true;
       return;
     }
     const dispo = moi.boostersDispo;
-    [[String(dispo), dispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir'], [`${moi.boostersOuverts} / ${moi.boostersGagnes}`, ' ouverts'], [String(moi.fragments), moi.fragments > 1 ? ' fragments' : ' fragment']]
+    const offerts = offertsDe(moi);
+    [[String(dispo), dispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir'], [`${moi.boostersOuverts} / ${moi.boostersGagnes}`, offerts ? ' ouverts (points)' : ' ouverts'], [String(moi.fragments), moi.fragments > 1 ? ' fragments' : ' fragment']]
       .forEach(([val, lib]) => { const p = el('span', 'puce'); p.append(el('b', null, val), el('span', null, lib)); compteur.appendChild(p); });
     b1.disabled = etat.occupe || dispo < 1;
     b10.disabled = etat.occupe || dispo < 10;
     bt.disabled = etat.occupe || dispo < 2;
     bt.textContent = dispo > 1 ? `Tout ouvrir (${dispo})` : 'Tout ouvrir';
+    rendreOfferts();
     if (!etat.occupe) {
-      $('indication').textContent = dispo
-        ? `${pluriel(dispo, 'booster')} à ouvrir.`
-        : 'Plus de booster pour le moment : marquez des points au championnat !';
+      // « doux » (rafraîchissement automatique) : on ne remplace pas le message affiché pendant qu'on regarde les cartes tirées
+      if (!(doux && (!$('recap').hidden || !$('main-cartes').hidden))) {
+        $('indication').textContent = dispo
+          ? `${pluriel(dispo, 'booster')} à ouvrir.`
+          : (reglageOfferts() ? 'Plus de booster pour le moment : attendez le prochain booster offert ou marquez des points au championnat !'
+            : 'Plus de booster pour le moment : marquez des points au championnat !');
+      }
       if (!dispo) $('paquet').hidden = true;
       else if ($('main-cartes').hidden && $('recap').hidden) $('paquet').hidden = false;
+    }
+  }
+
+  /* ---------- Boosters offerts : stock, barre de progression et compte à rebours ---------- */
+  function rendreOfferts() {
+    const bloc = $('offerts');
+    if (!bloc) return;  // ancienne page HTML encore en cache avec le nouveau script
+    const o = offertsDe(joueurConnecte());
+    bloc.hidden = !o;
+    if (!o) return;
+    $('offerts-stock').textContent = `${o.stock} / ${o.max}`;
+    bloc.classList.toggle('plein', o.intervalle > 0 && o.stock >= o.max);
+    majCompteARebours();
+  }
+  function majCompteARebours() {
+    const o = offertsDe(joueurConnecte());
+    if (!o || !$('offerts') || $('offerts').hidden) return;
+    const texte = $('offerts-texte'), barre = $('offerts-progres');
+    if (o.intervalle <= 0) {
+      texte.textContent = 'Système désactivé : seul le stock restant peut encore être ouvert.';
+      barre.style.width = '0%';
+    } else if (etat.offertsFin === null) {
+      texte.textContent = 'Stock plein : ouvrez un booster offert pour relancer le compteur.';
+      barre.style.width = '100%';
+    } else {
+      const reste = Math.max(0, (etat.offertsFin - Date.now()) / 1000);
+      texte.textContent = reste > 0 ? `Prochain booster offert dans ${dureeCourte(reste)}` : 'Un nouveau booster offert arrive…';
+      barre.style.width = `${Math.min(100, Math.max(0, 100 * (1 - reste / o.intervalle))).toFixed(1)}%`;
+      if (reste <= 0) rafraichirOfferts();
+    }
+  }
+  /* Appelé quand le compte à rebours arrive à zéro, ou quand l'onglet redevient visible. Au plus une fois toutes les 10 s
+     (l'attente double jusqu'à 2 min tant que le serveur ne répond pas), et jamais pendant l'ouverture d'un booster. */
+  async function rafraichirOfferts() {
+    if (!etat.session || etat.occupe || etat.rafraichitOfferts || Date.now() < etat.prochainEssaiOfferts) return;
+    etat.rafraichitOfferts = true;
+    etat.prochainEssaiOfferts = Date.now() + etat.pauseOfferts;
+    const avant = (offertsDe(joueurConnecte()) || {}).stock;
+    try {
+      const ok = await rafraichirEtat(false, true);
+      etat.pauseOfferts = ok ? 10000 : Math.min(etat.pauseOfferts * 2, 120000);
+      etat.prochainEssaiOfferts = Date.now() + etat.pauseOfferts;
+      if (ok && !etat.occupe) {
+        rendreTout(true);
+        const apres = (offertsDe(joueurConnecte()) || {}).stock;
+        if (typeof avant === 'number' && typeof apres === 'number' && apres > avant) {
+          notifier(apres - avant > 1 ? `${apres - avant} boosters offerts sont arrivés !` : 'Un booster offert est arrivé !', 'succes');
+        }
+      }
+    } finally {
+      etat.rafraichitOfferts = false;
     }
   }
 
@@ -760,6 +900,7 @@
   }
 
   function appliquerResultat(reponse, nbOuverts) {
+    etat.generation++;
     const moi = joueurConnecte();
     if (!moi) return;
     const possedees = new Set(moi.cartes);
@@ -769,7 +910,11 @@
     moi.nbCartes = moi.cartes.length;
     if (typeof reponse.fragments === 'number') moi.fragments = reponse.fragments;
     if (typeof reponse.boostersDispo === 'number') moi.boostersDispo = reponse.boostersDispo;
-    moi.boostersOuverts += nbOuverts;
+    // Les boosters offerts ne comptent pas dans « ouverts » : le serveur renvoie le vrai total (ancien serveur : tout vient des points)
+    if (typeof reponse.boostersOuverts === 'number') moi.boostersOuverts = reponse.boostersOuverts;
+    else moi.boostersOuverts += nbOuverts;
+    moi.offerts = reponse.offerts || null;
+    synchroniserOfferts();
     rendreCompte();
     mettreAJourAlbum();
   }
@@ -838,7 +983,7 @@
       $('btn-tout-reveler').hidden = true;
       rendreBoosters();
       $('indication').textContent = `${c.prenom} ${c.nom} (${nomEcurie(c.ecurie)}) — ${rareteDe(c.rarete).nom}, ${detail}. Booster terminé !`;
-      rafraichirEtat().then((ok) => { if (ok && !etat.occupe) { rendreJoueurs(); rendreFil(); rendreCompte(); } });
+      rafraichirEtat().then((ok) => { if (ok && !etat.occupe) { rendreJoueurs(); rendreFil(); rendreCompte(); rendreBoosters(true); } });
     } else {
       planifierAuto();
     }
@@ -942,7 +1087,7 @@
     etat.occupe = false;
     rendreBoosters();
     $('indication').textContent = `${pluriel(boosters.length, 'booster')} ouvert${boosters.length > 1 ? 's' : ''} : voici le récapitulatif.`;
-    rafraichirEtat().then((ok) => { if (ok && !etat.occupe) { rendreJoueurs(); rendreFil(); rendreCompte(); } });
+    rafraichirEtat().then((ok) => { if (ok && !etat.occupe) { rendreJoueurs(); rendreFil(); rendreCompte(); rendreBoosters(true); } });
   }
 
   function rendreRecap(boosters) {
@@ -1241,7 +1386,8 @@
         rar.appendChild(s);
       });
       d.appendChild(rar);
-      d.appendChild(el('div', 'detail', `${pluriel(j.boostersDispo, 'booster')} à ouvrir · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
+      const offerts = offertsDe(j);
+      d.appendChild(el('div', 'detail', `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''} · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
       d.appendChild(el('div', 'detail', `${pluriel(j.fragments, 'fragment')}${j.compte ? '' : ' · pas encore de mot de passe'}`));
       const b = el('button', 'bouton secondaire petit', 'Voir l’album', { type: 'button' });
       const voir = () => { etat.albumJoueur = j.id; mettreAJourAlbum(); if (location.hash !== '#collection') location.hash = '#collection'; else window.scrollTo({ top: 0 }); };
@@ -1369,6 +1515,8 @@
     rendrePied();
     await rafraichirEtat(true);
     rendreTout();
+    setInterval(majCompteARebours, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && etat.session && reglageOfferts()) rafraichirOfferts(); });
   }
 
   demarrer();
