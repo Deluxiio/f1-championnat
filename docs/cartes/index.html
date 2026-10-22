@@ -47,7 +47,7 @@
 </svg>
 
 <div class="bandeau-demo" id="bandeau-demo" hidden>
-  <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chacun a 40 boosters (et 3 boosters offerts) pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
+  <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chaque pilote a 40 boosters, chacun (spectateurs compris) 3 boosters offerts, pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
   <button type="button" class="lien-bouton" id="btn-reinit-demo">Réinitialiser la démo</button>
 </div>
 
@@ -80,7 +80,7 @@
       <h2>Boosters</h2>
       <div class="puces" id="boosters-compteur"></div>
     </div>
-    <p class="aide"><span class="ratio-boosters">1 point au championnat = 1 booster</span> de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.<span class="aide-offerts" data-forme="longue" hidden></span></p>
+    <p class="aide"><span class="ratio-boosters">1 point au championnat = 1 booster</span> de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.<span class="aide-offerts" data-forme="longue" hidden></span><span class="aide-spectateur" hidden></span></p>
 
     <div class="vide" id="boosters-hors-ligne" hidden>
       <p>Connectez-vous pour ouvrir vos boosters.</p>
@@ -150,6 +150,11 @@
     <div class="section-tete"><h2>Collections des joueurs</h2></div>
     <p class="aide">Boosters gagnés : <span class="ratio-boosters">1 point au championnat = 1 booster</span>. Cliquez sur un joueur pour feuilleter son album.<span class="aide-offerts" data-forme="courte" hidden></span></p>
     <div class="cartes joueurs" id="joueurs"></div>
+    <div id="spectateurs-zone" hidden>
+      <h3>Spectateurs</h3>
+      <p class="aide">Ils ne participent pas au championnat (aucun point), mais ils collectionnent, ouvrent leurs boosters offerts et font des pronostics comme les pilotes. Cliquez sur un spectateur pour feuilleter son album.</p>
+      <div class="cartes joueurs" id="spectateurs"></div>
+    </div>
     <h3>Dernières grosses cartes</h3>
     <p class="aide">Les 30 dernières cartes Épique ou mieux obtenues, la plus récente en premier.</p>
     <ol class="fil" id="fil"></ol>
@@ -184,9 +189,17 @@
 <div class="modale" id="modale-connexion" hidden>
   <form class="modale-contenu" id="form-connexion" novalidate>
     <h2>Connexion</h2>
-    <label class="champ">
+    <div class="bascule connexion-mode" id="connexion-mode" role="group" aria-label="Type de compte" hidden>
+      <button type="button" data-mode="pilote" aria-pressed="true">Pilote</button>
+      <button type="button" data-mode="spectateur" aria-pressed="false">Spectateur</button>
+    </div>
+    <label class="champ" id="champ-pilote">
       <span>Prénom</span>
       <select id="connexion-nom" required></select>
+    </label>
+    <label class="champ" id="champ-pseudo" hidden>
+      <span>Pseudo</span>
+      <input type="text" id="connexion-pseudo" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false">
     </label>
     <label class="champ">
       <span>Mot de passe</span>
@@ -196,6 +209,7 @@
     <p class="erreur" id="connexion-erreur" hidden></p>
     <div class="actions">
       <button type="submit" class="bouton" id="connexion-valider">Se connecter</button>
+      <button type="button" class="bouton secondaire" id="connexion-creer" hidden>Créer mon compte</button>
       <button type="button" class="bouton secondaire" id="connexion-annuler">Annuler</button>
     </div>
   </form>

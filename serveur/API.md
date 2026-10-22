@@ -18,6 +18,10 @@ Tous les réglages se font dans l'admin locale, bloc **Cartes**, et sont publié
   - Une course marquée `aVerifier` (joueur non reconnu…) n'est **pas** réglée : le classement serait faux et le crédit définitif. Le GP passe `ferme` (le résultat est connu : plus de paris, et l'admin ne peut pas le rouvrir) et reste « en attente » (`enAttente` dans `pronos`) jusqu'à ce que l'admin ait corrigé la course ; le GP suivant s'ouvre quand même. Un seul GP « sans course » est ouvert à la fois (si le GP ouvert disparaît du calendrier, l'admin l'annule).
   - Une fermeture « à l'avance » (`pronosFermer` avec le numéro d'un GP pas encore ouvert) n'est honorée que 3 heures.
   - Règlement et ouverture se font au premier appel d'`etat`, `ouvrir`, `pronostiquer`, `monPronostic` ou d'une action admin qui suit, donc quelques minutes après la course (publication GitHub + cache de 60 s).
+- **Spectateurs** : des joueurs extérieurs au championnat créent eux-mêmes un compte (un pseudo et un mot de passe) sans être dans `saison.json` : ni points, ni classement du championnat, mais leur collection, des boosters offerts à l'heure (mêmes règles et réglages que les pilotes) et des pronostics aux mêmes cotes. Ils sont stockés dans `etat.json` avec les pilotes (`role: "spectateur"`, `nom`, `cle`, `cree`), donc `ouvrir`, `fabriquer`, `pronostiquer`… marchent sans changement, avec leur jeton. Leurs boosters = les boosters offerts + ceux gagnés aux pronostics (`boostersGagnes` = `boostersPronos`). Le compteur d'offerts démarre à l'inscription, avec `catalogue.boostersDepartSpectateur` boosters (1 par défaut).
+  - Pseudo : 3 à 20 caractères, lettres latines (accents acceptés) et chiffres, avec entre deux mots un espace, un point, un tiret ou une apostrophe ; au moins 3 lettres ou chiffres. Unique sans tenir compte des majuscules, accents et séparateurs (« Marie-Jo » = « marie jo »). Réservés : le prénom, l'id et les alias des pilotes (`saison.json`), et quelques mots (`admin`, `spectateur`…). Mot de passe : 4 à 100 caractères.
+  - Garde-fous : `catalogue.spectateursMax` comptes au plus (30 par défaut ; 0 ferme les inscriptions, les comptes existants restent), 5 inscriptions par heure et par connexion, 20 par heure au total. L'adresse IP n'est jamais enregistrée en clair (empreinte HMAC gardée une heure dans `inscriptions` de `etat.json`).
+  - Un identifiant `specN` n'est jamais réutilisé (`prochainSpectateur`). La suppression d'un compte (`supprimerSpectateur`) retire aussi ses jetons, ses tirages du `fil`, ses paris et ses gains des pronostics.
 - **Sauvegarde** : avant chaque modification, `donnees/etat.json` est copié dans `donnees/etat.json.bak`. Si `etat.json` devient illisible ou se retrouve vide alors qu'il existait (écriture interrompue), le serveur reprend la copie ; sans copie lisible il répond 500 « fichier des données illisible » sans rien écraser. Une écriture incomplète (disque plein) remet l'ancien contenu. Un `etat.json` absent veut dire « installation neuve » (la copie n'est alors pas utilisée : pour tout remettre à zéro, supprime les deux fichiers).
 - **Doublon** : une carte déjà possédée est recyclée automatiquement en `fragments` (valeur selon sa rareté). On ne garde jamais deux fois la même carte.
 - **Fabrication** : une carte manquante coûte son propre `cout` s'il existe, sinon le `cout` de sa rareté.
@@ -34,6 +38,13 @@ Tous les réglages se font dans l'admin locale, bloc **Cartes**, et sont publié
      "offerts": {"stock": 3, "max": 10, "intervalle": 3600, "prochainDans": 1380, "ouverts": 12},
      "fragments": 34, "cartes": ["michael_schumacher--ferrari", "..."], "nbCartes": 23}
   ],
+  "spectateurs": [
+    {"id": "spec1", "nom": "Zoé Dupont", "role": "spectateur", "compte": true, "cree": 1792681841,
+     "boostersGagnes": 4, "boostersPronos": 4, "boostersOuverts": 0, "boostersDispo": 5,
+     "offerts": {"stock": 1, "max": 10, "intervalle": 3600, "prochainDans": 1380, "ouverts": 3},
+     "fragments": 12, "cartes": ["…"], "nbCartes": 17}
+  ],
+  "inscriptions": {"ouvertes": true, "max": 30, "restantes": 29},
   "fil": [{"joueur": "joueur2", "carte": "alonso--renault", "date": "2026-10-21T22:14:03+02:00", "fabriquee": false}],
   "totalCartes": 714,
   "pronos": {
@@ -50,16 +61,23 @@ Tous les réglages se font dans l'admin locale, bloc **Cartes**, et sont publié
   }
 }
 ```
-`compte` = le joueur a déjà choisi son mot de passe. `fil` = les 30 dernières cartes Épique ou mieux obtenues (la plus récente en premier).
+`compte` = le joueur a déjà choisi son mot de passe. `fil` = les 30 dernières cartes Épique ou mieux obtenues (la plus récente en premier), pilotes et spectateurs confondus (`joueur` est l'id d'un pilote ou d'un spectateur).
+
+`joueurs` ne contient que les pilotes du championnat ; les spectateurs sont dans `spectateurs` (même champs, sans `points`, avec `role` et `cree` = date d'inscription en secondes) et `inscriptions` dit s'il reste de la place (`restantes`). Ces deux blocs sont absents avec une ancienne version de `api.php` : la page cache alors tout ce qui concerne les spectateurs. Dans `pronos`, `aParie` et `classement` incluent aussi les spectateurs (au classement : seulement ceux qui ont au moins un pari réglé, avec `"spectateur": true`), et `paris` / `historique` portent leurs paris et leurs gains.
 
 `boostersGagnes` et `boostersOuverts` ne comptent que les boosters gagnés (points, bonus et pronostics ; `boostersPronos` = la part venant des pronostics). `boostersDispo` est le total à ouvrir : (`boostersGagnes` − `boostersOuverts`) + `offerts.stock`.
 `pronos` décrit les pronostics : `manche`, `gp` et `statut` (`ouvert` ou `ferme`) du GP en cours (`null` s'il n'y en a pas), les `bases` et `cotes` figées à l'ouverture, `aParie` (qui a déjà parié, sans le contenu), `paris` (le contenu des paris de tous, **seulement quand le GP n'est plus `ouvert`** : l'exemple montre un GP fermé), `enAttente` (GP dont la course est à vérifier), les 6 derniers GP réglés (`historique`) et le `classement` de la saison. Le bloc est absent avec une ancienne version de `api.php` : la page cache alors l'onglet Pronostics. `actif: false` = pronostics désactivés dans le catalogue.
 `offerts` décrit les boosters offerts : `stock` en réserve sur `max`, `intervalle` en secondes entre deux boosters, `prochainDans` = secondes avant le prochain (`null` quand le stock est plein ou le système désactivé), `ouverts` = nombre de boosters offerts déjà ouverts. Le champ est absent quand le système est désactivé et que le stock est vide (et avec une ancienne version de `api.php`) : la page n'affiche alors rien.
 
 ### `POST api.php?action=connexion`
-Corps : `{"nom": "Valentin", "motDePasse": "…"}`. Si le joueur n'a pas encore de mot de passe, celui-ci est enregistré (4 caractères minimum).
-Réponse : `{"jeton": "…", "joueur": "joueur1", "nom": "Valentin", "premiereConnexion": true}`.
-Erreurs : 404 nom inconnu, 401 mauvais mot de passe, 429 trop d'essais.
+Corps : `{"nom": "Valentin", "motDePasse": "…"}`. `nom` est le prénom d'un pilote ou le pseudo d'un spectateur (sans tenir compte des majuscules, accents et séparateurs). Si le compte n'a pas encore de mot de passe (pilote jamais connecté, ou mot de passe effacé par l'admin), celui-ci est enregistré (4 caractères minimum).
+Réponse : `{"jeton": "…", "joueur": "joueur1", "nom": "Valentin", "role": "pilote", "premiereConnexion": true}` (`role` : `pilote` ou `spectateur`).
+Erreurs : 404 compte inconnu, 401 mauvais mot de passe, 429 trop d'essais (10 erreurs en 10 minutes bloquent le compte).
+
+### `POST api.php?action=inscription`
+Corps : `{"nom": "Zoé Dupont", "motDePasse": "…"}`. Crée un compte de spectateur et le connecte (pas besoin d'un second appel).
+Réponse : `{"jeton": "…", "joueur": "spec1", "nom": "Zoé Dupont", "role": "spectateur", "premiereConnexion": true}`.
+Erreurs : 400 pseudo ou mot de passe invalide (message lisible), 403 inscriptions fermées (`spectateursMax` = 0), 409 pseudo déjà pris ou nombre maximum de spectateurs atteint, 429 trop d'inscriptions (par connexion ou au total sur une heure).
 
 ### `POST api.php?action=ouvrir`
 Corps : `{"jeton": "…", "nombre": 1}` (1 à 100, plafonné aux boosters disponibles).
@@ -69,7 +87,7 @@ Réponse :
  "fragments": 40, "boostersOuverts": 5, "boostersDispo": 9,
  "offerts": {"stock": 2, "max": 10, "intervalle": 3600, "prochainDans": 1380, "ouverts": 13}}
 ```
-`fragments` (par carte) = fragments gagnés si c'était un doublon (0 sinon). `boostersOuverts` et `offerts` ont le même sens que dans `etat` (à jour après l'ouverture). Erreurs : 401 jeton invalide, 409 aucun booster disponible (le message indique dans combien de minutes arrive le prochain booster offert).
+`fragments` (par carte) = fragments gagnés si c'était un doublon (0 sinon). `boostersOuverts` et `offerts` ont le même sens que dans `etat` (à jour après l'ouverture). Erreurs : 401 jeton invalide, 409 aucun booster disponible (le message indique dans combien de minutes arrive le prochain booster offert ; pour un spectateur il propose de gagner des boosters aux pronostics plutôt qu'au championnat).
 
 ### `POST api.php?action=fabriquer`
 Corps : `{"jeton": "…", "carte": "id"}`. Réponse : `{"carte": "id", "fragments": 12}`.
@@ -90,4 +108,7 @@ Corps : `{"cle": "<CLE_ADMIN de config.php>", "manche": 4}`. `manche` est le GP 
 Corps : `{"jeton": "…"}`. Réponse : `{"ok": true}`.
 
 ### `POST api.php?action=reinitialiser` — réservé à Valentin
-Corps : `{"cle": "<CLE_ADMIN de config.php>", "nom": "Joris"}`. Efface le mot de passe (la collection est conservée). Le joueur en choisira un nouveau à sa prochaine connexion.
+Corps : `{"cle": "<CLE_ADMIN de config.php>", "nom": "Joris"}`. `nom` est le prénom d'un pilote ou le pseudo d'un spectateur. Efface le mot de passe et coupe ses sessions (la collection est conservée). Le premier mot de passe saisi à la connexion devient le nouveau : à faire avec la personne, qui doit se connecter tout de suite. Erreur : 404 compte inconnu.
+
+### `POST api.php?action=supprimerSpectateur` — réservé à Valentin
+Corps : `{"cle": "<CLE_ADMIN de config.php>", "id": "spec3"}`. Supprime définitivement le compte d'un spectateur : collection, jetons, tirages du fil, paris et gains des pronostics. Jamais un pilote (404 « Spectateur inconnu »). Réponse : `{"ok": true, "nom": "Zoé Dupont"}`. Le pseudo redevient libre ; l'identifiant, lui, n'est pas réutilisé.

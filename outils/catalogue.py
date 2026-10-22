@@ -317,7 +317,8 @@ def main():
     ancien = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
     reglages = {"pointsParBooster": 1, "cartesParBooster": 5, "derniereCarteMin": "peu_commune",
                 "minutesParBoosterOffert": 60, "stockMaxBoostersOfferts": 10, "chanceMythiqueParBooster": 1,
-                "pronosGainMeilleur": 2, "pronosGainOrdre": 4, "pronosGainMax": 60, "pronosLissage": 15}
+                "pronosGainMeilleur": 2, "pronosGainOrdre": 4, "pronosGainMax": 60, "pronosLissage": 15,
+                "spectateursMax": 30, "boostersDepartSpectateur": 1}
     reglages.update({k: ancien[k] for k in reglages if k in ancien})
     anciennes = {r["id"]: r for r in ancien.get("raretes", [])}
     raretes = [{**r, **{k: anciennes[r["id"]][k] for k in ("poids", "fragments", "cout") if k in anciennes.get(r["id"], {})}}

@@ -31,12 +31,19 @@ public_html/f1-cartes/donnees/index.html
 Envoie ensuite l'adresse de `api.php` à Claude, qui la branche sur la page Cartes.
 
 ## Mot de passe oublié
-Un joueur qui a oublié son mot de passe peut être réinitialisé avec la clé `CLE_ADMIN` de `config.php`. Sa collection est conservée, et il choisira un nouveau mot de passe à sa prochaine connexion.
+Un joueur qui a oublié son mot de passe peut être réinitialisé avec la clé `CLE_ADMIN` de `config.php` (dans l'admin : *Cartes → Comptes des joueurs*, pilotes comme spectateurs). Sa collection est conservée, et le premier mot de passe saisi à sa prochaine connexion devient le nouveau : préviens la personne de se connecter tout de suite.
+
+## Spectateurs
+Des joueurs extérieurs au championnat peuvent créer eux-mêmes un compte sur la page Cartes (un pseudo et un mot de passe, bouton « Créer un compte spectateur »). Ils ne marquent pas de points : ils ont leur collection, un booster offert par heure (comme les pilotes) et des pronostics, et apparaissent dans une section à part de l'onglet *Collections*, dans le fil des grosses cartes et dans le classement des pronostics.
+
+Réglages dans l'admin (*Cartes → Économie*) : nombre maximum de comptes (30 par défaut ; **0 ferme les inscriptions**, les comptes existants restent) et boosters offerts à l'inscription (1 par défaut). Contre les robots, le serveur refuse plus de 5 inscriptions par heure depuis une même connexion et plus de 20 par heure au total ; l'adresse IP n'est jamais enregistrée en clair. Pour supprimer un compte indésirable : *Cartes → Comptes des joueurs → Spectateurs → Supprimer* (collection, paris et tirages effacés, c'est définitif).
 
 ## Mise à jour
 Si `api.php` change, renvoie simplement ce fichier : les collections (`donnees/etat.json`) ne sont pas touchées.
 
 Les boosters offerts à l'heure demandent la dernière version de `api.php`. Pour vérifier qu'elle est en place, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : chaque joueur doit avoir un bloc `"offerts"` (sauf si tu as désactivé les boosters offerts dans l'admin : 0 minute). Tant que l'ancienne version est en ligne, la page n'affiche simplement rien à ce sujet.
+
+Les spectateurs demandent eux aussi la dernière version de `api.php`. Pour vérifier, la réponse de `?action=etat` doit contenir `"spectateurs"` et `"inscriptions"`. Tant que l'ancienne version est en ligne, la page n'affiche rien à ce sujet (pas de bouton d'inscription).
 
 Les cartes Mythiques et les pronostics demandent eux aussi la dernière version de `api.php`. Pour vérifier, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : la réponse doit contenir un bloc `"pronos"` et, pour chaque joueur, `"boostersPronos"`. Tant que l'ancienne version est en ligne, l'onglet *Pronostics* reste caché.
 

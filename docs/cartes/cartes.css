@@ -5,6 +5,7 @@
   --police-titre: "Bahnschrift", "Barlow Condensed", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
   --entete-encre: #ffffff;
   --entete-encre-2: #c9c9d1;
+  --spectateur: #8d99ae;   /* couleur neutre des comptes spectateurs (les pilotes ont chacun la leur) */
   --rc-commune: #a4a4ae;
   --rc-peu_commune: #2fbf71;
   --rc-rare: #3b8ff5;
@@ -576,3 +577,13 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
   .couche::after { display: none; }
   .particule { display: none; }
 }
+
+/* --- Spectateurs : comptes extérieurs au championnat ------------------------ */
+.badge-role {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; vertical-align: 2px; white-space: nowrap;
+  background: color-mix(in srgb, var(--spectateur) 22%, transparent); color: var(--spectateur);
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.connexion-mode { margin-bottom: 14px; }
+.joueurs .carte-joueur.spectateur { border-style: dashed; }
+#pronos-classement tr.est-moi td { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }

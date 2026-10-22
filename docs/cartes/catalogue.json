@@ -13,6 +13,8 @@
  "pronosGainOrdre": 4,
  "pronosGainMax": 60,
  "pronosLissage": 15,
+ "spectateursMax": 30,
+ "boostersDepartSpectateur": 1,
  "raretes": [
   {
    "id": "mythique",

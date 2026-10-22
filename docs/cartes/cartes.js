@@ -8,6 +8,8 @@
   const reduitMouvement = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const CLE_SESSION = 'f1cartes.session';
   const CLE_DERNIER_NOM = 'f1cartes.dernierNom';
+  const CLE_DERNIER_MODE = 'f1cartes.dernierMode';
+  const CLE_DERNIER_PSEUDO = 'f1cartes.dernierPseudo';
   const CLE_DEMO = 'f1cartes.demo.v1';
   const BOOSTERS_DEMO = 40;
   const JOUEURS_DEMO = [
@@ -183,6 +185,7 @@
     return {
       etat: () => appel('etat'),
       connexion: (nom, motDePasse) => appel('connexion', { nom, motDePasse }),
+      inscription: (nom, motDePasse) => appel('inscription', { nom, motDePasse }),
       ouvrir: (jeton, nombre) => appel('ouvrir', { jeton, nombre }),
       fabriquer: (jeton, carte) => appel('fabriquer', { jeton, carte }),
       pronostiquer: (jeton, meilleur, ordre, manche) => appel('pronostiquer', { jeton, meilleur, ordre, manche }),
@@ -268,18 +271,33 @@
       donnees.fil.unshift({ joueur, carte: carte.id, date: new Date().toISOString(), fabriquee });
       donnees.fil.length = Math.min(donnees.fil.length, 30);
     }
-    const gagnesDe = (j) => BOOSTERS_DEMO + (j.boostersPronos || 0);  // boosters gagnés = points (fictifs) + gains aux pronostics
+    const spectateurDemo = (j) => j.role === 'spectateur';
+    const gagnesDe = (j) => (spectateurDemo(j) ? 0 : BOOSTERS_DEMO) + (j.boostersPronos || 0);  // boosters gagnés = points (fictifs, pilotes seulement) + gains aux pronostics
     function vueJoueur(id) {
       const j = donnees.joueurs[id];
       const offerts = vueOfferts(j, maintenantS());
-      const vue = {
-        id, nom: j.nom, compte: j.motDePasse !== null, points: BOOSTERS_DEMO,
+      const vue = { id, nom: j.nom, compte: j.motDePasse !== null };
+      if (!spectateurDemo(j)) vue.points = BOOSTERS_DEMO;
+      Object.assign(vue, {
         boostersGagnes: gagnesDe(j), boostersPronos: j.boostersPronos || 0, boostersOuverts: j.boostersOuverts,
         boostersDispo: Math.max(0, gagnesDe(j) - j.boostersOuverts) + (offerts ? offerts.stock : 0),
         fragments: j.fragments, cartes: j.cartes.slice(), nbCartes: j.cartes.length,
-      };
+      });
       if (offerts) vue.offerts = offerts;
+      if (spectateurDemo(j)) Object.assign(vue, { role: 'spectateur', cree: j.cree || 0 });
       return vue;
+    }
+    /* Spectateurs (mêmes règles que pseudoValide() / cleNom() de api.php) : un pseudo en lettres latines et chiffres, des mots séparés
+       par un espace, un point, un tiret ou une apostrophe ; unique, et jamais le nom d'un pilote. Le plafond vient du catalogue. */
+    const cleNom = (nom) => normaliser(nom).replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/ß/g, 'ss').replace(/[^\p{L}\p{N}]+/gu, '');
+    const MOT_PSEUDO = '[a-zA-Z0-9\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u017F]+';
+    const FORME_PSEUDO = new RegExp(`^${MOT_PSEUDO}(?:[ ._'’-]${MOT_PSEUDO})*$`);
+    const MOTS_RESERVES = ['admin', 'administrateur', 'moderateur', 'modo', 'spectateur', 'invite', 'anonyme', 'serveur', 'systeme', 'championnat'];
+    const plafondSpectateurs = () => Math.trunc(Math.max(0, Math.min(500, Number(catalogue.spectateursMax ?? 30) || 0)));
+    const idsSpectateurs = () => Object.keys(donnees.joueurs).filter((id) => spectateurDemo(donnees.joueurs[id]));
+    function spectateurParNom(nom) {
+      const cle = cleNom(nom);
+      return cle ? idsSpectateurs().find((id) => (donnees.joueurs[id].cle || cleNom(donnees.joueurs[id].nom)) === cle) || null : null;
     }
 
     /* ---------- Pronostics : mêmes règles que api.php. En démo : un championnat fictif, et un bouton « Simuler la course » ---------- */
@@ -315,7 +333,8 @@
     function vuePronos() {
       synchroniserPronos();
       const pr = etatPronos(), courante = mancheCourante();
-      const classement = JOUEURS_DEMO.map((j) => ({ joueur: j.id, boosters: 0, bonsMeilleur: 0, bonsOrdre: 0, paris: 0 }));
+      const classement = JOUEURS_DEMO.map((j) => ({ joueur: j.id, boosters: 0, bonsMeilleur: 0, bonsOrdre: 0, paris: 0 }))
+        .concat(idsSpectateurs().map((id) => ({ joueur: id, boosters: 0, bonsMeilleur: 0, bonsOrdre: 0, paris: 0, spectateur: true })));
       const reglees = Object.keys(pr.manches).map(Number).filter((n) => pr.manches[n].statut === 'regle');
       const historique = reglees.sort((a, b) => b - a).map((n) => {
         const m = pr.manches[n];
@@ -329,12 +348,14 @@
         }
         return { manche: n, gp: m.gp, resultat: m.resultat, gains: m.gains, paris: sansHorodatage(m.paris) };
       });
-      classement.sort((a, b) => (b.boosters - a.boosters) || ((b.bonsMeilleur + b.bonsOrdre) - (a.bonsMeilleur + a.bonsOrdre)));
-      const vue = { actif: pronosActifsDemo(), manche: null, gp: null, statut: null, bases: null, forces: null, cotes: null, aParie: {}, enAttente: [], historique: historique.slice(0, 6), classement };
+      const affiches = classement.filter((c) => !c.spectateur || c.paris > 0);  // un spectateur n'apparaît qu'après son premier pari réglé
+      affiches.sort((a, b) => (b.boosters - a.boosters) || ((b.bonsMeilleur + b.bonsOrdre) - (a.bonsMeilleur + a.bonsOrdre)));
+      const vue = { actif: pronosActifsDemo(), manche: null, gp: null, statut: null, bases: null, forces: null, cotes: null, aParie: {}, enAttente: [], historique: historique.slice(0, 6), classement: affiches };
       if (courante) {
         const [n, m] = courante;
         Object.assign(vue, { manche: n, gp: m.gp, statut: m.statut, bases: m.bases, forces: m.forces, cotes: m.cotes });
         JOUEURS_DEMO.forEach((j) => { vue.aParie[j.id] = !!m.paris[j.id]; });
+        idsSpectateurs().forEach((id) => { vue.aParie[id] = !!m.paris[id]; });
         if (m.statut !== 'ouvert') vue.paris = sansHorodatage(m.paris);
       }
       return vue;
@@ -373,20 +394,46 @@
 
     return {
       async etat() {
-        return latence({ joueurs: JOUEURS_DEMO.map((j) => vueJoueur(j.id)), fil: donnees.fil.slice(0, 30), totalCartes: catalogue.cartes.length, pronos: vuePronos() });
+        const spectateurs = idsSpectateurs().map(vueJoueur), restantes = Math.max(0, plafondSpectateurs() - spectateurs.length);
+        return latence({
+          joueurs: JOUEURS_DEMO.map((j) => vueJoueur(j.id)), spectateurs, inscriptions: { ouvertes: restantes > 0, max: plafondSpectateurs(), restantes },
+          fil: donnees.fil.slice(0, 30), totalCartes: catalogue.cartes.length, pronos: vuePronos(),
+        });
       },
       async connexion(nom, motDePasse) {
         const joueur = JOUEURS_DEMO.find((j) => normaliser(j.nom) === normaliser(nom));
-        if (!joueur) echec(404, 'Prénom inconnu.');
-        const j = donnees.joueurs[joueur.id];
+        const id = joueur ? joueur.id : spectateurParNom(nom);
+        if (!id) echec(404, 'Compte inconnu : vérifiez votre prénom (pilote) ou votre pseudo (spectateur).');
+        const j = donnees.joueurs[id];
         if (typeof motDePasse !== 'string' || motDePasse.length < 4) echec(400, 'Le mot de passe doit faire au moins 4 caractères.');
         let premiereConnexion = false;
         if (j.motDePasse === null) { j.motDePasse = motDePasse; premiereConnexion = true; }
         else if (j.motDePasse !== motDePasse) echec(401, 'Mauvais mot de passe.');
         const jeton = 'demo-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-        donnees.jetons[jeton] = joueur.id;
+        donnees.jetons[jeton] = id;
         sauver();
-        return latence({ jeton, joueur: joueur.id, nom: joueur.nom, premiereConnexion });
+        return latence({ jeton, joueur: id, nom: j.nom, role: spectateurDemo(j) ? 'spectateur' : 'pilote', premiereConnexion });
+      },
+      async inscription(nom, motDePasse) {
+        if (plafondSpectateurs() <= 0) echec(403, 'Les inscriptions de spectateurs sont fermées pour le moment.');
+        const pseudo = String(nom || '').replace(/\s+/g, ' ').trim();
+        if (pseudo.length < 3 || pseudo.length > 20) echec(400, 'Le pseudo doit faire entre 3 et 20 caractères.');
+        if (!FORME_PSEUDO.test(pseudo)) echec(400, 'Le pseudo ne peut contenir que des lettres, des chiffres et, entre deux mots, un espace, un point, un tiret ou une apostrophe.');
+        const cle = cleNom(pseudo);
+        if (cle.length < 3) echec(400, 'Le pseudo doit contenir au moins 3 lettres ou chiffres.');
+        const reserves = MOTS_RESERVES.concat(JOUEURS_DEMO.map((j) => cleNom(j.nom)), JOUEURS_DEMO.map((j) => cleNom(j.id)), catalogue.cartes.filter((c) => c.ami).map((c) => cleNom(c.nom)));
+        if (reserves.includes(cle)) echec(400, 'Ce pseudo est réservé : choisissez-en un autre.');
+        if (typeof motDePasse !== 'string' || motDePasse.length < 4) echec(400, 'Choisissez un mot de passe d\'au moins 4 caractères.');
+        if (motDePasse.length > 100) echec(400, 'Mot de passe trop long (100 caractères au maximum).');
+        if (spectateurParNom(pseudo)) echec(409, 'Ce pseudo est déjà pris : choisissez-en un autre.');
+        if (idsSpectateurs().length >= plafondSpectateurs()) echec(409, 'Le nombre maximum de spectateurs est atteint pour le moment.');
+        donnees.suivant = (donnees.suivant || 0) + 1;
+        const id = `spec${donnees.suivant}`;
+        donnees.joueurs[id] = { role: 'spectateur', nom: pseudo, cle, cree: maintenantS(), motDePasse, boostersOuverts: 0, fragments: 0, cartes: [], offerts: { stock: 3, depuis: maintenantS() } };
+        const jeton = 'demo-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        donnees.jetons[jeton] = id;
+        sauver();
+        return latence({ jeton, joueur: id, nom: pseudo, role: 'spectateur', premiereConnexion: true });
       },
       async ouvrir(jeton, nombre) {
         const { id, j } = joueurParJeton(jeton);
@@ -873,16 +920,24 @@
   /* ====================================================================
      Session et joueurs
      ==================================================================== */
+  /* Deux sortes de comptes : les pilotes du championnat (etat.public.joueurs) et les spectateurs, des joueurs extérieurs sans points
+     (etat.public.spectateurs, absent d'un serveur plus ancien : alors « inscriptions » l'est aussi et rien de ce qui les concerne n'est affiché). */
+  const comptesPilotes = () => (etat.public ? etat.public.joueurs : []);
+  const comptesSpectateurs = () => (etat.public && Array.isArray(etat.public.spectateurs) ? etat.public.spectateurs : []);
+  const compteParId = (id) => comptesPilotes().concat(comptesSpectateurs()).find((j) => j.id === id) || null;
+  const estSpectateur = (j) => !!j && j.role === 'spectateur';
+  const inscriptions = () => (etat.public && etat.public.inscriptions) || null;  // null : le serveur ne gère pas les spectateurs
   function joueurConnecte() {
     if (!etat.session || !etat.public) return null;
-    return etat.public.joueurs.find((j) => j.id === etat.session.joueur) || null;
+    return compteParId(etat.session.joueur);
   }
   function joueurAlbum() {
     const id = etat.albumJoueur || (etat.session && etat.session.joueur);
     if (!id || !etat.public) return null;
-    return etat.public.joueurs.find((j) => j.id === id) || null;
+    return compteParId(id);
   }
   function couleurJoueur(j) {
+    if (estSpectateur(j)) return 'var(--spectateur)';
     const i = etat.public ? etat.public.joueurs.indexOf(j) : -1;
     return `var(--j${((i < 0 ? 0 : i) % 8) + 1})`;
   }
@@ -924,6 +979,10 @@
       if (generation !== etat.generation) return true;  // un booster a été ouvert pendant la requête : cette réponse est déjà périmée
       etat.public = publique;
       etat.panne = false;
+      if (etat.session && !compteParId(etat.session.joueur)) {  // le serveur répond mais ne connaît plus ce compte (supprimé par l'admin) : la session ne sert plus
+        effacerSession();
+        notifier('Ce compte n’existe plus : reconnectez-vous ou créez-en un autre.');
+      }
       synchroniserOfferts();
       return true;
     } catch (e) {
@@ -967,10 +1026,18 @@
     const zone = $('compte');
     zone.textContent = '';
     if (!etat.session) {
-      zone.appendChild(el('span', 'texte', 'Les collections sont visibles par tous ; connectez-vous pour ouvrir vos boosters.'));
+      const ins = inscriptions();
+      zone.appendChild(el('span', 'texte', ins && ins.ouvertes
+        ? 'Les collections sont visibles par tous ; connectez-vous pour ouvrir vos boosters, ou créez un compte spectateur.'
+        : 'Les collections sont visibles par tous ; connectez-vous pour ouvrir vos boosters.'));
       const b = el('button', 'bouton', 'Se connecter', { type: 'button' });
-      b.addEventListener('click', ouvrirConnexion);
+      b.addEventListener('click', () => ouvrirConnexion());
       zone.appendChild(b);
+      if (ins && ins.ouvertes) {
+        const c = el('button', 'bouton secondaire', 'Créer un compte spectateur', { type: 'button', id: 'btn-creer-compte' });
+        c.addEventListener('click', () => ouvrirConnexion('spectateur'));
+        zone.appendChild(c);
+      }
       return;
     }
     const moi = joueurConnecte();
@@ -979,6 +1046,7 @@
     const past = el('span', 'pastille');
     past.style.background = moi ? couleurJoueur(moi) : '#888';
     pj.append(past, el('b', null, etat.session.nom));
+    if (estSpectateur(moi)) pj.appendChild(el('span', 'badge-role', 'Spectateur'));
     puces.appendChild(pj);
     if (moi) {
       const pb = el('span', 'puce'); pb.append(el('b', null, String(moi.boostersDispo)), el('span', null, moi.boostersDispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir')); puces.appendChild(pb);
@@ -992,8 +1060,10 @@
     zone.appendChild(b);
   }
 
-  /* ---------- Connexion ---------- */
-  function ouvrirConnexion() {
+  /* ---------- Connexion et inscription ---------- */
+  /* Le même formulaire sert aux pilotes (leur prénom, un mot de passe créé à la première connexion) et aux spectateurs (un pseudo,
+     un compte créé par « Créer mon compte »). Le choix « Pilote / Spectateur » n'existe que si le serveur gère les spectateurs. */
+  function ouvrirConnexion(mode) {
     const select = $('connexion-nom');
     select.textContent = '';
     const joueurs = etat.public ? etat.public.joueurs : JOUEURS_DEMO.map((j) => ({ id: j.id, nom: j.nom, compte: true }));
@@ -1003,49 +1073,95 @@
     $('connexion-mdp').value = '';
     $('connexion-erreur').hidden = true;
     $('connexion-valider').disabled = false;
-    majAideConnexion();
+    if (avecSpectateurs()) {
+      $('connexion-pseudo').value = stockage.lire(CLE_DERNIER_PSEUDO) || '';
+      $('connexion-creer').disabled = false;
+    }
+    const souhaite = typeof mode === 'string' ? mode : stockage.lire(CLE_DERNIER_MODE);
+    choisirModeConnexion(avecSpectateurs() && inscriptions() && souhaite === 'spectateur' ? 'spectateur' : 'pilote');
     $('modale-connexion').hidden = false;
-    select.focus();
+    (etat.modeConnexion === 'spectateur' ? $('connexion-pseudo') : select).focus();
+  }
+  const avecSpectateurs = () => !!$('connexion-mode');  // la page contient le choix Pilote / Spectateur
+  function choisirModeConnexion(mode) {
+    etat.modeConnexion = mode;
+    const spectateur = mode === 'spectateur', ins = inscriptions();
+    $('connexion-erreur').hidden = true;
+    if (avecSpectateurs()) {
+      $('connexion-mode').hidden = !ins;  // un serveur plus ancien ne connaît que les pilotes
+      document.querySelectorAll('#connexion-mode button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'));
+      $('champ-pilote').hidden = spectateur;
+      $('champ-pseudo').hidden = !spectateur;
+      $('connexion-creer').hidden = !(spectateur && ins && ins.ouvertes);
+    }
+    majAideConnexion();
   }
   function majAideConnexion() {
+    const aide = $('connexion-aide');
+    if (etat.modeConnexion === 'spectateur') {
+      const ins = inscriptions();
+      aide.textContent = ins && ins.ouvertes
+        ? 'Spectateur : vous ne jouez pas au championnat, mais vous avez votre collection, des boosters offerts et des pronostics. Déjà un compte ? Connectez-vous. Sinon choisissez un pseudo (3 à 20 caractères) et un mot de passe (4 minimum), puis « Créer mon compte ».'
+        : 'Les inscriptions de spectateurs sont fermées pour le moment. Si vous avez déjà un compte, connectez-vous avec votre pseudo.';
+      return;
+    }
     const id = $('connexion-nom').value;
     const j = etat.public ? etat.public.joueurs.find((x) => x.id === id) : null;
-    $('connexion-aide').textContent = j && !j.compte
+    aide.textContent = j && !j.compte
       ? `${j.nom} n’a pas encore de mot de passe : celui que vous saisissez maintenant sera enregistré (4 caractères minimum). Retenez-le bien !`
       : 'Première connexion ? Le mot de passe que vous saisissez devient le vôtre (4 caractères minimum) : retenez-le bien.';
   }
   function fermerConnexion() { $('modale-connexion').hidden = true; }
+  /* `creer` : « Créer mon compte » (nouveau spectateur) plutôt que « Se connecter » (pilote ou spectateur existant). */
+  async function validerConnexion(creer) {
+    const spectateur = etat.modeConnexion === 'spectateur';
+    const select = $('connexion-nom');
+    const nom = spectateur && avecSpectateurs() ? $('connexion-pseudo').value.trim() : (select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '');
+    const mdp = $('connexion-mdp').value;
+    const erreur = $('connexion-erreur');
+    const refuser = (message) => { erreur.textContent = message; erreur.hidden = false; };
+    if (!nom) { refuser(spectateur ? 'Saisissez votre pseudo.' : 'Choisissez votre prénom.'); return; }
+    if (creer && (nom.length < 3 || nom.length > 20)) { refuser('Le pseudo doit faire entre 3 et 20 caractères.'); return; }
+    if (mdp.length < 4) { refuser('Le mot de passe doit faire au moins 4 caractères.'); return; }
+    $('connexion-valider').disabled = true;
+    if (avecSpectateurs()) $('connexion-creer').disabled = true;
+    erreur.hidden = true;
+    try {
+      const r = creer ? await etat.api.inscription(nom, mdp) : await etat.api.connexion(nom, mdp);
+      etat.session = { jeton: r.jeton, joueur: r.joueur, nom: r.nom || nom, role: r.role || 'pilote' };
+      stockage.ecrire(CLE_SESSION, etat.session);
+      stockage.ecrire(CLE_DERNIER_MODE, spectateur ? 'spectateur' : 'pilote');
+      if (spectateur) stockage.ecrire(CLE_DERNIER_PSEUDO, etat.session.nom); else stockage.ecrire(CLE_DERNIER_NOM, r.joueur);
+      etat.albumJoueur = r.joueur;
+      fermerConnexion();
+      await rafraichirEtat();
+      const moi = joueurConnecte(), pret = moi ? moi.boostersDispo : 0;
+      notifier(creer
+        ? `Bienvenue ${etat.session.nom} ! Votre compte spectateur est créé${pret > 0 ? ` : ${pluriel(pret, 'booster')} ${pret > 1 ? 'vous attendent' : 'vous attend'}` : ''}.`
+        : (r.premiereConnexion ? `Bienvenue ${etat.session.nom} ! Votre mot de passe est enregistré.` : `Bonjour ${etat.session.nom} !`), 'succes');
+      rendreTout();
+      if (location.hash !== '#boosters' && location.hash !== '#pronostics') location.hash = '#boosters';
+    } catch (err) {
+      refuser(err.message || 'Connexion impossible.');
+    } finally {
+      $('connexion-valider').disabled = false;
+      if (avecSpectateurs()) $('connexion-creer').disabled = false;
+    }
+  }
   function initialiserConnexion() {
     $('connexion-nom').addEventListener('change', majAideConnexion);
+    if (avecSpectateurs()) {
+      $('connexion-mode').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (b && b.dataset.mode) choisirModeConnexion(b.dataset.mode);
+      });
+      $('connexion-creer').addEventListener('click', () => validerConnexion(true));
+    }
     $('connexion-annuler').addEventListener('click', fermerConnexion);
     $('modale-connexion').addEventListener('click', (e) => { if (e.target === $('modale-connexion')) fermerConnexion(); });
-    $('form-connexion').addEventListener('submit', async (e) => {
+    $('form-connexion').addEventListener('submit', (e) => {
       e.preventDefault();
-      const select = $('connexion-nom');
-      const nom = select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '';
-      const mdp = $('connexion-mdp').value;
-      const erreur = $('connexion-erreur');
-      if (!nom) { erreur.textContent = 'Choisissez votre prénom.'; erreur.hidden = false; return; }
-      if (mdp.length < 4) { erreur.textContent = 'Le mot de passe doit faire au moins 4 caractères.'; erreur.hidden = false; return; }
-      $('connexion-valider').disabled = true;
-      erreur.hidden = true;
-      try {
-        const r = await etat.api.connexion(nom, mdp);
-        etat.session = { jeton: r.jeton, joueur: r.joueur, nom: r.nom || nom };
-        stockage.ecrire(CLE_SESSION, etat.session);
-        stockage.ecrire(CLE_DERNIER_NOM, r.joueur);
-        etat.albumJoueur = r.joueur;
-        fermerConnexion();
-        notifier(r.premiereConnexion ? `Bienvenue ${etat.session.nom} ! Votre mot de passe est enregistré.` : `Bonjour ${etat.session.nom} !`, 'succes');
-        await rafraichirEtat();
-        rendreTout();
-        if (location.hash !== '#boosters' && location.hash !== '#pronostics') location.hash = '#boosters';
-      } catch (err) {
-        erreur.textContent = err.message || 'Connexion impossible.';
-        erreur.hidden = false;
-      } finally {
-        $('connexion-valider').disabled = false;
-      }
+      validerConnexion(false);
     });
   }
   async function deconnecter() {
@@ -1061,6 +1177,10 @@
      ==================================================================== */
   function rendreBoosters(doux) {
     const moi = joueurConnecte();
+    document.querySelectorAll('.aide-spectateur').forEach((n) => {
+      n.hidden = !estSpectateur(moi);
+      n.textContent = estSpectateur(moi) ? ' Vous êtes spectateur : vous ne marquez pas de points, vos boosters viennent des boosters offerts et de vos pronostics.' : '';
+    });
     $('boosters-hors-ligne').hidden = !!etat.session;
     $('boosters-zone').hidden = !etat.session;
     const compteur = $('boosters-compteur');
@@ -1074,8 +1194,11 @@
     }
     const dispo = moi.boostersDispo;
     const offerts = offertsDe(moi);
-    [[String(dispo), dispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir'], [`${moi.boostersOuverts} / ${moi.boostersGagnes}`, offerts ? ' ouverts (hors offerts)' : ' ouverts'], [String(moi.fragments), moi.fragments > 1 ? ' fragments' : ' fragment']]
-      .forEach(([val, lib]) => { const p = el('span', 'puce'); p.append(el('b', null, val), el('span', null, lib)); compteur.appendChild(p); });
+    const spectateur = estSpectateur(moi);  // un spectateur ne marque pas de points : ses boosters viennent des boosters offerts et des pronostics
+    const puces = [[String(dispo), dispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir']];
+    if (!spectateur) puces.push([`${moi.boostersOuverts} / ${moi.boostersGagnes}`, offerts ? ' ouverts (hors offerts)' : ' ouverts']);
+    puces.push([String(moi.fragments), moi.fragments > 1 ? ' fragments' : ' fragment']);
+    puces.forEach(([val, lib]) => { const p = el('span', 'puce'); p.append(el('b', null, val), el('span', null, lib)); compteur.appendChild(p); });
     if (moi.boostersPronos > 0) {
       const pp = el('span', 'puce'); pp.append(el('b', null, String(moi.boostersPronos)), el('span', null, ` gagné${moi.boostersPronos > 1 ? 's' : ''} aux pronostics`)); compteur.appendChild(pp);
     }
@@ -1087,10 +1210,11 @@
     if (!etat.occupe) {
       // « doux » (rafraîchissement automatique) : on ne remplace pas le message affiché pendant qu'on regarde les cartes tirées
       if (!(doux && (!$('recap').hidden || !$('main-cartes').hidden))) {
+        const autre = spectateur ? 'gagnez-en aux pronostics' : 'marquez des points au championnat';
         $('indication').textContent = dispo
           ? `${pluriel(dispo, 'booster')} à ouvrir.`
-          : (reglageOfferts() ? 'Plus de booster pour le moment : attendez le prochain booster offert ou marquez des points au championnat !'
-            : 'Plus de booster pour le moment : marquez des points au championnat !');
+          : (reglageOfferts() ? `Plus de booster pour le moment : attendez le prochain booster offert ou ${autre} !`
+            : `Plus de booster pour le moment : ${autre} !`);
       }
       if (!dispo) $('paquet').hidden = true;
       else if ($('main-cartes').hidden && $('recap').hidden) $('paquet').hidden = false;
@@ -1651,45 +1775,69 @@
   /* ====================================================================
      Collections des joueurs et fil
      ==================================================================== */
+  /* La carte d'un compte dans l'onglet Collections : sa collection, ses boosters, un clic pour feuilleter son album. */
+  function carteCompte(j, total) {
+    const spectateur = estSpectateur(j);
+    const d = el('div', 'carte-joueur' + (spectateur ? ' spectateur' : ''), null, { role: 'button', tabindex: '0' });
+    d.style.setProperty('--couleur', couleurJoueur(j));
+    const nom = el('div', 'nom');
+    const gauche = el('span', null, j.nom);
+    if (spectateur) gauche.appendChild(el('span', 'badge-role', 'Spectateur'));
+    nom.appendChild(gauche);
+    if (etat.session && j.id === etat.session.joueur) nom.appendChild(el('span', 'moi', 'moi'));
+    d.appendChild(nom);
+    const pts = el('div', 'points', String(j.nbCartes));
+    pts.appendChild(el('small', null, `/ ${total} cartes`));
+    d.appendChild(pts);
+    const barre = el('div', 'barre-mini');
+    const i = el('i');
+    i.style.width = `${(j.nbCartes / total) * 100}%`;
+    barre.appendChild(i);
+    d.appendChild(barre);
+    const rar = el('div', 'raretes-joueur');
+    const comptes = compterRaretes(j.cartes);
+    etat.catalogue.raretes.forEach((r) => {
+      const s = el('span', `r-${r.id}`, null, { title: `${r.nom} : ${comptes[r.id] || 0} / ${(etat.parRarete.get(r.id) || []).length}` });
+      s.append(gemmes(r.id), el('b', null, String(comptes[r.id] || 0)));
+      rar.appendChild(s);
+    });
+    d.appendChild(rar);
+    const offerts = offertsDe(j);
+    d.appendChild(el('div', 'detail', spectateur
+      ? `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''}${j.boostersPronos > 0 ? ` · ${j.boostersPronos} gagné${j.boostersPronos > 1 ? 's' : ''} aux pronostics` : ''}`
+      : `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''} · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
+    d.appendChild(el('div', 'detail', `${pluriel(j.fragments, 'fragment')}${j.compte ? '' : ' · pas encore de mot de passe'}`));
+    const b = el('button', 'bouton secondaire petit', 'Voir l’album', { type: 'button' });
+    const voir = () => { etat.albumJoueur = j.id; mettreAJourAlbum(); if (location.hash !== '#collection') location.hash = '#collection'; else window.scrollTo({ top: 0 }); };
+    b.addEventListener('click', (e) => { e.stopPropagation(); voir(); });
+    d.addEventListener('click', voir);
+    d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); voir(); } });
+    d.appendChild(b);
+    return d;
+  }
   function rendreJoueurs() {
     const zone = $('joueurs');
     zone.textContent = '';
-    if (!etat.public) { zone.appendChild(el('div', 'vide', etat.panne ? 'Serveur injoignable : impossible d’afficher les collections.' : 'Chargement…')); return; }
+    if (!etat.public) { zone.appendChild(el('div', 'vide', etat.panne ? 'Serveur injoignable : impossible d’afficher les collections.' : 'Chargement…')); rendreSpectateurs(); return; }
     const total = etat.catalogue.cartes.length;
-    etat.public.joueurs.forEach((j) => {
-      const d = el('div', 'carte-joueur', null, { role: 'button', tabindex: '0' });
-      d.style.setProperty('--couleur', couleurJoueur(j));
-      const nom = el('div', 'nom');
-      nom.appendChild(el('span', null, j.nom));
-      if (etat.session && j.id === etat.session.joueur) nom.appendChild(el('span', 'moi', 'moi'));
-      d.appendChild(nom);
-      const pts = el('div', 'points', String(j.nbCartes));
-      pts.appendChild(el('small', null, `/ ${total} cartes`));
-      d.appendChild(pts);
-      const barre = el('div', 'barre-mini');
-      const i = el('i');
-      i.style.width = `${(j.nbCartes / total) * 100}%`;
-      barre.appendChild(i);
-      d.appendChild(barre);
-      const rar = el('div', 'raretes-joueur');
-      const comptes = compterRaretes(j.cartes);
-      etat.catalogue.raretes.forEach((r) => {
-        const s = el('span', `r-${r.id}`, null, { title: `${r.nom} : ${comptes[r.id] || 0} / ${(etat.parRarete.get(r.id) || []).length}` });
-        s.append(gemmes(r.id), el('b', null, String(comptes[r.id] || 0)));
-        rar.appendChild(s);
-      });
-      d.appendChild(rar);
-      const offerts = offertsDe(j);
-      d.appendChild(el('div', 'detail', `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''} · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
-      d.appendChild(el('div', 'detail', `${pluriel(j.fragments, 'fragment')}${j.compte ? '' : ' · pas encore de mot de passe'}`));
-      const b = el('button', 'bouton secondaire petit', 'Voir l’album', { type: 'button' });
-      const voir = () => { etat.albumJoueur = j.id; mettreAJourAlbum(); if (location.hash !== '#collection') location.hash = '#collection'; else window.scrollTo({ top: 0 }); };
-      b.addEventListener('click', (e) => { e.stopPropagation(); voir(); });
-      d.addEventListener('click', voir);
-      d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); voir(); } });
-      d.appendChild(b);
-      zone.appendChild(d);
-    });
+    comptesPilotes().forEach((j) => zone.appendChild(carteCompte(j, total)));
+    rendreSpectateurs();
+  }
+  /* Les spectateurs : en dessous des pilotes, les plus grosses collections d'abord. Rien n'est affiché si le serveur ne les connaît pas. */
+  function rendreSpectateurs() {
+    const bloc = $('spectateurs-zone'), zone = $('spectateurs');
+    if (!bloc || !zone) return;  // ancienne page HTML en cache avec ce script
+    zone.textContent = '';
+    const ins = inscriptions();
+    bloc.hidden = !etat.public || !ins;
+    if (bloc.hidden) return;
+    const liste = comptesSpectateurs().slice().sort((a, b) => (b.nbCartes - a.nbCartes) || a.nom.localeCompare(b.nom, 'fr'));
+    if (!liste.length) {
+      zone.appendChild(el('div', 'vide', ins.ouvertes ? 'Aucun spectateur pour le moment : créez un compte pour être le premier !' : 'Aucun spectateur pour le moment.'));
+      return;
+    }
+    const total = etat.catalogue.cartes.length;
+    liste.forEach((j) => zone.appendChild(carteCompte(j, total)));
   }
   function rendreFil() {
     const ol = $('fil');
@@ -1698,7 +1846,7 @@
     const fil = etat.public.fil || [];
     if (!fil.length) { ol.appendChild(el('li', null, 'Rien pour le moment : ouvrez des boosters !')); return; }
     fil.forEach((entree) => {
-      const j = etat.public.joueurs.find((x) => x.id === entree.joueur) || null;
+      const j = compteParId(entree.joueur);
       const c = etat.cartes.get(entree.carte);
       if (!c) return;
       const li = el('li', `r-${c.rarete}`);
@@ -1706,6 +1854,7 @@
       past.style.background = j ? couleurJoueur(j) : '#888';
       li.appendChild(past);
       li.appendChild(el('span', 'qui', j ? j.nom : entree.joueur));
+      if (estSpectateur(j)) li.appendChild(el('span', 'badge-role', 'Spectateur'));
       const quoi = el('span', 'quoi');
       quoi.append(el('span', null, entree.fabriquee ? 'a fabriqué ' : 'a tiré '), el('b', null, `${c.prenom} ${c.nom}`), el('span', null, ` (${ecurieDe(c)}) `), gemmes(c.rarete), el('span', null, ' '), el('span', 'rarete-nom', rareteDe(c.rarete).nom));
       quoi.addEventListener('click', () => ouvrirLoupe(c, j));
@@ -1725,9 +1874,9 @@
     const p = pronosDe();
     return !!p && (p.actif || p.manche !== null || (p.historique || []).length > 0);
   }
-  const nomJoueur = (id) => { const j = etat.public && etat.public.joueurs.find((x) => x.id === id); return j ? j.nom : id; };
+  const nomJoueur = (id) => { const j = compteParId(id); return j ? j.nom : id; };
   function couleurJoueurId(id) {
-    const j = etat.public && etat.public.joueurs.find((x) => x.id === id);
+    const j = compteParId(id);
     return j ? couleurJoueur(j) : '#888';
   }
   const formaterCote = (c) => `×${(typeof c === 'number' ? c : 0).toFixed(1).replace('.', ',')}`;
@@ -1812,8 +1961,14 @@
       const gp = el('span', 'puce'); gp.append(el('b', null, `GP n°${p.manche}`), el('span', null, p.gp ? ` · ${p.gp}` : '')); zone.appendChild(gp);
       zone.appendChild(el('span', `etat-pari ${p.statut}`, p.statut === 'ouvert' ? 'Pronostics ouverts' : 'Pronostics fermés'));
       if (p.statut === 'ouvert') {
-        const n = Object.keys(p.aParie || {}).filter((id) => p.aParie[id]).length, total = Object.keys(p.aParie || {}).length;
-        const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${total}`), el('span', null, n === 1 ? ' a parié' : ' ont parié')); zone.appendChild(c);
+        const ids = Object.keys(p.aParie || {}), spectateurs = new Set(comptesSpectateurs().map((x) => x.id));
+        const groupe = (liste, libelle) => {
+          const n = liste.filter((id) => p.aParie[id]).length;
+          const c = el('span', 'puce'); c.append(el('b', null, `${n} / ${liste.length}`), el('span', null, libelle(n, liste.length))); zone.appendChild(c);
+        };
+        groupe(ids.filter((id) => !spectateurs.has(id)), (n) => (n === 1 ? ' a parié' : ' ont parié'));
+        const aSpectateurs = ids.filter((id) => spectateurs.has(id));
+        if (aSpectateurs.length) groupe(aSpectateurs, (n, total) => (total === 1 ? ' spectateur a parié' : ' spectateurs ont parié'));
       }
     }
     const regles = $('pronos-regles');
@@ -1919,12 +2074,13 @@
     t.appendChild(el('thead')).appendChild(entete);
     const corps = el('tbody');
     const moi = joueurConnecte();
-    (etat.public.joueurs || []).forEach((j) => {
+    comptesPilotes().concat(comptesSpectateurs().filter((x) => (p.paris || {})[x.id])).forEach((j) => {
       const pari = (p.paris || {})[j.id];
       const tr = el('tr', moi && moi.id === j.id ? 'est-moi' : null);
       const nom = el('td'), pastille = el('span', 'pastille');
       pastille.style.background = couleurJoueur(j);
       nom.append(pastille, el('b', null, ` ${j.nom}`));
+      if (estSpectateur(j)) nom.appendChild(el('span', 'badge-role', 'Spectateur'));
       tr.appendChild(nom);
       if (!pari) { const td = el('td', 'discret', 'N’a pas parié'); td.colSpan = 2; tr.appendChild(td); }
       else {
@@ -2059,9 +2215,12 @@
     ['#', 'Joueur', 'Boosters gagnés', 'Paris', 'Bon « meilleur »', 'Bon « ordre »'].forEach((x, i) => tr0.appendChild(el('th', i >= 2 ? 'num' : null, x)));
     t.appendChild(el('thead')).appendChild(tr0);
     const corps = el('tbody');
+    const moi = joueurConnecte();
     (p.classement || []).forEach((c, i) => {
-      const tr = el('tr');
-      tr.append(el('td', null, String(i + 1)), el('td', null, nomJoueur(c.joueur)),
+      const tr = el('tr', moi && moi.id === c.joueur ? 'est-moi' : null);
+      const nom = el('td', null, nomJoueur(c.joueur));
+      if (c.spectateur || estSpectateur(compteParId(c.joueur))) nom.appendChild(el('span', 'badge-role', 'Spectateur'));
+      tr.append(el('td', null, String(i + 1)), nom,
         el('td', 'num total', String(c.boosters)), el('td', 'num', String(c.paris)), el('td', 'num', String(c.bonsMeilleur)), el('td', 'num', String(c.bonsOrdre)));
       corps.appendChild(tr);
     });

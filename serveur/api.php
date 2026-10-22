@@ -1,5 +1,5 @@
 <?php
-// Serveur du jeu de cartes F1 25 : comptes, boosters (gagnés avec les points et offerts à l'heure), fragments, fabrication.
+// Serveur du jeu de cartes F1 25 : comptes (pilotes du championnat et spectateurs), boosters (gagnés avec les points, aux pronostics et offerts à l'heure), fragments, fabrication, pronostics.
 // Contrat complet : API.md. Les données sont dans donnees/etat.json (dossier protégé).
 declare(strict_types=1);
 
@@ -13,6 +13,14 @@ const FICHIER_COPIE = FICHIER_ETAT . '.bak';  // dernière version lisible de l'
 const DUREE_JETON = 180 * 86400;
 const TAILLE_FIL = 30;
 const DUREE_FERMETURE_AVANCE = 3 * 3600;  // une fermeture « à l'avance » n'est honorée que pendant 3 heures
+const PSEUDO_MIN = 3;
+const PSEUDO_MAX = 20;
+const MOT_DE_PASSE_MIN = 4;
+const MOT_DE_PASSE_MAX = 100;
+const DUREE_INSCRIPTIONS = 3600;     // les inscriptions récentes sont comptées sur une heure
+const INSCRIPTIONS_PAR_IP = 5;       // au plus 5 comptes créés par heure depuis une même connexion
+const INSCRIPTIONS_PAR_HEURE = 20;   // et 20 au total, quelle que soit la connexion : un robot ne remplit pas le fichier en quelques minutes
+const PSEUDOS_RESERVES = ['admin', 'administrateur', 'moderateur', 'modo', 'spectateur', 'invite', 'anonyme', 'serveur', 'systeme', 'championnat'];
 
 $origine = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origine, ORIGINES_AUTORISEES, true)) {
@@ -227,6 +235,89 @@ function joueurParNom(array $saison, string $nom): ?array
     return null;
 }
 
+/** Les spectateurs sont des comptes extérieurs au championnat : un pseudo et un mot de passe, une collection, des boosters offerts et des pronostics, sans points. */
+function estSpectateur(array $e): bool
+{
+    return ($e['role'] ?? '') === 'spectateur';
+}
+
+/** Réglages des spectateurs (catalogue.json) : [nombre maximum de comptes (0 = inscriptions fermées), boosters offerts à l'inscription]. */
+function reglagesSpectateurs(array $catalogue): array
+{
+    $nombre = fn (string $cle, float $defaut, float $min, float $max): float =>
+        is_numeric($catalogue[$cle] ?? null) ? max($min, min($max, (float) $catalogue[$cle])) : $defaut;
+    return [(int) $nombre('spectateursMax', 30, 0, 500), (int) $nombre('boostersDepartSpectateur', 1, 0, 100)];
+}
+
+/** Forme comparable d'un nom : minuscules, sans accents ni séparateurs (« Marie-Jo », « marie jo » et « MARIEJO » ne font qu'un). */
+function cleNom(string $nom): string
+{
+    $s = strtr(mb_strtolower($nom), [
+        'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'æ' => 'ae', 'ç' => 'c',
+        'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n',
+        'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ø' => 'o', 'œ' => 'oe',
+        'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y', 'ß' => 'ss',
+    ]);
+    return (string) preg_replace('/[^\p{L}\p{N}]+/u', '', $s);
+}
+
+/**
+ * Vérifie le pseudo d'un spectateur : [pseudo nettoyé, null] ou [null, message]. Lettres latines (accents compris) et chiffres,
+ * avec entre deux mots un espace, un point, un tiret ou une apostrophe : pas de lettres d'un autre alphabet qui ressembleraient
+ * à celles d'un pilote. Le prénom, le pseudo et les alias des pilotes sont réservés.
+ */
+function pseudoValide(string $brut, array $saison): array
+{
+    $pseudo = trim((string) preg_replace('/\s+/u', ' ', $brut));
+    $longueur = mb_strlen($pseudo);
+    if ($longueur < PSEUDO_MIN || $longueur > PSEUDO_MAX) {
+        return [null, 'Le pseudo doit faire entre ' . PSEUDO_MIN . ' et ' . PSEUDO_MAX . ' caractères.'];
+    }
+    $mot = '[a-zA-Z0-9\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{017F}]+';
+    if (!preg_match("/^$mot(?:[ ._'’-]$mot)*$/u", $pseudo)) {
+        return [null, "Le pseudo ne peut contenir que des lettres, des chiffres et, entre deux mots, un espace, un point, un tiret ou une apostrophe."];
+    }
+    $cle = cleNom($pseudo);
+    if (mb_strlen($cle) < PSEUDO_MIN) {
+        return [null, 'Le pseudo doit contenir au moins ' . PSEUDO_MIN . ' lettres ou chiffres.'];
+    }
+    $reserves = PSEUDOS_RESERVES;
+    foreach ($saison['joueurs'] as $j) {
+        foreach (array_merge([$j['nom'] ?? '', $j['id'] ?? ''], (array) ($j['alias'] ?? [])) as $nom) {
+            $reserves[] = cleNom((string) $nom);
+        }
+    }
+    if (in_array($cle, $reserves, true)) {
+        return [null, 'Ce pseudo est réservé : choisis-en un autre.'];
+    }
+    return [$pseudo, null];
+}
+
+/** L'identifiant du spectateur qui porte ce pseudo (sans tenir compte des majuscules, accents et séparateurs), ou null. */
+function spectateurParNom(array $etat, string $nom): ?string
+{
+    $cle = cleNom($nom);
+    if ($cle === '') {
+        return null;
+    }
+    foreach ($etat['joueurs'] as $id => $e) {
+        if (estSpectateur($e) && ($e['cle'] ?? cleNom((string) ($e['nom'] ?? ''))) === $cle) {
+            return (string) $id;
+        }
+    }
+    return null;
+}
+
+/** Supprime un compte et tout ce qui s'y rapporte : jetons, tirages du fil, paris et gains des pronostics. Son identifiant n'est jamais réutilisé. */
+function supprimerCompte(array &$etat, string $id): void
+{
+    unset($etat['joueurs'][$id]);
+    $etat['fil'] = array_values(array_filter($etat['fil'], fn ($x) => ($x['joueur'] ?? '') !== $id));
+    foreach (array_keys($etat['pronos']['manches'] ?? []) as $n) {
+        unset($etat['pronos']['manches'][$n]['paris'][$id], $etat['pronos']['manches'][$n]['gains'][$id]);
+    }
+}
+
 /** Retrouve le joueur d'un jeton valide (et purge les jetons expirés). */
 function authentifier(array &$etat, string $jeton): string
 {
@@ -299,6 +390,30 @@ function vueOfferts(array $e, int $maintenant, int $intervalle, int $max, int $a
     ];
 }
 
+/**
+ * Ce que l'API montre d'un compte (pilote ou spectateur) : boosters, fragments et collection. Seuls les pilotes ont des points
+ * ($points non nul) ; ceux d'un spectateur ne viennent que des pronostics.
+ */
+function vueCompte(array $saison, array $catalogue, string $id, string $nom, array $e, int|float|null $points, int $maintenant, int $intervalle, int $max, int $ancre): array
+{
+    $pronos = (int) ($e['boostersPronos'] ?? 0);
+    $gagnes = boostersGagnes($saison, $catalogue, $id, $pronos);
+    $offerts = vueOfferts($e, $maintenant, $intervalle, $max, $ancre);
+    $vue = ['id' => $id, 'nom' => $nom, 'compte' => $e['hash'] !== null];
+    if ($points !== null) {
+        $vue['points'] = $points;
+    }
+    $vue += [
+        'boostersGagnes' => $gagnes, 'boostersPronos' => $pronos, 'boostersOuverts' => $e['ouverts'],
+        'boostersDispo' => max(0, $gagnes - $e['ouverts']) + ($offerts['stock'] ?? 0), 'fragments' => $e['fragments'],
+        'cartes' => array_keys($e['cartes']), 'nbCartes' => count($e['cartes']),
+    ];
+    if ($offerts !== null) {
+        $vue['offerts'] = $offerts;
+    }
+    return $vue;
+}
+
 /** Faut-il (ré)enregistrer la date de départ et les réglages des boosters offerts ? Vrai au premier appel et après un changement. */
 function reglagesOffertsAChanger(array $etat, int $intervalle, int $max): bool
 {
@@ -318,13 +433,22 @@ function appliquerReglagesOfferts(array &$etat, array $saison, int $intervalle, 
     $ancre = $etat['offertsDepuis'] ??= $maintenant;
     $anciens = $etat['offertsReglages'] ?? null;
     if (is_array($anciens) && ($anciens['intervalle'] !== $intervalle || $anciens['max'] !== $max)) {
+        $arreter = function (array &$e) use ($anciens, $maintenant, $ancre): void {
+            [$stock, $depuis] = calculerOfferts($e['offerts'] ?? null, $maintenant, (int) $anciens['intervalle'], (int) $anciens['max'], (int) $ancre);
+            $e['offerts'] = ['stock' => $stock, 'depuis' => $depuis];
+        };
         foreach ($saison['joueurs'] as $j) {
             $e = &$etat['joueurs'][$j['id']];
             $e ??= joueurVierge();
-            [$stock, $depuis] = calculerOfferts($e['offerts'] ?? null, $maintenant, (int) $anciens['intervalle'], (int) $anciens['max'], (int) $ancre);
-            $e['offerts'] = ['stock' => $stock, 'depuis' => $depuis];
+            $arreter($e);
             unset($e);
         }
+        foreach ($etat['joueurs'] as &$e) {  // les spectateurs aussi
+            if (estSpectateur($e)) {
+                $arreter($e);
+            }
+        }
+        unset($e);
     }
     $etat['offertsReglages'] = ['intervalle' => $intervalle, 'max' => $max];
 }
@@ -476,7 +600,7 @@ function reglerManchePronos(array &$etat, array &$m, array $course, array $saiso
             }
             $gains[$id] = $g;
             $total = $g['meilleur'] + $g['ordre'];
-            if ($total > 0) {
+            if ($total > 0 && (isset($etat['joueurs'][$id]) || isset($m['forces'][$id]))) {  // un compte supprimé entre-temps ne reçoit rien (et n'est pas recréé)
                 $j = &$etat['joueurs'][$id];
                 $j ??= joueurVierge();
                 $j['boostersPronos'] = (int) ($j['boostersPronos'] ?? 0) + $total;
@@ -597,6 +721,11 @@ function vuePronos(array $etat, array $saison, array $catalogue): array
     foreach ($saison['joueurs'] as $j) {
         $classement[$j['id']] = ['joueur' => $j['id'], 'boosters' => 0, 'bonsMeilleur' => 0, 'bonsOrdre' => 0, 'paris' => 0];
     }
+    foreach ($etat['joueurs'] as $id => $e) {  // les spectateurs jouent aussi : ils n'apparaissent au classement qu'après leur premier pari réglé
+        if (estSpectateur($e)) {
+            $classement[(string) $id] = ['joueur' => (string) $id, 'boosters' => 0, 'bonsMeilleur' => 0, 'bonsOrdre' => 0, 'paris' => 0, 'spectateur' => true];
+        }
+    }
     foreach ($manches as $n => $m) {
         if (($m['statut'] ?? '') !== 'regle') {
             if (courseDeManche($saison, (int) $n) !== null) {
@@ -623,7 +752,7 @@ function vuePronos(array $etat, array $saison, array $catalogue): array
     }
     $actif = pronosActifs($catalogue);
     usort($historique, fn ($a, $b) => $b['manche'] <=> $a['manche']);
-    $classement = array_values($classement);
+    $classement = array_values(array_filter($classement, fn ($c) => empty($c['spectateur']) || $c['paris'] > 0));
     usort($classement, fn ($a, $b) => [$b['boosters'], $b['bonsMeilleur'] + $b['bonsOrdre']] <=> [$a['boosters'], $a['bonsMeilleur'] + $a['bonsOrdre']]);
     $vue = ['actif' => $actif, 'manche' => null, 'gp' => null, 'statut' => null, 'bases' => null, 'forces' => null, 'cotes' => null,
             'aParie' => [], 'enAttente' => $enAttente, 'historique' => array_slice($historique, 0, 6), 'classement' => $classement];
@@ -637,6 +766,11 @@ function vuePronos(array $etat, array $saison, array $catalogue): array
         $vue['cotes'] = $m['cotes'];
         foreach ($saison['joueurs'] as $j) {
             $vue['aParie'][$j['id']] = isset($m['paris'][$j['id']]);
+        }
+        foreach ($etat['joueurs'] as $id => $e) {
+            if (estSpectateur($e)) {
+                $vue['aParie'][(string) $id] = isset($m['paris'][$id]);
+            }
         }
         if ($m['statut'] !== 'ouvert') {
             $vue['paris'] = (object) array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris']);
@@ -747,22 +881,22 @@ if ($action === 'etat' && $methode === 'GET') {
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
-        $pronos = (int) ($e['boostersPronos'] ?? 0);
-        $gagnes = boostersGagnes($saison, $catalogue, $j['id'], $pronos);
-        $offerts = vueOfferts($e, $maintenant, $intervalle, $maxOffert, $ancre);
-        $joueur = [
-            'id' => $j['id'], 'nom' => $j['nom'], 'compte' => $e['hash'] !== null, 'points' => $points[$j['id']],
-            'boostersGagnes' => $gagnes, 'boostersPronos' => $pronos, 'boostersOuverts' => $e['ouverts'],
-            'boostersDispo' => max(0, $gagnes - $e['ouverts']) + ($offerts['stock'] ?? 0), 'fragments' => $e['fragments'],
-            'cartes' => array_keys($e['cartes']), 'nbCartes' => count($e['cartes']),
-        ];
-        if ($offerts !== null) {
-            $joueur['offerts'] = $offerts;
-        }
-        $joueurs[] = $joueur;
+        $joueurs[] = vueCompte($saison, $catalogue, $j['id'], $j['nom'], $e, $points[$j['id']], $maintenant, $intervalle, $maxOffert, $ancre);
     }
-    repondre(['joueurs' => $joueurs, 'fil' => $etat['fil'], 'totalCartes' => count($catalogue['cartes']),
-              'pronos' => vuePronos($etat, $saison, $catalogue)]);
+    // Les spectateurs sont à part : « joueurs » ne contient que les pilotes du championnat (une page plus ancienne n'y voit rien de nouveau)
+    $spectateurs = [];
+    foreach ($etat['joueurs'] as $id => $e) {
+        if (estSpectateur($e)) {
+            $s = vueCompte($saison, $catalogue, (string) $id, (string) ($e['nom'] ?? $id), $e, null, $maintenant, $intervalle, $maxOffert, $ancre);
+            $s['role'] = 'spectateur';
+            $s['cree'] = (int) ($e['cree'] ?? 0);
+            $spectateurs[] = $s;
+        }
+    }
+    [$plafond] = reglagesSpectateurs($catalogue);
+    $restantes = max(0, $plafond - count($spectateurs));
+    repondre(['joueurs' => $joueurs, 'spectateurs' => $spectateurs, 'inscriptions' => ['ouvertes' => $restantes > 0, 'max' => $plafond, 'restantes' => $restantes],
+              'fil' => $etat['fil'], 'totalCartes' => count($catalogue['cartes']), 'pronos' => vuePronos($etat, $saison, $catalogue)]);
 }
 
 if ($methode !== 'POST') {
@@ -771,23 +905,33 @@ if ($methode !== 'POST') {
 $entree = corps();
 
 if ($action === 'connexion') {
+    // Un pilote du championnat (son prénom) ou un spectateur (son pseudo) : le même formulaire, le même mot de passe
     $saison = saison();
-    $joueur = joueurParNom($saison, (string) ($entree['nom'] ?? ''));
-    if (!$joueur) {
-        erreur(404, 'Ce prénom ne fait pas partie du championnat.');
-    }
+    $nom = (string) ($entree['nom'] ?? '');
     $motDePasse = (string) ($entree['motDePasse'] ?? '');
-    $resultat = modifierEtat(function (array &$etat) use ($joueur, $motDePasse) {
-        $j = &$etat['joueurs'][$joueur['id']];
+    if (!joueurParNom($saison, $nom) && spectateurParNom(lireEtat(), $nom) === null) {
+        erreur(404, 'Compte inconnu : vérifie ton prénom (pilote) ou ton pseudo (spectateur).');  // rien n'est écrit pour un nom inconnu
+    }
+    $resultat = modifierEtat(function (array &$etat) use ($saison, $nom, $motDePasse) {
+        $joueur = joueurParNom($saison, $nom);
+        $id = $joueur['id'] ?? spectateurParNom($etat, $nom);
+        if ($id === null) {
+            return [404, 'Compte inconnu : vérifie ton prénom (pilote) ou ton pseudo (spectateur).'];
+        }
+        $affiche = $joueur['nom'] ?? (string) ($etat['joueurs'][$id]['nom'] ?? $id);
+        $j = &$etat['joueurs'][$id];
         $j ??= joueurVierge();
         $j['echecs'] = array_values(array_filter($j['echecs'], fn ($t) => $t > time() - 600));
         if (count($j['echecs']) >= 10) {
             return [429, 'Trop d\'essais : réessaie dans 10 minutes.'];
         }
-        $premiere = $j['hash'] === null;
+        $premiere = $j['hash'] === null;  // un compte dont l'admin a effacé le mot de passe : celui-ci devient le nouveau
         if ($premiere) {
-            if (mb_strlen($motDePasse) < 4) {
-                return [400, 'Choisis un mot de passe d\'au moins 4 caractères.'];
+            if (mb_strlen($motDePasse) < MOT_DE_PASSE_MIN) {
+                return [400, 'Choisis un mot de passe d\'au moins ' . MOT_DE_PASSE_MIN . ' caractères.'];
+            }
+            if (mb_strlen($motDePasse) > MOT_DE_PASSE_MAX) {
+                return [400, 'Mot de passe trop long (' . MOT_DE_PASSE_MAX . ' caractères au maximum).'];
             }
             $j['hash'] = password_hash($motDePasse, PASSWORD_DEFAULT);
         } elseif (!password_verify($motDePasse, $j['hash'])) {
@@ -798,12 +942,79 @@ if ($action === 'connexion') {
         $j['jetons'][] = ['h' => hash('sha256', $jeton), 'exp' => time() + DUREE_JETON];
         $j['jetons'] = array_slice($j['jetons'], -5);
         $j['echecs'] = [];
-        return ['jeton' => $jeton, 'joueur' => $joueur['id'], 'nom' => $joueur['nom'], 'premiereConnexion' => $premiere];
+        return ['jeton' => $jeton, 'joueur' => (string) $id, 'nom' => $affiche, 'role' => estSpectateur($j) ? 'spectateur' : 'pilote', 'premiereConnexion' => $premiere];
     });
     if (isset($resultat[0]) && is_int($resultat[0])) {
         if ($resultat[0] === 401) {
             usleep(800000);
         }
+        erreur($resultat[0], $resultat[1]);
+    }
+    repondre($resultat);
+}
+
+if ($action === 'inscription') {
+    // Un spectateur crée son compte : un pseudo et un mot de passe. Il ne joue pas au championnat (aucun point) mais a sa collection,
+    // ses boosters offerts à l'heure et ses pronostics. Garde-fous : plafond de comptes (catalogue), limites par connexion et au total.
+    $saison = saison();
+    $catalogue = catalogue();
+    [$plafond, $depart] = reglagesSpectateurs($catalogue);
+    if ($plafond <= 0) {
+        erreur(403, 'Les inscriptions de spectateurs sont fermées pour le moment.');
+    }
+    [$pseudo, $probleme] = pseudoValide((string) ($entree['nom'] ?? ''), $saison);
+    if ($pseudo === null) {
+        erreur(400, $probleme);
+    }
+    $motDePasse = (string) ($entree['motDePasse'] ?? '');
+    if (mb_strlen($motDePasse) < MOT_DE_PASSE_MIN) {
+        erreur(400, 'Choisis un mot de passe d\'au moins ' . MOT_DE_PASSE_MIN . ' caractères.');
+    }
+    if (mb_strlen($motDePasse) > MOT_DE_PASSE_MAX) {
+        erreur(400, 'Mot de passe trop long (' . MOT_DE_PASSE_MAX . ' caractères au maximum).');
+    }
+    $maintenant = time();
+    $connexion = hash_hmac('sha256', (string) ($_SERVER['REMOTE_ADDR'] ?? ''), CLE_ADMIN);  // jamais l'adresse elle-même ; oubliée au bout d'une heure
+    $resultat = modifierEtat(function (array &$etat) use ($pseudo, $motDePasse, $saison, $plafond, $depart, $maintenant, $connexion) {
+        $cle = cleNom($pseudo);
+        $nb = 0;
+        foreach ($etat['joueurs'] as $e) {
+            if (estSpectateur($e)) {
+                $nb++;
+                if (($e['cle'] ?? cleNom((string) ($e['nom'] ?? ''))) === $cle) {
+                    return [409, 'Ce pseudo est déjà pris : choisis-en un autre.'];
+                }
+            }
+        }
+        if ($nb >= $plafond) {
+            return [409, 'Le nombre maximum de spectateurs est atteint pour le moment.'];
+        }
+        $recentes = array_values(array_filter($etat['inscriptions'] ?? [], fn ($i) => (int) ($i['t'] ?? 0) > $maintenant - DUREE_INSCRIPTIONS));
+        $etat['inscriptions'] = $recentes;
+        if (count($recentes) >= INSCRIPTIONS_PAR_HEURE) {
+            return [429, 'Trop d\'inscriptions en peu de temps : réessaie dans une heure.'];
+        }
+        if (count(array_filter($recentes, fn ($i) => ($i['c'] ?? '') === $connexion)) >= INSCRIPTIONS_PAR_IP) {
+            return [429, 'Trop de comptes créés depuis cette connexion : réessaie dans une heure.'];
+        }
+        $n = (int) ($etat['prochainSpectateur'] ?? 0);
+        do {  // un numéro jamais utilisé, jamais réutilisé après une suppression
+            $n++;
+            $id = 'spec' . $n;
+            $pris = isset($etat['joueurs'][$id]) || array_filter($saison['joueurs'], fn ($j) => (string) $j['id'] === $id);
+        } while ($pris);
+        $etat['prochainSpectateur'] = $n;
+        $jeton = bin2hex(random_bytes(24));
+        $etat['joueurs'][$id] = array_merge(joueurVierge(), [
+            'role' => 'spectateur', 'nom' => $pseudo, 'cle' => $cle, 'cree' => $maintenant,
+            'hash' => password_hash($motDePasse, PASSWORD_DEFAULT),
+            'jetons' => [['h' => hash('sha256', $jeton), 'exp' => $maintenant + DUREE_JETON]],
+            'offerts' => ['stock' => $depart, 'depuis' => $maintenant],  // son compteur démarre à l'inscription
+        ]);
+        $etat['inscriptions'][] = ['t' => $maintenant, 'c' => $connexion];
+        return ['jeton' => $jeton, 'joueur' => $id, 'nom' => $pseudo, 'role' => 'spectateur', 'premiereConnexion' => true];
+    });
+    if (isset($resultat[0]) && is_int($resultat[0])) {
         erreur($resultat[0], $resultat[1]);
     }
     repondre($resultat);
@@ -826,7 +1037,7 @@ if ($action === 'ouvrir') {
         [$offerts, $depuis] = calculerOfferts($j['offerts'] ?? null, $maintenant, $intervalle, $maxOffert, $ancre);
         $dispoPoints = max(0, boostersGagnes($saison, $catalogue, $id, (int) ($j['boostersPronos'] ?? 0)) - $j['ouverts']);
         if ($dispoPoints + $offerts <= 0) {
-            return ['aucun' => $intervalle > 0 ? max(0, $depuis + $intervalle - $maintenant) : null];
+            return ['aucun' => $intervalle > 0 ? max(0, $depuis + $intervalle - $maintenant) : null, 'spectateur' => estSpectateur($j)];
         }
         $aOuvrir = min($nombre, $dispoPoints + $offerts);
         $boosters = [];
@@ -871,9 +1082,10 @@ if ($action === 'ouvrir') {
     });
     if (array_key_exists('aucun', $resultat)) {
         $attente = $resultat['aucun'];
+        $autre = $resultat['spectateur'] ? 'gagne-en aux pronostics' : 'marque des points au prochain GP';  // un spectateur ne marque pas de points
         erreur(409, $attente === null
-            ? 'Aucun booster disponible : marque des points au prochain GP !'
-            : 'Aucun booster disponible : le prochain booster offert arrive dans ' . max(1, intdiv($attente + 59, 60)) . ' min, ou marque des points au prochain GP !');
+            ? "Aucun booster disponible : $autre !"
+            : 'Aucun booster disponible : le prochain booster offert arrive dans ' . max(1, intdiv($attente + 59, 60)) . " min, ou $autre !");
     }
     repondre($resultat);
 }
@@ -1052,22 +1264,52 @@ if ($action === 'deconnexion') {
 }
 
 if ($action === 'reinitialiser') {
+    // Efface le mot de passe d'un compte (pilote : son prénom ; spectateur : son pseudo) : la collection est conservée,
+    // et le prochain mot de passe saisi à la connexion devient le nouveau.
     if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
         usleep(800000);
         erreur(403, 'Clé administrateur incorrecte.');
     }
-    $joueur = joueurParNom(saison(), (string) ($entree['nom'] ?? ''));
-    if (!$joueur) {
-        erreur(404, 'Ce prénom ne fait pas partie du championnat.');
-    }
-    modifierEtat(function (array &$etat) use ($joueur) {
-        $j = &$etat['joueurs'][$joueur['id']];
+    $saison = saison();
+    $nom = (string) ($entree['nom'] ?? '');
+    $resultat = modifierEtat(function (array &$etat) use ($saison, $nom) {
+        $joueur = joueurParNom($saison, $nom);
+        $id = $joueur['id'] ?? spectateurParNom($etat, $nom);
+        if ($id === null) {
+            return [404, 'Compte inconnu : ce nom n\'est ni un pilote du championnat ni un spectateur.'];
+        }
+        $j = &$etat['joueurs'][$id];
         $j ??= joueurVierge();
         $j['hash'] = null;
         $j['jetons'] = [];
         $j['echecs'] = [];
+        return ['ok' => true];
     });
-    repondre(['ok' => true]);
+    if (isset($resultat[0]) && is_int($resultat[0])) {
+        erreur($resultat[0], $resultat[1]);
+    }
+    repondre($resultat);
+}
+
+if ($action === 'supprimerSpectateur') {
+    // Supprime définitivement le compte d'un spectateur (collection, paris et tirages compris). Jamais un pilote du championnat.
+    if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
+        usleep(800000);
+        erreur(403, 'Clé administrateur incorrecte.');
+    }
+    $id = (string) ($entree['id'] ?? '');
+    $resultat = modifierEtat(function (array &$etat) use ($id) {
+        if (!isset($etat['joueurs'][$id]) || !estSpectateur($etat['joueurs'][$id])) {
+            return [404, 'Spectateur inconnu.'];
+        }
+        $nom = (string) ($etat['joueurs'][$id]['nom'] ?? $id);
+        supprimerCompte($etat, $id);
+        return ['ok' => true, 'nom' => $nom];
+    });
+    if (isset($resultat[0]) && is_int($resultat[0])) {
+        erreur($resultat[0], $resultat[1]);
+    }
+    repondre($resultat);
 }
 
 erreur(404, 'Action inconnue.');

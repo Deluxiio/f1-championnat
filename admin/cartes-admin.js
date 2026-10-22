@@ -38,6 +38,8 @@
     catalogue.pronosGainOrdre ??= 4;
     catalogue.pronosGainMax ??= 60;
     catalogue.pronosLissage ??= 15;
+    catalogue.spectateursMax ??= 30;            // spectateurs (joueurs extérieurs) : idem
+    catalogue.boostersDepartSpectateur ??= 1;
     const saison = window.Admin.saison();
     bonus = Object.fromEntries((saison ? saison.joueurs : []).map((j) => [j.id, j.boostersBonus || 0]));
     modifie = false;
@@ -107,6 +109,14 @@
     zone.appendChild(h("p", { class: "indice" }, catalogue.pronosGainMeilleur > 0 || catalogue.pronosGainOrdre > 0
       ? "Pronostics : avant chaque GP, chacun devine le meilleur d'entre vous et l'ordre d'arrivée, sans rien miser. Un pari juste rapporte (boosters de base × cote), ajoutés aux boosters gagnés. Les cotes se calculent à l'ouverture du GP d'après les points au championnat (+ lissage) et restent figées jusqu'à la course ; un changement de réglage ne vaut qu'à partir du GP suivant."
       : "Pronostics désactivés (0 aux deux paris) : plus aucun GP ne s'ouvre. Celui déjà ouvert sera quand même réglé après sa course."));
+
+    zone.appendChild(h("div", { class: "champs" },
+      champ("Spectateurs : nombre maximum de comptes", "spectateursMax", 0, 500, "0 = inscriptions fermées (les comptes existants restent)"),
+      champ("Spectateurs : boosters offerts à l'inscription", "boostersDepartSpectateur", 0, 100, "En plus des boosters offerts à l'heure, qui démarrent à l'inscription"),
+    ));
+    zone.appendChild(h("p", { class: "indice" }, catalogue.spectateursMax > 0
+      ? `Spectateurs : des joueurs extérieurs au championnat créent eux-mêmes leur compte (un pseudo et un mot de passe) sur la page Cartes, jusqu'à ${catalogue.spectateursMax} comptes. Ils ne marquent pas de points : leurs boosters sont les boosters offerts (mêmes réglages que les pilotes, ${catalogue.boostersDepartSpectateur} à l'inscription) et ceux gagnés aux pronostics. Contre les robots : 5 inscriptions par heure et par connexion, 20 par heure au total. Les comptes se gèrent dans « Comptes des joueurs » plus bas.`
+      : "Inscriptions de spectateurs fermées : plus personne ne peut créer de compte (les comptes existants continuent de fonctionner)."));
 
     const total = catalogue.raretes.reduce((s, r) => s + r.poids, 0);
     const compte = (id) => catalogue.cartes.filter((c) => c.rarete === id).length;
@@ -370,6 +380,44 @@
             alert(e.message);
           }
         } }, "Réinitialiser le mot de passe") : ""),
+      ))),
+    )));
+    rendreSpectateursAdmin(zone, etat);
+  }
+
+  // Les spectateurs : liste, mot de passe oublié, suppression (le plafond et les boosters de départ se règlent dans « Économie »)
+  function rendreSpectateursAdmin(zone, etat) {
+    zone.appendChild(h("h3", {}, "Spectateurs"));
+    if (!etat.inscriptions) {
+      zone.appendChild(h("p", { class: "indice" }, "Le serveur des cartes ne gère pas encore les spectateurs : renvoie la dernière version de api.php sur Hostinger."));
+      return;
+    }
+    const ins = etat.inscriptions;
+    zone.appendChild(h("p", {}, `${etat.spectateurs.length} spectateur${etat.spectateurs.length > 1 ? "s" : ""} sur ${ins.max} places — inscriptions ${ins.ouvertes ? "ouvertes" : "fermées"}.`));
+    if (!etat.spectateurs.length) {
+      zone.appendChild(h("p", { class: "indice" }, "Personne ne s'est encore inscrit. Les inscriptions se font sur la page Cartes (« Créer un compte spectateur »)."));
+      return;
+    }
+    const action = async (action, corps, confirmation) => {
+      if (!confirm(confirmation)) return;
+      try { await appelServeur(action, { cle: serveur.cleAdmin, ...corps }); rendreComptes(); } catch (e) { alert(e.message); }
+    };
+    zone.appendChild(h("div", { class: "tableau-defilant" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Pseudo", "Mot de passe", "Inscrit le", "Cartes", "À ouvrir", "Dont pronostics", "Fragments", ""].map((t) => h("th", {}, t)))),
+      h("tbody", {}, etat.spectateurs.map((s) => h("tr", {},
+        h("td", {}, h("strong", {}, s.nom)),
+        h("td", {}, s.compte ? "Défini" : "À choisir"),
+        h("td", {}, s.cree ? new Date(s.cree * 1000).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—"),
+        h("td", { class: "num" }, `${s.nbCartes} / ${etat.totalCartes}`),
+        h("td", { class: "num" }, s.offerts ? `${s.boostersDispo} (dont ${s.offerts.stock} offerts)` : String(s.boostersDispo)),
+        h("td", { class: "num" }, s.boostersPronos > 0 ? `+${s.boostersPronos}` : "–"),
+        h("td", { class: "num" }, String(s.fragments)),
+        h("td", {},
+          s.compte ? h("button", { type: "button", class: "bouton secondaire", onclick: () => action("reinitialiser", { nom: s.nom },
+            `Réinitialiser le mot de passe de ${s.nom} ? Sa collection est conservée ; le premier mot de passe saisi avec ce pseudo devient le nouveau : préviens-le de se connecter tout de suite.`) }, "Réinitialiser le mot de passe") : "",
+          h("button", { type: "button", class: "bouton danger", style: { marginLeft: "6px" }, onclick: () => action("supprimerSpectateur", { id: s.id },
+            `Supprimer définitivement le compte de ${s.nom} ? Sa collection, ses paris et ses tirages sont effacés, et c'est irréversible.`) }, "Supprimer"),
+        ),
       ))),
     )));
   }
