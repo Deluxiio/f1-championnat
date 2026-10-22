@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cartes pilotes — Championnat F1 25</title>
-  <meta name="description" content="Collection de cartes pilotes de notre championnat F1 25 : boosters gagnés avec les points, album, fragments et fabrication.">
+  <meta name="description" content="Collection de cartes pilotes de notre championnat F1 25 : boosters gagnés avec les points et aux pronostics, album, fragments et fabrication.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e10600'/%3E%3Cpath d='M6 22l8-12h12l-2 3H15.5l-1.4 2H22l-2 3h-8l-2 4z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="cartes.css">
@@ -70,6 +70,7 @@
     <a href="#boosters" role="tab">Boosters</a>
     <a href="#collection" role="tab">Ma collection</a>
     <a href="#collections" role="tab">Collections</a>
+    <a href="#pronostics" role="tab" id="onglet-pronostics" hidden>Pronostics</a>
   </div>
 </nav>
 
@@ -153,6 +154,23 @@
     <p class="aide">Les 30 dernières cartes Épique ou mieux obtenues, la plus récente en premier.</p>
     <ol class="fil" id="fil"></ol>
   </section>
+
+  <section id="pronostics" class="section" role="tabpanel" hidden>
+    <div class="section-tete">
+      <h2>Pronostics</h2>
+      <div class="puces" id="pronos-etat"></div>
+    </div>
+    <p class="aide">Avant chaque Grand Prix, devinez <strong>le meilleur d’entre nous</strong> et <strong>l’ordre d’arrivée</strong> de la bande. <strong>Aucune mise</strong> : on ne perd jamais rien, et un pari juste rapporte des boosters, d’autant plus que la cote est haute.<span id="pronos-regles"></span> Les pronostics ferment au départ de la course, et les paris des autres restent secrets jusque-là.</p>
+    <div class="vide" id="pronos-hors-ligne" hidden>
+      <p>Connectez-vous pour faire votre pronostic.</p>
+      <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+    </div>
+    <div id="pronos-gp"></div>
+    <h3>Derniers résultats</h3>
+    <div id="pronos-historique"></div>
+    <h3>Classement des pronostics</h3>
+    <div class="tableau-defilant"><table id="pronos-classement"></table></div>
+  </section>
 </main>
 
 <details class="credits conteneur" id="credits" hidden>
@@ -193,6 +211,7 @@
 
 <div class="notification" id="notification" hidden></div>
 
+<script src="../champ.js"></script>
 <script src="config.js"></script>
 <script src="cartes.js"></script>
 </body>

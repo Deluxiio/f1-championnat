@@ -17,6 +17,8 @@
   const nomEcurie = (id) => (catalogue.ecuries[id] ? catalogue.ecuries[id].nom : id);
   const sansAccents = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const nombre = (v, min, max) => Math.min(max, Math.max(min, Math.round(Number(v) || 0)));
+  const decimal = (v, min, max) => Math.min(max, Math.max(min, Math.round((Number(v) || 0) * 100) / 100));
+  const virgule = (x) => String(x).replace(".", ",");
 
   function marquer() {
     modifie = true;
@@ -31,6 +33,11 @@
     revision = d.revision;
     catalogue.minutesParBoosterOffert ??= 60;   // boosters offerts : valeurs par défaut d'un catalogue plus ancien
     catalogue.stockMaxBoostersOfferts ??= 10;
+    catalogue.chanceMythiqueParBooster ??= 1;   // cartes Mythiques et pronostics : idem
+    catalogue.pronosGainMeilleur ??= 2;
+    catalogue.pronosGainOrdre ??= 4;
+    catalogue.pronosGainMax ??= 60;
+    catalogue.pronosLissage ??= 15;
     const saison = window.Admin.saison();
     bonus = Object.fromEntries((saison ? saison.joueurs : []).map((j) => [j.id, j.boostersBonus || 0]));
     modifie = false;
@@ -65,19 +72,41 @@
           if (e.target.value.trim() === "") { rendreEconomie(); return; }   // champ vidé : on garde l'ancienne valeur
           catalogue[cle] = nombre(e.target.value, min, max); marquer(); rendreEconomie(); rendreBoosters();
         } }));
+    const champDecimal = (libelle, cle, min, max, aide) => h("label", {}, libelle,
+      h("input", { type: "number", min: String(min), max: String(max), step: "0.1", value: catalogue[cle], title: aide,
+        onchange: (e) => {
+          if (e.target.value.trim() === "") { rendreEconomie(); return; }
+          catalogue[cle] = decimal(e.target.value, min, max); marquer(); rendreEconomie(); rendreBoosters();
+        } }));
     zone.appendChild(h("div", { class: "champs" },
       champ("Points pour 1 booster", "pointsParBooster", 1, 100, "Ex. 5 : un booster tous les 5 points"),
       champ("Cartes par booster", "cartesParBooster", 1, 10),
       h("label", {}, "Dernière carte au minimum",
         h("select", { onchange: (e) => { catalogue.derniereCarteMin = e.target.value; marquer(); rendreEconomie(); } },
-          catalogue.raretes.map((r) => option(r.id, r.nom, r.id === catalogue.derniereCarteMin)))),
+          catalogue.raretes.filter((r) => r.id !== "mythique").map((r) => option(r.id, r.nom, r.id === catalogue.derniereCarteMin)))),
       champ("Minutes entre deux boosters offerts", "minutesParBoosterOffert", 0, 10080, "0 = désactivé. Ex. 60 : 1 booster offert par heure à chaque joueur"),
       champ("Stock maximum de boosters offerts", "stockMaxBoostersOfferts", 1, 100, "Quand le stock est plein, le compteur s'arrête jusqu'à la prochaine ouverture"),
+      champDecimal("Chance d'une carte Mythique par booster (%)", "chanceMythiqueParBooster", 0, 100, "1 = environ 1 booster sur 100 contient la carte d'un des potes. 0 = aucune Mythique"),
     ));
     const minutes = catalogue.minutesParBoosterOffert;
     zone.appendChild(h("p", { class: "indice" }, minutes > 0
       ? `Boosters offerts : chaque joueur en reçoit 1 toutes les ${minutes} minutes, sans rien faire, et les garde en stock jusqu'à ${catalogue.stockMaxBoostersOfferts}. Ils s'ouvrent avant ceux gagnés avec les points. Si tu baisses le stock maximum, les stocks plus grands sont ramenés au nouveau plafond.`
       : "Boosters offerts désactivés : plus aucun nouveau booster n'est offert (le stock restant reste utilisable)."));
+
+    const chanceMythique = catalogue.chanceMythiqueParBooster;
+    zone.appendChild(h("p", { class: "indice" }, chanceMythique > 0
+      ? `Cartes Mythiques (les 4 potes) : environ ${virgule(chanceMythique)} % des boosters en contiennent une, uniquement dans les boosters (jamais fabricable). Une Mythique que le joueur n'a pas encore passe avant un doublon ; un doublon vaut ${rarete("mythique") ? rarete("mythique").fragments : 0} fragments.`
+      : "Cartes Mythiques désactivées : aucun booster n'en contient."));
+
+    zone.appendChild(h("div", { class: "champs" },
+      champ("Pronostics : boosters de base « meilleur d'entre nous »", "pronosGainMeilleur", 0, 1000, "Un pari juste rapporte ce nombre × la cote. 0 aux deux paris = pronostics désactivés"),
+      champ("Pronostics : boosters de base « ordre d'arrivée »", "pronosGainOrdre", 0, 1000, "Un pari juste rapporte ce nombre × la cote. 0 aux deux paris = pronostics désactivés"),
+      champ("Pronostics : gain maximum d'un pari", "pronosGainMax", 1, 1000, "Plafond de boosters pour un seul pari (le gros lot de l'ordre d'arrivée)"),
+      champ("Pronostics : lissage des cotes", "pronosLissage", 1, 1000, "Points ajoutés à chaque joueur pour calculer les cotes : plus c'est grand, plus les cotes sont proches. Ex. 15"),
+    ));
+    zone.appendChild(h("p", { class: "indice" }, catalogue.pronosGainMeilleur > 0 || catalogue.pronosGainOrdre > 0
+      ? "Pronostics : avant chaque GP, chacun devine le meilleur d'entre vous et l'ordre d'arrivée, sans rien miser. Un pari juste rapporte (boosters de base × cote), ajoutés aux boosters gagnés. Les cotes se calculent à l'ouverture du GP d'après les points au championnat (+ lissage) et restent figées jusqu'à la course ; un changement de réglage ne vaut qu'à partir du GP suivant."
+      : "Pronostics désactivés (0 aux deux paris) : plus aucun GP ne s'ouvre. Celui déjà ouvert sera quand même réglé après sa course."));
 
     const total = catalogue.raretes.reduce((s, r) => s + r.poids, 0);
     const compte = (id) => catalogue.cartes.filter((c) => c.rarete === id).length;
@@ -86,7 +115,16 @@
     zone.appendChild(h("div", { class: "tableau-defilant" }, h("table", {},
       h("thead", {}, h("tr", {}, ["Rareté", "Cartes", "Poids de tirage", "Chance par carte", "Au moins 1 par booster",
         "Valeur d'un doublon", "Prix de fabrication"].map((t) => h("th", {}, t)))),
-      h("tbody", {}, catalogue.raretes.map((r) => h("tr", {},
+      h("tbody", {}, catalogue.raretes.map((r) => r.id === "mythique" ? h("tr", {},
+        // La Mythique n'entre pas dans le tirage par poids : son propre tirage dépend du réglage « chance par booster »
+        h("td", {}, h("strong", {}, r.nom)),
+        h("td", { class: "num" }, String(compte(r.id))),
+        h("td", {}, "Tirage à part"),
+        h("td", { class: "num" }, `${virgule((100 * (1 - Math.pow(1 - chanceMythique / 100, 1 / catalogue.cartesParBooster))).toFixed(2))} %`),
+        h("td", { class: "num" }, `${virgule(chanceMythique)} %`),
+        h("td", {}, entree(r, "fragments"), " fragments"),
+        h("td", {}, "Impossible"),
+      ) : h("tr", {},
         h("td", {}, h("strong", {}, r.nom)),
         h("td", { class: "num" }, String(compte(r.id))),
         h("td", {}, entree(r, "poids")),
@@ -247,12 +285,55 @@
     return d;
   }
 
+  // Pronostics du GP en cours : état, fermeture / réouverture à la main, annulation d'un GP qui n'aura pas lieu
+  function rendrePronosAdmin(etat) {
+    const zone = vider("cartes-pronos");
+    const p = etat && etat.pronos;
+    if (!etat) { zone.appendChild(h("p", { class: "indice" }, "Disponible quand le serveur des cartes répond (voir ci-dessus).")); return; }
+    if (!p) {
+      zone.appendChild(h("p", { class: "indice" }, "Le serveur des cartes ne gère pas encore les pronostics : renvoie la dernière version de api.php sur Hostinger."));
+      return;
+    }
+    const agir = async (action, confirmation) => {
+      if (confirmation && !confirm(confirmation)) return;
+      try { await appelServeur(action, { cle: serveur.cleAdmin }); } catch (e) { alert(e.message); }
+      rendreComptes();
+    };
+    if (p.manche === null) {
+      zone.appendChild(h("p", { class: "indice" }, p.actif
+        ? "Aucun GP ouvert aux pronostics : le prochain s'ouvre dès que le précédent est enregistré."
+        : "Pronostics désactivés (réglages ci-dessus : 0 aux deux paris)."));
+    } else {
+      const total = Object.keys(p.aParie || {}).length, nb = Object.values(p.aParie || {}).filter(Boolean).length;
+      zone.appendChild(h("p", {}, h("strong", {}, `GP n°${p.manche} · ${p.gp}`), p.statut === "ouvert" ? " — pronostics ouverts" : " — pronostics fermés (course en cours)",
+        `. ${nb} / ${total} ont parié.`, p.actif ? "" : " (Pronostics désactivés : plus de nouveau pari possible.)"));
+      zone.appendChild(h("div", { class: "actions" },
+        p.statut === "ouvert"
+          ? h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosFermer") }, "Fermer maintenant")
+          : h("button", { type: "button", class: "bouton secondaire", onclick: () => agir("pronosOuvrir") }, "Rouvrir"),
+        h("button", { type: "button", class: "bouton danger", onclick: () => agir("pronosAnnuler",
+          `Annuler les pronostics du GP ${p.gp} ? Aucun gain ne sera versé et le GP suivant s'ouvrira.`) }, "Annuler ce GP"),
+      ));
+    }
+    const dernier = (p.historique || [])[0];
+    if (dernier) {
+      const nom = (id) => (etat.joueurs.find((j) => j.id === id) || { nom: id }).nom;
+      zone.appendChild(h("p", { class: "indice" }, dernier.resultat && dernier.resultat.annulee
+        ? `Dernier GP réglé : n°${dernier.manche} ${dernier.gp} (annulé, aucun gain).`
+        : `Dernier GP réglé : n°${dernier.manche} ${dernier.gp} — arrivée ${(dernier.resultat ? dernier.resultat.classement : []).map(nom).join(" › ")}. Gains : ${
+          Object.entries(dernier.gains || {}).map(([id, g]) => `${nom(id)} +${g.meilleur + g.ordre}`).join(", ") || "aucun"}.`));
+    }
+    zone.appendChild(h("p", { class: "indice" },
+      "Les pronostics se ferment tout seuls au départ de la course (l'enregistreur prévient le serveur) et se règlent tout seuls quelques minutes après son enregistrement. Ces boutons servent en cas de souci."));
+  }
+
   async function rendreComptes() {
     const zone = vider("cartes-comptes");
     serveur = await api("GET", "/api/cartes-serveur");
     if (!serveur.api) {
       zone.appendChild(h("p", { class: "indice" },
         "Le serveur des cartes n'est pas encore branché : la page Cartes est en mode démo. Une fois api.php installé sur Hostinger, son adresse ira dans docs/cartes/config.js."));
+      rendrePronosAdmin(null);
       return;
     }
     let etat;
@@ -260,16 +341,19 @@
       etat = await appelServeur("etat");
     } catch (e) {
       zone.appendChild(h("p", {}, `Serveur injoignable (${serveur.api}) : ${e.message}`));
+      rendrePronosAdmin(null);
       return;
     }
+    rendrePronosAdmin(etat);
     zone.appendChild(h("div", { class: "tableau-defilant" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["Joueur", "Mot de passe", "Cartes", "Boosters ouverts", "À ouvrir", "Fragments", ""].map((t) => h("th", {}, t)))),
+      h("thead", {}, h("tr", {}, ["Joueur", "Mot de passe", "Cartes", "Boosters ouverts", "À ouvrir", "Dont pronostics", "Fragments", ""].map((t) => h("th", {}, t)))),
       h("tbody", {}, etat.joueurs.map((j) => h("tr", {},
         h("td", {}, h("strong", {}, j.nom)),
         h("td", {}, j.compte ? "Défini" : "Pas encore"),
         h("td", { class: "num" }, `${j.nbCartes} / ${etat.totalCartes}`),
         h("td", { class: "num" }, `${j.boostersOuverts} / ${j.boostersGagnes}`),
         h("td", { class: "num" }, j.offerts ? `${j.boostersDispo} (dont ${j.offerts.stock} offerts)` : String(j.boostersDispo)),
+        h("td", { class: "num" }, j.boostersPronos > 0 ? `+${j.boostersPronos}` : "–"),
         h("td", { class: "num" }, String(j.fragments)),
         h("td", {}, j.compte ? h("button", { type: "button", class: "bouton secondaire", onclick: async () => {
           if (!confirm(`Réinitialiser le mot de passe de ${j.nom} ? Sa collection est conservée ; il choisira un nouveau mot de passe à sa prochaine connexion.`)) return;

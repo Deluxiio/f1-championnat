@@ -1,14 +1,31 @@
 {
  "version": 1,
  "genere": "2026-10-22",
- "total": 710,
+ "total": 714,
  "premiereSaison": 1980,
  "pointsParBooster": 1,
  "cartesParBooster": 5,
  "derniereCarteMin": "peu_commune",
  "minutesParBoosterOffert": 60,
  "stockMaxBoostersOfferts": 10,
+ "chanceMythiqueParBooster": 1,
+ "pronosGainMeilleur": 2,
+ "pronosGainOrdre": 4,
+ "pronosGainMax": 60,
+ "pronosLissage": 15,
  "raretes": [
+  {
+   "id": "mythique",
+   "nom": "Mythique",
+   "regle": "Carte d'un des potes du championnat (boosters uniquement)",
+   "poids": 0,
+   "fragments": 1000,
+   "cout": 1000000,
+   "notes": [
+    88,
+    99
+   ]
+  },
   {
    "id": "icone",
    "nom": "Icône",
@@ -113,6 +130,14 @@
     "#0093CC",
     "#F596C8",
     "#FFFFFF"
+   ]
+  },
+  "amis": {
+   "nom": "La bande",
+   "couleurs": [
+    "#E10600",
+    "#FFD200",
+    "#111111"
    ]
   },
   "arrows": {
@@ -21959,6 +21984,154 @@
     "rarete": "commune",
     "note": 50,
     "fait": "1 départ, meilleur résultat : 13e"
+   }
+  },
+  {
+   "id": "joueur1--amis",
+   "rarete": "mythique",
+   "prenom": "Valentin",
+   "nom": "Deluxiio",
+   "pilote": "joueur1",
+   "nationalite": "F1",
+   "pays": "La bande",
+   "ecurie": "amis",
+   "saisons": "Saison 2025",
+   "debut": 2025,
+   "fin": 2025,
+   "fait": "Pilote de la bande : la saison commence.",
+   "stats": {
+    "titres": 0,
+    "victoires": 0,
+    "podiums": 0,
+    "poles": 0,
+    "departs": 0,
+    "points": 0,
+    "meilleur": null
+   },
+   "note": 92,
+   "numero": 711,
+   "ami": "joueur1",
+   "numeroCourse": 3,
+   "couleurs": [
+    "#2A78D6",
+    "#FFFFFF",
+    "#0A1E3F"
+   ],
+   "auto": {
+    "rarete": "mythique",
+    "note": 92,
+    "fait": "Pilote de la bande : la saison commence."
+   }
+  },
+  {
+   "id": "joueur2--amis",
+   "rarete": "mythique",
+   "prenom": "Christopher",
+   "nom": "FlameC",
+   "pilote": "joueur2",
+   "nationalite": "F1",
+   "pays": "La bande",
+   "ecurie": "amis",
+   "saisons": "Saison 2025",
+   "debut": 2025,
+   "fin": 2025,
+   "fait": "Pilote de la bande : la saison commence.",
+   "stats": {
+    "titres": 0,
+    "victoires": 0,
+    "podiums": 0,
+    "poles": 0,
+    "departs": 0,
+    "points": 0,
+    "meilleur": null
+   },
+   "note": 92,
+   "numero": 712,
+   "ami": "joueur2",
+   "numeroCourse": 64,
+   "couleurs": [
+    "#EB6834",
+    "#FFD9A0",
+    "#2A0F05"
+   ],
+   "auto": {
+    "rarete": "mythique",
+    "note": 92,
+    "fait": "Pilote de la bande : la saison commence."
+   }
+  },
+  {
+   "id": "joueur3--amis",
+   "rarete": "mythique",
+   "prenom": "Joris",
+   "nom": "Ptijo",
+   "pilote": "joueur3",
+   "nationalite": "F1",
+   "pays": "La bande",
+   "ecurie": "amis",
+   "saisons": "Saison 2025",
+   "debut": 2025,
+   "fin": 2025,
+   "fait": "Pilote de la bande : la saison commence.",
+   "stats": {
+    "titres": 0,
+    "victoires": 0,
+    "podiums": 0,
+    "poles": 0,
+    "departs": 0,
+    "points": 0,
+    "meilleur": null
+   },
+   "note": 92,
+   "numero": 713,
+   "ami": "joueur3",
+   "numeroCourse": 69,
+   "couleurs": [
+    "#1BAF7A",
+    "#D9FFF0",
+    "#052A1D"
+   ],
+   "auto": {
+    "rarete": "mythique",
+    "note": 92,
+    "fait": "Pilote de la bande : la saison commence."
+   }
+  },
+  {
+   "id": "joueur4--amis",
+   "rarete": "mythique",
+   "prenom": "Mathieu",
+   "nom": "Le Crack",
+   "pilote": "joueur4",
+   "nationalite": "F1",
+   "pays": "La bande",
+   "ecurie": "amis",
+   "saisons": "Saison 2025",
+   "debut": 2025,
+   "fin": 2025,
+   "fait": "Pilote de la bande : la saison commence.",
+   "stats": {
+    "titres": 0,
+    "victoires": 0,
+    "podiums": 0,
+    "poles": 0,
+    "departs": 0,
+    "points": 0,
+    "meilleur": null
+   },
+   "note": 92,
+   "numero": 714,
+   "ami": "joueur4",
+   "numeroCourse": 34,
+   "couleurs": [
+    "#EDA100",
+    "#FFF1C2",
+    "#2A1D00"
+   ],
+   "auto": {
+    "rarete": "mythique",
+    "note": 92,
+    "fait": "Pilote de la bande : la saison commence."
    }
   }
  ],

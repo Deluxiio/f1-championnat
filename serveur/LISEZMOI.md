@@ -37,3 +37,7 @@ Un joueur qui a oublié son mot de passe peut être réinitialisé avec la clé 
 Si `api.php` change, renvoie simplement ce fichier : les collections (`donnees/etat.json`) ne sont pas touchées.
 
 Les boosters offerts à l'heure demandent la dernière version de `api.php`. Pour vérifier qu'elle est en place, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : chaque joueur doit avoir un bloc `"offerts"` (sauf si tu as désactivé les boosters offerts dans l'admin : 0 minute). Tant que l'ancienne version est en ligne, la page n'affiche simplement rien à ce sujet.
+
+Les cartes Mythiques et les pronostics demandent eux aussi la dernière version de `api.php`. Pour vérifier, ouvre `https://TON-DOMAINE/f1-cartes/api.php?action=etat` : la réponse doit contenir un bloc `"pronos"` et, pour chaque joueur, `"boostersPronos"`. Tant que l'ancienne version est en ligne, l'onglet *Pronostics* reste caché.
+
+Pour que les pronostics se ferment tout seuls au départ d'une course, l'enregistreur (sur ton PC) appelle ce serveur avec la clé `CLE_ADMIN` de `config.php` : le fichier `serveur/config.php` doit donc aussi être présent sur le PC de l'enregistreur, avec la même clé que sur Hostinger. Sinon, l'enregistreur le dit dans son journal et tu fermes les pronostics à la main dans l'admin (*Cartes → Pronostics du GP*).

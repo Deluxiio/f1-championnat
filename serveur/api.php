@@ -183,8 +183,8 @@ function authentifier(array &$etat, string $jeton): string
     erreur(401, 'Session expirée : reconnecte-toi.');
 }
 
-/** Boosters gagnés = points / pointsParBooster (arrondi en dessous) + boosters bonus donnés dans l'admin. */
-function boostersGagnes(array $saison, array $catalogue, string $id): int
+/** Boosters gagnés = points / pointsParBooster (arrondi en dessous) + boosters bonus donnés dans l'admin + boosters gagnés aux pronostics. */
+function boostersGagnes(array $saison, array $catalogue, string $id, int $pronos = 0): int
 {
     $ratio = max(1, (float) ($catalogue['pointsParBooster'] ?? 1));
     $bonus = 0;
@@ -193,7 +193,7 @@ function boostersGagnes(array $saison, array $catalogue, string $id): int
             $bonus = (int) ($j['boostersBonus'] ?? 0);
         }
     }
-    return max(0, (int) floor((pointsJoueurs($saison)[$id] ?? 0) / $ratio) + $bonus);
+    return max(0, (int) floor((pointsJoueurs($saison)[$id] ?? 0) / $ratio) + $bonus + max(0, $pronos));
 }
 
 /** Réglages des boosters offerts (catalogue.json) : [intervalle en secondes, stock maximum]. Intervalle 0 = désactivé. */
@@ -275,6 +275,286 @@ function etatModifiable(): bool
     return is_file(FICHIER_ETAT) ? is_writable(FICHIER_ETAT) : is_writable(dirname(FICHIER_ETAT));
 }
 
+/**
+ * Réglages des pronostics (catalogue.json) : [boosters de base « meilleur d'entre nous », boosters de base « ordre d'arrivée »,
+ * gain maximum par pari, lissage des cotes]. Le gain d'un pari juste = boosters de base × cote. 0 aux deux premiers = désactivé.
+ */
+function reglagesPronos(array $catalogue): array
+{
+    $nombre = fn (string $cle, float $defaut, float $min, float $max): float =>
+        is_numeric($catalogue[$cle] ?? null) ? max($min, min($max, (float) $catalogue[$cle])) : $defaut;
+    return [
+        (int) $nombre('pronosGainMeilleur', 2, 0, 1000),
+        (int) $nombre('pronosGainOrdre', 4, 0, 1000),
+        (int) $nombre('pronosGainMax', 60, 1, 100000),
+        $nombre('pronosLissage', 15, 1, 100000),
+    ];
+}
+
+function pronosActifs(array $catalogue): bool
+{
+    [$meilleur, $ordre] = reglagesPronos($catalogue);
+    return $meilleur > 0 || $ordre > 0;
+}
+
+/** Forces des joueurs pour les cotes : points au championnat + lissage (avec peu de GP joués, les cotes restent proches). */
+function forcesPronos(array $saison, float $lissage): array
+{
+    $points = pointsJoueurs($saison);
+    $forces = [];
+    foreach ($saison['joueurs'] as $j) {
+        $forces[$j['id']] = max(0.0, (float) ($points[$j['id']] ?? 0)) + $lissage;
+    }
+    return $forces;
+}
+
+/** Arrondi au dixième, moitiés vers le haut. Calcul identique dans cartes.js : on évite round(), qui n'arrondit pas pareil d'un langage à l'autre. */
+function arrondiDixieme(float $x): float
+{
+    return floor($x * 10 + 0.5 + 1e-9) / 10;
+}
+
+/** Cote d'un événement de probabilité $p : 1/p arrondi au dixième, entre 1,1 et le plafond (gain maximum ÷ boosters de base). */
+function cotePronos(float $p, int $base, int $max): float
+{
+    $plafond = $base > 0 ? max(1.1, $max / $base) : 1.1;
+    return arrondiDixieme(min($plafond, max(1.1, $p > 0 ? 1 / $p : $plafond)));
+}
+
+/** Cote du « meilleur d'entre nous » pour chaque joueur. */
+function cotesMeilleur(array $forces, int $base, int $max): array
+{
+    $total = array_sum($forces);
+    $cotes = [];
+    foreach ($forces as $id => $force) {
+        $cotes[$id] = cotePronos($force / $total, $base, $max);
+    }
+    return $cotes;
+}
+
+/** Cote d'un ordre d'arrivée (modèle de Plackett-Luce : chaque place est attribuée au hasard selon les forces restantes). */
+function coteOrdre(array $forces, array $ordre, int $base, int $max): float
+{
+    $reste = 0.0;
+    foreach ($ordre as $id) {
+        $reste += $forces[$id];
+    }
+    $p = 1.0;
+    foreach ($ordre as $id) {
+        $p *= $forces[$id] / $reste;
+        $reste -= $forces[$id];
+    }
+    return cotePronos($p, $base, $max);
+}
+
+/** Boosters gagnés par un pari juste. */
+function gainPronos(int $base, float $cote, int $max): int
+{
+    return $base > 0 ? min($max, max(1, (int) floor($base * $cote + 0.5 + 1e-9))) : 0;
+}
+
+function courseDeManche(array $saison, int $manche): ?array
+{
+    foreach ($saison['courses'] as $c) {
+        if (isset($c['manche']) && (int) $c['manche'] === $manche) {
+            return $c;
+        }
+    }
+    return null;
+}
+
+/** Prochain GP du calendrier à pronostiquer : le premier sans course enregistrée et dont les pronostics ne sont pas déjà réglés. */
+function prochaineManchePronos(array $saison, array $manches): ?array
+{
+    $courues = [];
+    foreach ($saison['courses'] as $c) {
+        if (isset($c['manche'])) {
+            $courues[(int) $c['manche']] = true;
+        }
+    }
+    $calendrier = $saison['calendrier'];
+    usort($calendrier, fn ($a, $b) => $a['manche'] <=> $b['manche']);
+    foreach ($calendrier as $gp) {
+        $n = (int) $gp['manche'];
+        if (!isset($courues[$n]) && ($manches[$n]['statut'] ?? '') !== 'regle') {
+            return $gp;
+        }
+    }
+    return null;
+}
+
+/**
+ * Règle les pronostics d'une manche d'après la course enregistrée et crédite les gains. À n'appeler qu'une fois par manche
+ * (statut « regle » ensuite), sous verrou : le crédit ne peut donc pas être fait deux fois.
+ */
+function reglerManchePronos(array &$etat, array &$m, array $course, array $saison, int $maintenant): void
+{
+    $place = [];  // id => place d'arrivée, pour les joueurs du pronostic qui ont couru
+    foreach ($course['resultats'] as $r) {
+        $id = substr((string) ($r['pilote'] ?? ''), 2);
+        if (str_starts_with((string) ($r['pilote'] ?? ''), 'j:') && isset($m['forces'][$id]) && ($r['statut'] ?? '') !== 'absent' && (int) ($r['pos'] ?? 0) >= 1) {
+            $place[$id] = (int) $r['pos'];
+        }
+    }
+    asort($place);
+    $classement = array_keys($place);
+    $absents = array_values(array_diff(array_keys($m['forces']), $classement));
+    $annulee = count($classement) < 2;
+    $bases = $m['bases'];
+    $gains = [];
+    if (!$annulee) {
+        foreach ($m['paris'] as $id => $pari) {
+            $g = ['meilleur' => 0, 'ordre' => 0];
+            if (($pari['meilleur'] ?? null) === $classement[0]) {
+                $g['meilleur'] = gainPronos($bases['meilleur'], (float) ($m['cotes']['meilleur'][$classement[0]] ?? 1.1), $bases['max']);
+            }
+            if (isset($pari['ordre']) && $bases['ordre'] > 0) {
+                // un joueur absent est simplement retiré de l'ordre prédit
+                $filtre = array_values(array_filter($pari['ordre'], fn ($x) => in_array($x, $classement, true)));
+                if ($filtre === $classement) {
+                    $g['ordre'] = gainPronos($bases['ordre'], coteOrdre($m['forces'], $filtre, $bases['ordre'], $bases['max']), $bases['max']);
+                }
+            }
+            $gains[$id] = $g;
+            $total = $g['meilleur'] + $g['ordre'];
+            if ($total > 0) {
+                $j = &$etat['joueurs'][$id];
+                $j ??= joueurVierge();
+                $j['boostersPronos'] = (int) ($j['boostersPronos'] ?? 0) + $total;
+                unset($j);
+            }
+        }
+    }
+    $m['resultat'] = ['course' => (string) ($course['id'] ?? ''), 'classement' => $classement, 'absents' => $absents, 'annulee' => $annulee];
+    $m['gains'] = $gains;
+    $m['statut'] = 'regle';
+    $m['regleLe'] = $maintenant;
+}
+
+/**
+ * Règle les manches dont la course est enregistrée, puis ouvre les pronostics du prochain GP (cotes figées à l'ouverture).
+ * À appeler sous verrou (modifierEtat) ; sans effet si rien n'est à faire. Renvoie true si l'état a changé.
+ */
+function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $maintenant): bool
+{
+    $change = false;
+    $etat['pronos']['manches'] ??= [];
+    $manches = &$etat['pronos']['manches'];
+    foreach ($manches as $n => &$m) {
+        if (($m['statut'] ?? '') === 'regle') {
+            continue;
+        }
+        $course = courseDeManche($saison, (int) $n);
+        if ($course !== null) {
+            reglerManchePronos($etat, $m, $course, $saison, $maintenant);
+            $change = true;
+        }
+    }
+    unset($m);
+    if (pronosActifs($catalogue)) {
+        $gp = prochaineManchePronos($saison, $manches);
+        if ($gp !== null && !isset($manches[(int) $gp['manche']])) {
+            [$base, $baseOrdre, $max, $lissage] = reglagesPronos($catalogue);
+            $forces = forcesPronos($saison, $lissage);
+            $manches[(int) $gp['manche']] = [
+                'statut' => isset($etat['pronos']['fermesAvance'][(int) $gp['manche']]) ? 'ferme' : 'ouvert',
+                'gp' => (string) ($gp['gp'] ?? ''), 'ouvertLe' => $maintenant,
+                'bases' => ['meilleur' => $base, 'ordre' => $baseOrdre, 'max' => $max],
+                'forces' => $forces, 'cotes' => ['meilleur' => cotesMeilleur($forces, $base, $max)], 'paris' => [],
+            ];
+            $change = true;
+        }
+    }
+    unset($manches);
+    return $change;
+}
+
+/** Le GP dont les pronostics sont en cours (ouverts ou fermés, pas encore réglés) : [numéro, données] ou null. */
+function mancheCourantePronos(array $etat): ?array
+{
+    foreach (($etat['pronos']['manches'] ?? []) as $n => $m) {
+        if (($m['statut'] ?? '') !== 'regle') {
+            return [(int) $n, $m];
+        }
+    }
+    return null;
+}
+
+/**
+ * Un pari enregistré avec ses cotes et les boosters en jeu, tels que le règlement les calculerait si tous les joueurs courent.
+ * Les cotes sont celles figées à l'ouverture du GP.
+ */
+function detailPari(array $m, array $pari): array
+{
+    $b = $m['bases'];
+    $meilleur = $pari['meilleur'] ?? null;
+    $ordre = $pari['ordre'] ?? null;
+    $coteMeilleur = $meilleur !== null ? (float) ($m['cotes']['meilleur'][$meilleur] ?? 1.1) : null;
+    $coteOrdre = $ordre !== null ? coteOrdre($m['forces'], $ordre, $b['ordre'], $b['max']) : null;
+    return [
+        'meilleur' => $meilleur, 'ordre' => $ordre,
+        'cotes' => ['meilleur' => $coteMeilleur, 'ordre' => $coteOrdre],
+        'gains' => [
+            'meilleur' => $coteMeilleur !== null ? gainPronos($b['meilleur'], $coteMeilleur, $b['max']) : 0,
+            'ordre' => $coteOrdre !== null ? gainPronos($b['ordre'], $coteOrdre, $b['max']) : 0,
+        ],
+    ];
+}
+
+/** Ce que l'API montre des pronostics : le GP en cours (paris des autres cachés tant que c'est ouvert), les derniers résultats, le classement. */
+function vuePronos(array $etat, array $saison, array $catalogue): array
+{
+    $manches = $etat['pronos']['manches'] ?? [];
+    $courante = mancheCourantePronos($etat);
+    $historique = [];
+    $classement = [];
+    foreach ($saison['joueurs'] as $j) {
+        $classement[$j['id']] = ['joueur' => $j['id'], 'boosters' => 0, 'bonsMeilleur' => 0, 'bonsOrdre' => 0, 'paris' => 0];
+    }
+    foreach ($manches as $n => $m) {
+        if (($m['statut'] ?? '') !== 'regle') {
+            continue;
+        }
+        $historique[] = ['manche' => (int) $n, 'gp' => (string) ($m['gp'] ?? ''), 'resultat' => $m['resultat'] ?? null,
+                         'gains' => $m['gains'] ?? [], 'paris' => array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris'] ?? [])];
+        if (!empty($m['resultat']['annulee'])) {
+            continue;  // GP annulé : ni paris comptés, ni gains
+        }
+        foreach (($m['paris'] ?? []) as $id => $pari) {
+            if (!isset($classement[$id])) {
+                continue;
+            }
+            $g = $m['gains'][$id] ?? ['meilleur' => 0, 'ordre' => 0];
+            $classement[$id]['paris']++;
+            $classement[$id]['boosters'] += $g['meilleur'] + $g['ordre'];
+            $classement[$id]['bonsMeilleur'] += $g['meilleur'] > 0 ? 1 : 0;
+            $classement[$id]['bonsOrdre'] += $g['ordre'] > 0 ? 1 : 0;
+        }
+    }
+    $actif = pronosActifs($catalogue);
+    usort($historique, fn ($a, $b) => $b['manche'] <=> $a['manche']);
+    $classement = array_values($classement);
+    usort($classement, fn ($a, $b) => [$b['boosters'], $b['bonsMeilleur'] + $b['bonsOrdre']] <=> [$a['boosters'], $a['bonsMeilleur'] + $a['bonsOrdre']]);
+    $vue = ['actif' => $actif, 'manche' => null, 'gp' => null, 'statut' => null, 'bases' => null, 'forces' => null, 'cotes' => null,
+            'aParie' => [], 'historique' => array_slice($historique, 0, 6), 'classement' => $classement];
+    if ($courante !== null) {
+        [$n, $m] = $courante;
+        $vue['manche'] = $n;
+        $vue['gp'] = $m['gp'] ?? '';
+        $vue['statut'] = $m['statut'];
+        $vue['bases'] = $m['bases'];
+        $vue['forces'] = $m['forces'];
+        $vue['cotes'] = $m['cotes'];
+        foreach ($saison['joueurs'] as $j) {
+            $vue['aParie'][$j['id']] = isset($m['paris'][$j['id']]);
+        }
+        if ($m['statut'] !== 'ouvert') {
+            $vue['paris'] = array_map(fn ($p) => array_intersect_key($p, ['meilleur' => 1, 'ordre' => 1]), $m['paris']);
+        }
+    }
+    return $vue;
+}
+
 function indexer(array $catalogue): array
 {
     $parRarete = [];
@@ -303,6 +583,10 @@ function tirer(array $catalogue, array $parRarete, bool $derniere): string
         }
     }
     $total = array_sum(array_column($candidates, 'poids'));
+    if ($total < 1) {  // réglage absurde (dernière carte « au minimum Mythique », qui n'a pas de poids) : la rareté la plus basse permise
+        $liste = $parRarete[end($candidates)['id']];
+        return $liste[random_int(0, count($liste) - 1)];
+    }
     $x = random_int(1, $total);
     foreach ($candidates as $r) {
         $x -= $r['poids'];
@@ -315,13 +599,37 @@ function tirer(array $catalogue, array $parRarete, bool $derniere): string
     return $liste[random_int(0, count($liste) - 1)];
 }
 
+/** Chance (de 0 à 1) qu'une carte tirée soit une Mythique, pour qu'un booster sur 100 en contienne une (réglage chanceMythiqueParBooster, en %). */
+function chanceMythiqueParCarte(array $catalogue): float
+{
+    $pourcent = is_numeric($catalogue['chanceMythiqueParBooster'] ?? null) ? (float) $catalogue['chanceMythiqueParBooster'] : 1.0;
+    $p = max(0.0, min(100.0, $pourcent)) / 100;
+    $cartes = max(1, (int) ($catalogue['cartesParBooster'] ?? 5));
+    return 1 - (1 - $p) ** (1 / $cartes);
+}
+
+/**
+ * Tirage ultra rare d'une carte Mythique (les cartes des potes) : null si le sort n'est pas tombé.
+ * Une Mythique que le joueur n'a pas encore passe avant un doublon.
+ */
+function tirerMythique(float $chance, array $parRarete, array $possedees): ?string
+{
+    $liste = $parRarete['mythique'] ?? [];
+    if ($chance <= 0 || !$liste || random_int(1, 1000000) > (int) round($chance * 1000000)) {
+        return null;
+    }
+    $nouvelles = array_values(array_filter($liste, fn ($id) => !isset($possedees[$id])));
+    $choix = $nouvelles ?: $liste;
+    return $choix[random_int(0, count($choix) - 1)];
+}
+
 function ajouterAuFil(array &$etat, string $joueur, string $carte, bool $fabriquee): void
 {
     array_unshift($etat['fil'], ['joueur' => $joueur, 'carte' => $carte, 'date' => date('c'), 'fabriquee' => $fabriquee]);
     $etat['fil'] = array_slice($etat['fil'], 0, TAILLE_FIL);
 }
 
-const RARETES_DU_FIL = ['icone', 'legendaire', 'epique'];
+const RARETES_DU_FIL = ['mythique', 'icone', 'legendaire', 'epique'];
 
 $action = $_GET['action'] ?? '';
 $methode = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -332,10 +640,14 @@ if ($action === 'etat' && $methode === 'GET') {
     $etat = lireEtat();
     $maintenant = time();
     [$intervalle, $maxOffert] = reglagesOfferts($catalogue);
-    if (reglagesOffertsAChanger($etat, $intervalle, $maxOffert) && etatModifiable()) {
-        // première fois, ou réglages changés dans l'admin : enregistré une seule fois (voir appliquerReglagesOfferts)
-        $etat = modifierEtat(function (array &$e) use ($saison, $intervalle, $maxOffert, $maintenant) {
+    $copie = $etat;  // essai à blanc : faut-il régler une course arrivée ou ouvrir le prochain GP aux pronostics ?
+    $pronosAFaire = synchroniserPronos($copie, $saison, $catalogue, $maintenant);
+    unset($copie);
+    if ((reglagesOffertsAChanger($etat, $intervalle, $maxOffert) || $pronosAFaire) && etatModifiable()) {
+        // première fois, ou réglages changés dans l'admin (voir appliquerReglagesOfferts), ou pronostics à régler / ouvrir
+        $etat = modifierEtat(function (array &$e) use ($saison, $catalogue, $intervalle, $maxOffert, $maintenant) {
             appliquerReglagesOfferts($e, $saison, $intervalle, $maxOffert, $maintenant);
+            synchroniserPronos($e, $saison, $catalogue, $maintenant);
             return $e;
         });
     }
@@ -344,11 +656,12 @@ if ($action === 'etat' && $methode === 'GET') {
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
-        $gagnes = boostersGagnes($saison, $catalogue, $j['id']);
+        $pronos = (int) ($e['boostersPronos'] ?? 0);
+        $gagnes = boostersGagnes($saison, $catalogue, $j['id'], $pronos);
         $offerts = vueOfferts($e, $maintenant, $intervalle, $maxOffert, $ancre);
         $joueur = [
             'id' => $j['id'], 'nom' => $j['nom'], 'compte' => $e['hash'] !== null, 'points' => $points[$j['id']],
-            'boostersGagnes' => $gagnes, 'boostersOuverts' => $e['ouverts'],
+            'boostersGagnes' => $gagnes, 'boostersPronos' => $pronos, 'boostersOuverts' => $e['ouverts'],
             'boostersDispo' => max(0, $gagnes - $e['ouverts']) + ($offerts['stock'] ?? 0), 'fragments' => $e['fragments'],
             'cartes' => array_keys($e['cartes']), 'nbCartes' => count($e['cartes']),
         ];
@@ -357,7 +670,8 @@ if ($action === 'etat' && $methode === 'GET') {
         }
         $joueurs[] = $joueur;
     }
-    repondre(['joueurs' => $joueurs, 'fil' => $etat['fil'], 'totalCartes' => count($catalogue['cartes'])]);
+    repondre(['joueurs' => $joueurs, 'fil' => $etat['fil'], 'totalCartes' => count($catalogue['cartes']),
+              'pronos' => vuePronos($etat, $saison, $catalogue)]);
 }
 
 if ($methode !== 'POST') {
@@ -409,15 +723,17 @@ if ($action === 'ouvrir') {
     $catalogue = catalogue();
     [$cartes, $parRarete, $raretes] = indexer($catalogue);
     [$intervalle, $maxOffert] = reglagesOfferts($catalogue);
+    $chanceMythique = chanceMythiqueParCarte($catalogue);
     $maintenant = time();
     $nombre = max(1, min(100, (int) ($entree['nombre'] ?? 1)));
-    $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre, $intervalle, $maxOffert, $maintenant) {
+    $resultat = modifierEtat(function (array &$etat) use ($entree, $saison, $catalogue, $cartes, $parRarete, $raretes, $nombre, $intervalle, $maxOffert, $maintenant, $chanceMythique) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
         appliquerReglagesOfferts($etat, $saison, $intervalle, $maxOffert, $maintenant);
+        synchroniserPronos($etat, $saison, $catalogue, $maintenant);  // les gains d'un GP tout juste réglé comptent tout de suite
         $ancre = (int) $etat['offertsDepuis'];
         $j = &$etat['joueurs'][$id];
         [$offerts, $depuis] = calculerOfferts($j['offerts'] ?? null, $maintenant, $intervalle, $maxOffert, $ancre);
-        $dispoPoints = max(0, boostersGagnes($saison, $catalogue, $id) - $j['ouverts']);
+        $dispoPoints = max(0, boostersGagnes($saison, $catalogue, $id, (int) ($j['boostersPronos'] ?? 0)) - $j['ouverts']);
         if ($dispoPoints + $offerts <= 0) {
             return ['aucun' => $intervalle > 0 ? max(0, $depuis + $intervalle - $maintenant) : null];
         }
@@ -426,7 +742,8 @@ if ($action === 'ouvrir') {
         for ($b = 0; $b < $aOuvrir; $b++) {
             $booster = [];
             for ($k = 0; $k < $catalogue['cartesParBooster']; $k++) {
-                $carte = tirer($catalogue, $parRarete, $k === $catalogue['cartesParBooster'] - 1);
+                $carte = tirerMythique($chanceMythique, $parRarete, $j['cartes'])
+                    ?? tirer($catalogue, $parRarete, $k === $catalogue['cartesParBooster'] - 1);
                 $rarete = $cartes[$carte]['rarete'];
                 if (isset($j['cartes'][$carte])) {
                     $gain = $raretes[$rarete]['fragments'];
@@ -451,7 +768,7 @@ if ($action === 'ouvrir') {
         }
         $j['offerts'] = ['stock' => $offerts, 'depuis' => $depuis];
         $reponse = ['boosters' => $boosters, 'fragments' => $j['fragments'], 'boostersOuverts' => $j['ouverts'],
-                    'boostersDispo' => max(0, boostersGagnes($saison, $catalogue, $id) - $j['ouverts']) + $offerts];
+                    'boostersDispo' => max(0, boostersGagnes($saison, $catalogue, $id, (int) ($j['boostersPronos'] ?? 0)) - $j['ouverts']) + $offerts];
         $vue = vueOfferts($j, $maintenant, $intervalle, $maxOffert, $ancre);
         if ($vue !== null) {
             $reponse['offerts'] = $vue;
@@ -474,6 +791,9 @@ if ($action === 'fabriquer') {
     if (!isset($cartes[$carte])) {
         erreur(404, 'Carte inconnue.');
     }
+    if ($cartes[$carte]['rarete'] === 'mythique') {
+        erreur(409, 'Les cartes Mythiques ne se fabriquent pas : elles se trouvent uniquement dans les boosters.');
+    }
     $cout = (int) ($cartes[$carte]['cout'] ?? $raretes[$cartes[$carte]['rarete']]['cout']);
     $resultat = modifierEtat(function (array &$etat) use ($entree, $carte, $cout, $cartes) {
         $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
@@ -495,6 +815,117 @@ if ($action === 'fabriquer') {
     if (is_string($resultat)) {
         erreur(409, $resultat);
     }
+    repondre($resultat);
+}
+
+if ($action === 'pronostiquer' || $action === 'monPronostic') {
+    $saison = saison();
+    $catalogue = catalogue();
+    $maintenant = time();
+    $resultat = modifierEtat(function (array &$etat) use ($action, $entree, $saison, $catalogue, $maintenant) {
+        $id = authentifier($etat, (string) ($entree['jeton'] ?? ''));
+        synchroniserPronos($etat, $saison, $catalogue, $maintenant);
+        $courante = mancheCourantePronos($etat);
+        if ($action === 'monPronostic') {
+            $pari = $courante !== null ? ($courante[1]['paris'][$id] ?? null) : null;
+            return ['manche' => $courante[0] ?? null, 'statut' => $courante[1]['statut'] ?? null,
+                    'pari' => $pari !== null ? detailPari($courante[1], $pari) : null];
+        }
+        if (!pronosActifs($catalogue)) {
+            return [409, 'Les pronostics ne sont pas activés.'];
+        }
+        if ($courante === null) {
+            return [409, 'Aucun GP à pronostiquer pour le moment.'];
+        }
+        [$n, $m] = $courante;
+        if ($m['statut'] !== 'ouvert') {
+            return [409, 'Les pronostics de ce GP sont fermés : la course a commencé.'];
+        }
+        $ids = array_keys($m['forces']);
+        $meilleur = $entree['meilleur'] ?? null;
+        $ordre = $entree['ordre'] ?? null;
+        if ($meilleur === null && $ordre === null) {
+            return [400, 'Choisis au moins un pronostic.'];
+        }
+        if ($meilleur !== null && ($m['bases']['meilleur'] <= 0 || !is_string($meilleur) || !in_array($meilleur, $ids, true))) {
+            return [400, "Pronostic « meilleur d'entre nous » invalide."];
+        }
+        if ($ordre !== null) {
+            $tri = is_array($ordre) && count($ordre) === count($ids) && array_is_list($ordre) && !array_filter($ordre, fn ($x) => !is_string($x)) ? $ordre : null;
+            if ($tri !== null) {
+                sort($tri);
+                $attendu = $ids;
+                sort($attendu);
+            }
+            if ($m['bases']['ordre'] <= 0 || $tri === null || $tri !== $attendu) {
+                return [400, "Pronostic « ordre d'arrivée » invalide : classe chacun des " . count($ids) . ' joueurs une seule fois.'];
+            }
+        }
+        $pari = ['meilleur' => $meilleur, 'ordre' => $ordre, 'le' => $maintenant];
+        $etat['pronos']['manches'][$n]['paris'][$id] = $pari;
+        return ['ok' => true, 'manche' => $n, 'statut' => 'ouvert', 'pari' => detailPari($m, $pari)];
+    });
+    if (isset($resultat[0]) && is_int($resultat[0])) {
+        erreur($resultat[0], $resultat[1]);
+    }
+    repondre($resultat);
+}
+
+if ($action === 'pronosFermer' || $action === 'pronosOuvrir' || $action === 'pronosAnnuler') {
+    // Appelées par l'enregistreur (fermeture au départ de la course) ou depuis l'admin ; idempotentes.
+    if (!hash_equals(CLE_ADMIN, (string) ($entree['cle'] ?? ''))) {
+        usleep(800000);
+        erreur(403, 'Clé administrateur incorrecte.');
+    }
+    $saison = saison();
+    $catalogue = catalogue();
+    $maintenant = time();
+    // L'enregistreur indique le GP qui démarre ; sans numéro (bouton de l'admin), c'est le GP en cours
+    $cible = $action === 'pronosFermer' && isset($entree['manche']) && is_numeric($entree['manche']) ? (int) $entree['manche'] : null;
+    $resultat = modifierEtat(function (array &$etat) use ($action, $saison, $catalogue, $maintenant, $cible) {
+        synchroniserPronos($etat, $saison, $catalogue, $maintenant);
+        if ($cible !== null) {
+            $m = $etat['pronos']['manches'][$cible] ?? null;
+            if ($m === null) {
+                // GP pas encore ouvert (le précédent n'est pas encore réglé) : il s'ouvrira déjà fermé
+                $gp = array_values(array_filter($saison['calendrier'], fn ($x) => (int) $x['manche'] === $cible))[0] ?? null;
+                if ($gp !== null && courseDeManche($saison, $cible) === null) {
+                    $etat['pronos']['fermesAvance'][$cible] = $maintenant;
+                    return ['ok' => true, 'manche' => $cible, 'gp' => (string) ($gp['gp'] ?? ''), 'statut' => 'ferme'];
+                }
+                return ['ok' => true, 'manche' => $cible, 'gp' => null, 'statut' => null];
+            }
+            if ($m['statut'] === 'ouvert') {
+                $etat['pronos']['manches'][$cible]['statut'] = 'ferme';
+                $etat['pronos']['manches'][$cible]['fermeLe'] = $maintenant;
+            }
+            return ['ok' => true, 'manche' => $cible, 'gp' => $m['gp'] ?? '', 'statut' => $etat['pronos']['manches'][$cible]['statut']];
+        }
+        $courante = mancheCourantePronos($etat);
+        if ($courante === null) {
+            return ['ok' => true, 'manche' => null, 'gp' => null, 'statut' => null];
+        }
+        [$n, $m] = $courante;
+        $statut = $m['statut'];
+        if ($action === 'pronosFermer' && $statut === 'ouvert') {
+            $statut = 'ferme';
+            $etat['pronos']['manches'][$n]['fermeLe'] = $maintenant;
+        } elseif ($action === 'pronosOuvrir' && $statut === 'ferme') {
+            $statut = 'ouvert';
+            unset($etat['pronos']['manches'][$n]['fermeLe']);
+        } elseif ($action === 'pronosAnnuler') {
+            // GP qui n'aura pas lieu : aucun gain, et les pronostics passent au GP suivant
+            $statut = 'regle';
+            $etat['pronos']['manches'][$n] += ['gains' => []];
+            $etat['pronos']['manches'][$n]['resultat'] = ['course' => '', 'classement' => [], 'absents' => array_keys($m['forces']), 'annulee' => true];
+            $etat['pronos']['manches'][$n]['regleLe'] = $maintenant;
+        }
+        $etat['pronos']['manches'][$n]['statut'] = $statut;
+        if ($action === 'pronosAnnuler') {
+            synchroniserPronos($etat, $saison, $catalogue, $maintenant);
+        }
+        return ['ok' => true, 'manche' => $n, 'gp' => $m['gp'] ?? '', 'statut' => $statut];
+    });
     repondre($resultat);
 }
 

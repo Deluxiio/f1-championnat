@@ -19,7 +19,9 @@ from datetime import datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 import telemetrie as tl
 
@@ -181,6 +183,7 @@ class Enregistreur:
                     info = s["session"]
                     self.log(f"Séance détectée : {tl.NOMS_SEANCES.get(info['type'], info['type'])} – "
                              f"{nom_circuit(info['circuit'])} ({'en ligne' if info['enLigne'] else 'hors ligne'})")
+                    self._signaler_depart(info)
             elif e["id"] == tl.PAQUET_PARTICIPANTS:
                 s["nbActifs"], s["participants"] = tl.participants(data, fmt)
             elif e["id"] == tl.PAQUET_TOURS:
@@ -214,11 +217,56 @@ class Enregistreur:
         course = self._construire_course(s, lignes, "telemetrie")
         self.saison["courses"].append(course)
         self.sauver()
+        self.fermer_pronostics(course.get("manche"), "fin de la course")  # au cas où le départ aurait été manqué
         vainqueur = course["resultats"][0]["nom"] if course["resultats"] else "?"
         self.log(f"Course enregistrée : {self._libelle(course)} – vainqueur {vainqueur}"
                  + (" (à vérifier)" if course["aVerifier"] else ""))
         if self.config.get("publicationAuto", True):
             self.demander_publication(f"Résultat : {self._libelle(course)}")
+
+    # --- Pronostics : fermeture au départ de la course -----------------------
+
+    def _signaler_depart(self, info):
+        """Une course (en ligne) démarre : les pronostics de ce GP se ferment, pour que personne ne parie en la voyant se jouer."""
+        if info["type"] not in tl.SEANCES_COURSE:
+            return
+        if self.config.get("seulementEnLigne", True) and not info["enLigne"]:
+            return
+        circuit = info.get("circuit")
+        self.fermer_pronostics(self._manche_pour(circuit) if circuit is not None else None, "départ de la course")  # hors calendrier : rien à fermer
+
+    def fermer_pronostics(self, manche, raison):
+        """Prévient le serveur des cartes, en arrière-plan : la télémétrie ne doit jamais attendre le réseau."""
+        if manche is None:
+            return
+        threading.Thread(target=self._appeler_fermeture, args=(manche, raison), daemon=True).start()
+
+    def _appeler_fermeture(self, manche, raison):
+        cfg = config_serveur_cartes()
+        if not cfg["api"] or not cfg["cleAdmin"]:
+            self.log_une_fois("pronos-config", "Pronostics : serveur des cartes pas configuré, ils ne se fermeront pas tout seuls (bouton dans l'admin)")
+            return
+        corps = {"cle": cfg["cleAdmin"], "manche": manche}
+        url = cfg["api"] + ("&" if "?" in cfg["api"] else "?") + "action=pronosFermer"
+        erreur = ""
+        for attente in (0, 3, 10):
+            time.sleep(attente)
+            try:
+                requete = Request(url, data=json.dumps(corps).encode("utf-8"), method="POST",
+                                  headers={"Content-Type": "text/plain;charset=UTF-8"})
+                with urlopen(requete, timeout=15) as r:
+                    reponse = json.load(r)
+                if reponse.get("statut") == "ferme":
+                    self.log(f"Pronostics fermés ({raison}) : GP n°{reponse.get('manche')} {reponse.get('gp') or ''}".rstrip())
+                return
+            except HTTPError as e:
+                if e.code in (403, 404):  # clé refusée ou ancienne version de api.php : réessayer ne change rien
+                    self.log(f"Pronostics : fermeture refusée par le serveur ({e.code}) — vérifie CLE_ADMIN et la version de api.php")
+                    return
+                erreur = f"erreur {e.code}"
+            except (OSError, ValueError) as e:
+                erreur = str(e)
+        self.log(f"Pronostics : impossible de les fermer ({erreur}) — ferme-les à la main dans l'admin")
 
     # --- Construction des courses ----------------------------------------
 

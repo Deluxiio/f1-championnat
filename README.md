@@ -52,9 +52,11 @@ Selon les options en ligne du jeu, un joueur peut apparaître sous un nom géné
 
 La page **Cartes** (`docs/cartes/`) est un jeu de collection : 1 point au championnat = 1 booster de 5 cartes.
 
-- **La collection** compte environ 710 cartes, une par couple pilote × écurie depuis 1980.
+- **La collection** compte environ 710 cartes de vrais pilotes, une par couple pilote × écurie depuis 1980, plus 4 cartes Mythiques : les vôtres.
 - **La rareté** dépend de ce que le pilote a fait dans cette écurie : Icône (3 titres ou plus), Légendaire (titre), Épique (victoire), Rare (podium), Peu commune (points) ou Commune.
+- **Les cartes Mythiques** sont les cartes des 4 potes (casque aux couleurs de chacun, numéro de course). C'est la rareté au-dessus de tout : on ne les trouve que dans les boosters, environ 1 booster sur 100 en contient une, et elles ne se fabriquent pas. Leurs chiffres (victoires, podiums, points, GP, note) suivent le championnat en direct. Tant qu'il manque une Mythique à un joueur, c'est une nouvelle qui sort en premier ; un doublon vaut 1000 fragments.
 - **Les doublons** sont recyclés en fragments, qui servent à fabriquer les cartes manquantes.
+- **Les pronostics** (onglet *Pronostics*) : avant chaque GP, chacun devine **le meilleur d'entre vous** et **l'ordre d'arrivée** de la bande, sans rien miser (on ne perd jamais rien). Un pari juste rapporte des boosters : boosters de base × cote, les cotes étant calculées à l'ouverture du GP d'après les points au championnat et figées jusqu'à la course. Le GP suivant du calendrier s'ouvre tout seul dès que la course précédente est enregistrée, les pronostics **se ferment au départ de la course** (l'enregistreur prévient le serveur, il lui faut `docs/cartes/config.js` et `serveur/config.php` sur le PC) et se règlent tout seuls après. Les paris restent secrets jusqu'à la fermeture. Un GP annulé ou fermé trop tôt se gère depuis l'admin (*Cartes → Pronostics du GP*).
 - **Les boosters offerts** : en plus de ceux gagnés avec les points, chaque joueur reçoit 1 booster par heure, même sans jouer. Ils s'accumulent dans un stock de 10 au maximum (quand le stock est plein, le compteur s'arrête jusqu'à la prochaine ouverture) et s'ouvrent avant les boosters gagnés avec les points. Le délai et le stock maximum se règlent dans l'admin (*Cartes → Économie*) ; 0 minute désactive le système.
 
 Fichiers :
@@ -64,7 +66,8 @@ Fichiers :
 - Tant que `docs/cartes/config.js` ne contient pas l'adresse du serveur, la page tourne en **mode démo** : rien n'y est conservé.
 
 Le bloc **Cartes** de l'admin locale (lien « Cartes ↓ » en haut) permet de régler :
-- l'économie : points pour 1 booster, cartes par booster, chances de chaque rareté, valeur des doublons et prix de fabrication ;
+- l'économie : points pour 1 booster, cartes par booster, chances de chaque rareté (dont la chance de Mythique par booster), valeur des doublons et prix de fabrication ;
+- les pronostics : boosters de base de chaque pari, gain maximum, lissage des cotes (0 aux deux paris = désactivés), et le GP en cours (fermer, rouvrir, annuler) ;
 - des boosters bonus (ou retirés) par joueur ;
 - chaque carte du catalogue : rareté, note, prix propre et phrase ;
 - les comptes des joueurs, avec la réinitialisation d'un mot de passe oublié.

@@ -8,6 +8,7 @@ Les réponses sont mises en cache dans outils/cache/ : relancer le script ne ref
 """
 import json
 import math
+import re
 import sys
 import time
 import urllib.request
@@ -18,6 +19,7 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / "cache"
 SORTIE = RACINE / "docs" / "cartes" / "catalogue.json"
+SAISON = RACINE / "docs" / "data" / "saison.json"  # les joueurs du championnat, pour leurs cartes Mythiques
 PHOTOS = Path(__file__).resolve().parent / "photos.json"  # produit par outils/photos.py
 API = "https://api.jolpi.ca/ergast/f1"
 PREMIERE_SAISON_CARTES = 1980
@@ -27,7 +29,10 @@ BAREME_ACTUEL = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 
 # Ordre du plus rare au plus courant. poids = chances de tirage, fragments = valeur d'un doublon,
 # cout = fragments pour fabriquer la carte. Lus aussi par le serveur et la page.
+# Mythique = les cartes des joueurs du championnat : poids 0 (jamais tirée avec les poids, elle a son propre tirage réglé par
+# chanceMythiqueParBooster) et coût énorme (elle ne se fabrique pas, même avec une ancienne version du serveur).
 RARETES = [
+    {"id": "mythique", "nom": "Mythique", "regle": "Carte d'un des potes du championnat (boosters uniquement)", "poids": 0, "fragments": 1000, "cout": 1000000, "notes": [88, 99]},
     {"id": "icone", "nom": "Icône", "regle": "Au moins 3 titres avec cette écurie", "poids": 1, "fragments": 400, "cout": 3200, "notes": [96, 99]},
     {"id": "legendaire", "nom": "Légendaire", "regle": "Champion du monde avec cette écurie", "poids": 3, "fragments": 100, "cout": 800, "notes": [90, 95]},
     {"id": "epique", "nom": "Épique", "regle": "Au moins une victoire avec cette écurie", "poids": 7, "fragments": 20, "cout": 160, "notes": [81, 89]},
@@ -76,6 +81,7 @@ COULEURS = {
     "simtek": ["#6A0DAD", "#111111", "#FFFFFF"], "spirit": ["#FFFFFF", "#E10600", "#111111"],
     "theodore": ["#E10600", "#FFFFFF", "#111111"], "toleman": ["#FFFFFF", "#1F3F8F", "#E10600"],
     "zakspeed": ["#FFFFFF", "#E10600", "#111111"],
+    "amis": ["#E10600", "#FFD200", "#111111"],
 }
 
 NATIONALITES = {
@@ -94,6 +100,44 @@ NATIONALITES = {
 }
 
 STATUTS_NON_PARTANT = ("qualify", "withdrew", "did not start", "excluded")
+
+# Couleurs des cartes des potes = celles des joueurs sur le site (--j1 à --j8 de docs/style.css) : [principale, secondaire, accent]
+COULEURS_AMIS = [
+    ["#2A78D6", "#FFFFFF", "#0A1E3F"], ["#EB6834", "#FFD9A0", "#2A0F05"], ["#1BAF7A", "#D9FFF0", "#052A1D"],
+    ["#EDA100", "#FFF1C2", "#2A1D00"], ["#E87BA4", "#FFE0EC", "#3A1022"], ["#2FA02F", "#DFFFDF", "#082808"],
+    ["#6250D6", "#E4E0FF", "#1A1240"], ["#E34948", "#FFE0E0", "#3A0E0E"],
+]
+FAIT_AMI = "Pilote de la bande : la saison commence."
+
+
+def cartes_amis(saison, premier_numero):
+    """Une carte Mythique par joueur du championnat (docs/data/saison.json).
+
+    La page recalcule la note, les stats et la phrase de ces cartes à partir des résultats : celles d'ici sont les valeurs
+    de départ (avant le premier GP)."""
+    numeros = defaultdict(lambda: defaultdict(int))
+    for course in saison.get("courses", []):
+        for r in course.get("resultats", []):
+            if str(r.get("pilote", "")).startswith("j:") and r.get("numero") is not None:
+                numeros[r["pilote"][2:]][r["numero"]] += 1
+    annee = re.search(r"\d{4}", str(saison.get("saison", "")))
+    annee = int(annee.group()) if annee else date.today().year
+    cartes = []
+    for i, j in enumerate(saison.get("joueurs", [])):
+        alias = j.get("alias", [])
+        pseudo = next((a for a in alias if not a.startswith("#")), j["nom"])
+        numero_course = next((int(a[1:]) for a in alias if re.fullmatch(r"#\d+", a)), None)
+        if numero_course is None and numeros[j["id"]]:
+            numero_course = max(numeros[j["id"]].items(), key=lambda kv: kv[1])[0]  # le numéro le plus utilisé en course
+        cartes.append({
+            "id": f"{j['id']}--amis", "rarete": "mythique", "prenom": j["nom"], "nom": pseudo, "pilote": j["id"],
+            "nationalite": "F1", "pays": "La bande", "ecurie": "amis", "saisons": str(saison.get("saison", "")),
+            "debut": annee, "fin": annee, "fait": FAIT_AMI,
+            "stats": {"titres": 0, "victoires": 0, "podiums": 0, "poles": 0, "departs": 0, "points": 0, "meilleur": None},
+            "note": 92, "numero": premier_numero + i,
+            "ami": j["id"], "numeroCourse": numero_course, "couleurs": COULEURS_AMIS[i % len(COULEURS_AMIS)],
+        })
+    return cartes
 
 
 def appel(chemin):
@@ -264,10 +308,16 @@ def main():
     if natio_inconnues:
         print("Nationalités sans code :", natio_inconnues, file=sys.stderr)
 
+    # Les cartes Mythiques des joueurs du championnat : numérotées à la suite des cartes de pilotes
+    saison = json.loads(SAISON.read_text(encoding="utf-8")) if SAISON.exists() else {"joueurs": [], "courses": []}
+    cartes += cartes_amis(saison, len(cartes) + 1)
+    ecuries["amis"] = "La bande"
+
     # Les réglages faits dans l'admin (économie, raretés, cartes modifiées) survivent à une régénération
     ancien = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
     reglages = {"pointsParBooster": 1, "cartesParBooster": 5, "derniereCarteMin": "peu_commune",
-                "minutesParBoosterOffert": 60, "stockMaxBoostersOfferts": 10}
+                "minutesParBoosterOffert": 60, "stockMaxBoostersOfferts": 10, "chanceMythiqueParBooster": 1,
+                "pronosGainMeilleur": 2, "pronosGainOrdre": 4, "pronosGainMax": 60, "pronosLissage": 15}
     reglages.update({k: ancien[k] for k in reglages if k in ancien})
     anciennes = {r["id"]: r for r in ancien.get("raretes", [])}
     raretes = [{**r, **{k: anciennes[r["id"]][k] for k in ("poids", "fragments", "cout") if k in anciennes.get(r["id"], {})}}
