@@ -23026,6 +23026,14 @@
    "source": "https://commons.wikimedia.org/wiki/File:Jones_alan.JPG",
    "optimisee": true
   },
+  "joueur2": {
+   "photo": "photos/joueur2.jpg",
+   "personnelle": true
+  },
+  "joueur4": {
+   "photo": "photos/joueur4.jpg",
+   "personnelle": true
+  },
   "jules_bianchi": {
    "photo": "photos/jules_bianchi.jpg",
    "auteur": "Henry Mineur",

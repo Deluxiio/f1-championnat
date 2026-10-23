@@ -4,6 +4,8 @@ Pour chaque pilote : image principale de sa page Wikipédia (lien fourni par l'A
 gardée uniquement si elle est hébergée sur Commons (licence libre), avec auteur et licence
 pour les crédits. Les vignettes vont dans docs/cartes/photos/, les crédits dans outils/photos.json.
 Les pilotes sans photo libre gardent leur casque dessiné.
+Les photos personnelles des potes (outils/photo_ami.py) ne sont pas touchées : elles restent dans le même
+dossier et sont déclarées dans outils/photos-amis.json.
 
     py outils/photos.py
 """
@@ -17,12 +19,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 RACINE = Path(__file__).resolve().parent.parent
 CATALOGUE = RACINE / "docs" / "cartes" / "catalogue.json"
 DOSSIER = RACINE / "docs" / "cartes" / "photos"
 CREDITS = Path(__file__).resolve().parent / "photos.json"
+AMIS = Path(__file__).resolve().parent / "photos-amis.json"  # photos personnelles des potes (outils/photo_ami.py)
 CACHE = Path(__file__).resolve().parent / "cache"
 AGENT = "F1ChampionnatEntreAmis/1.0 (https://github.com/Deluxiio/f1-championnat)"
 LARGEUR = 360
@@ -42,9 +45,12 @@ def requete(url, binaire=False):
     raise RuntimeError(url)
 
 
-def optimiser(octets):
-    """JPEG léger : 360 px de large maximum, qualité 80, sans métadonnées, transparence sur fond sombre."""
-    image = Image.open(io.BytesIO(octets))
+def optimiser(octets, largeur=LARGEUR, qualite=80, gamma=1.0):
+    """JPEG léger : `largeur` px maximum (360 pour les vignettes Commons), sans métadonnées, transparence sur fond sombre.
+
+    L'orientation EXIF est appliquée avant de la perdre : une photo de téléphone ne doit pas se retrouver couchée.
+    gamma < 1 éclaircit les tons sombres (une photo très sombre devient boueuse sous le filtre de la carte)."""
+    image = ImageOps.exif_transpose(Image.open(io.BytesIO(octets)))
     if image.mode in ("RGBA", "LA", "P"):
         image = image.convert("RGBA")
         fond = Image.new("RGB", image.size, (21, 21, 30))
@@ -52,10 +58,12 @@ def optimiser(octets):
         image = fond
     else:
         image = image.convert("RGB")
-    if image.width > LARGEUR:
-        image = image.resize((LARGEUR, round(image.height * LARGEUR / image.width)), Image.LANCZOS)
+    if gamma != 1.0:
+        image = image.point([round(255 * (i / 255) ** gamma) for i in range(256)] * 3)
+    if image.width > largeur:
+        image = image.resize((largeur, round(image.height * largeur / image.width)), Image.LANCZOS)
     sortie = io.BytesIO()
-    image.save(sortie, "JPEG", quality=80, optimize=True, progressive=True)
+    image.save(sortie, "JPEG", quality=qualite, optimize=True, progressive=True)
     return sortie.getvalue()
 
 
@@ -77,7 +85,8 @@ def liens_wikipedia():
 
 def main():
     catalogue = json.loads(CATALOGUE.read_text(encoding="utf-8"))
-    pilotes = sorted({c["pilote"] for c in catalogue["cartes"]})
+    pilotes = sorted({c["pilote"] for c in catalogue["cartes"] if not c.get("ami")})  # les potes n'ont pas de page Wikipédia
+    amis = json.loads(AMIS.read_text(encoding="utf-8")) if AMIS.exists() else {}
     liens = liens_wikipedia()
     anciens = json.loads(CREDITS.read_text(encoding="utf-8")) if CREDITS.exists() else {}
     DOSSIER.mkdir(parents=True, exist_ok=True)
@@ -139,8 +148,8 @@ def main():
             cible.write_bytes(optimiser(requete(info["vignette"], binaire=True)))
         credits[pid] = {"photo": f"photos/{cible.name}", "auteur": info["auteur"], "licence": info["licence"],
                         "lienLicence": info["lienLicence"], "source": info["source"], "optimisee": True}
-    for f in DOSSIER.iterdir():  # photos devenues inutiles (et anciens .png)
-        if f.stem not in credits or f.suffix != ".jpg":
+    for f in DOSSIER.iterdir():  # photos devenues inutiles (et anciens .png), sauf celles des potes
+        if (f.stem not in credits and f.stem not in amis) or f.suffix != ".jpg":
             f.unlink()
     CREDITS.write_text(json.dumps(credits, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     taille = sum(f.stat().st_size for f in DOSSIER.iterdir()) / 1e6

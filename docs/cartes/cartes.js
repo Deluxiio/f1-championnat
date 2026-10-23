@@ -646,9 +646,13 @@
     if (!url) return el('span', cls, texte);
     return el('a', cls, texte, { href: url, target: '_blank', rel: 'noopener noreferrer' });
   }
-  /* Ligne « Photo : auteur · licence · Wikimedia Commons » */
+  /* Ligne « Photo : auteur · licence · Wikimedia Commons » (ou « Photo personnelle » pour les potes) */
   function ligneCredit(p, cls) {
     const ligne = el('p', cls || 'credit');
+    if (p.personnelle) {
+      ligne.appendChild(el('span', null, 'Photo personnelle'));
+      return ligne;
+    }
     ligne.appendChild(el('span', null, 'Photo : '));
     ligne.appendChild(el('span', 'credit-auteur', tronquer(p.auteur || 'auteur inconnu', 60), { title: p.auteur || '' }));
     ligne.appendChild(el('span', null, ' · '));
@@ -2315,9 +2319,9 @@
   /* ====================================================================
      Crédits photos (repliables, construits à la première ouverture)
      ==================================================================== */
-  function nbPhotos() {
+  function nbPhotos(personnelles) {
     const pilotes = (etat.catalogue && etat.catalogue.pilotes) || {};
-    return Object.keys(pilotes).filter((id) => pilotes[id] && pilotes[id].photo).length;
+    return Object.keys(pilotes).filter((id) => pilotes[id] && pilotes[id].photo && (!personnelles || pilotes[id].personnelle)).length;
   }
   function construireCredits() {
     if (etat.creditsConstruits) return;
@@ -2333,11 +2337,15 @@
         const li = el('li');
         li.appendChild(el('b', null, nom));
         li.appendChild(el('span', null, ' — '));
-        li.appendChild(el('span', 'credit-auteur', tronquer(p.auteur || 'auteur inconnu', 90), { title: p.auteur || '' }));
-        li.appendChild(el('span', null, ' · '));
-        li.appendChild(lienExterne(p.licence || 'licence libre', p.lienLicence));
-        li.appendChild(el('span', null, ' · '));
-        li.appendChild(lienExterne('source', p.source));
+        if (p.personnelle) {
+          li.appendChild(el('span', null, 'photo personnelle'));
+        } else {
+          li.appendChild(el('span', 'credit-auteur', tronquer(p.auteur || 'auteur inconnu', 90), { title: p.auteur || '' }));
+          li.appendChild(el('span', null, ' · '));
+          li.appendChild(lienExterne(p.licence || 'licence libre', p.lienLicence));
+          li.appendChild(el('span', null, ' · '));
+          li.appendChild(lienExterne('source', p.source));
+        }
         liste.appendChild(li);
       });
   }
@@ -2353,8 +2361,12 @@
     const pied = $('pied');
     pied.textContent = '';
     const cat = etat.catalogue;
-    if (nbPhotos()) {
-      pied.appendChild(el('span', null, 'Photos : Wikimedia Commons, licences libres ('));
+    const nb = nbPhotos();
+    if (nb) {
+      const perso = nbPhotos(true);
+      pied.appendChild(el('span', null, (perso === 0 ? 'Photos : Wikimedia Commons, licences libres'
+        : perso === nb ? 'Photos personnelles des joueurs'
+          : 'Photos : Wikimedia Commons (licences libres) et photos personnelles des joueurs') + ' ('));
       const lien = el('a', null, 'voir les crédits', { href: '#credits' });
       lien.addEventListener('click', (e) => { e.preventDefault(); const d = $('credits'); d.open = true; d.scrollIntoView({ behavior: reduitMouvement ? 'auto' : 'smooth', block: 'start' }); });
       pied.appendChild(lien);

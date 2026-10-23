@@ -21,6 +21,8 @@ CACHE = Path(__file__).resolve().parent / "cache"
 SORTIE = RACINE / "docs" / "cartes" / "catalogue.json"
 SAISON = RACINE / "docs" / "data" / "saison.json"  # les joueurs du championnat, pour leurs cartes Mythiques
 PHOTOS = Path(__file__).resolve().parent / "photos.json"  # produit par outils/photos.py
+AMIS = Path(__file__).resolve().parent / "photos-amis.json"  # photos personnelles des potes, tenu par outils/photo_ami.py
+DOSSIER_PHOTOS = RACINE / "docs" / "cartes"  # les chemins « photos/xxx.jpg » des deux fichiers ci-dessus s'y rapportent
 API = "https://api.jolpi.ca/ergast/f1"
 PREMIERE_SAISON_CARTES = 1980
 PREMIERE_SAISON_STATS = 1970  # couvre les passages dans une écurie déjà commencés en 1980 (Laffite chez Ligier depuis 1976…)
@@ -138,6 +140,18 @@ def cartes_amis(saison, premier_numero):
             "ami": j["id"], "numeroCourse": numero_course, "couleurs": COULEURS_AMIS[i % len(COULEURS_AMIS)],
         })
     return cartes
+
+
+def photos_des_pilotes(ids):
+    """L'entrée « pilotes » du catalogue : les photos libres de photos.json, puis les photos personnelles des potes."""
+    photos = json.loads(PHOTOS.read_text(encoding="utf-8")) if PHOTOS.exists() else {}
+    amis = json.loads(AMIS.read_text(encoding="utf-8")) if AMIS.exists() else {}
+    for pid, p in list(amis.items()):
+        if not (DOSSIER_PHOTOS / p["photo"]).is_file():
+            print(f"Photo de {pid} introuvable ({p['photo']}) : ignorée", file=sys.stderr)
+            del amis[pid]
+    photos.update(amis)
+    return {pid: photos[pid] for pid in sorted(ids) if pid in photos}
 
 
 def appel(chemin):
@@ -338,9 +352,8 @@ def main():
                     for eid in sorted({c["ecurie"] for c in cartes})},
         "cartes": cartes,
     }
-    # Photos libres (Wikimedia Commons) et crédits, par pilote
-    photos = json.loads(PHOTOS.read_text(encoding="utf-8")) if PHOTOS.exists() else {}
-    catalogue["pilotes"] = {pid: photos[pid] for pid in sorted({c["pilote"] for c in cartes}) if pid in photos}
+    # Photos libres (Wikimedia Commons) et crédits, par pilote ; photos personnelles des potes
+    catalogue["pilotes"] = photos_des_pilotes({c["pilote"] for c in cartes})
     SORTIE.parent.mkdir(parents=True, exist_ok=True)
     SORTIE.write_text(json.dumps(catalogue, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     compte = {r["id"]: sum(c["rarete"] == r["id"] for c in cartes) for r in RARETES}

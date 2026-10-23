@@ -1,0 +1,10 @@
+{
+ "joueur2": {
+  "photo": "photos/joueur2.jpg",
+  "personnelle": true
+ },
+ "joueur4": {
+  "photo": "photos/joueur4.jpg",
+  "personnelle": true
+ }
+}
