@@ -600,7 +600,7 @@
   function appliquerCartesVivantes(saison) {
     if (!window.Champ || !etat.catalogue || !saison || !Array.isArray(saison.joueurs) || !Array.isArray(saison.courses)) return;
     let calcul;
-    try { calcul = window.Champ.calculer(saison); } catch (e) { return; }
+    try { calcul = window.Champ.calculer(saison, { avecPartis: true }); } catch (e) { return; }
     const ordinal = (n) => (n === 1 ? '1er' : `${n}e`);
     const [noteMin, noteMax] = rareteDe('mythique').notes || [88, 99];
     const maxPoints = Math.max(0, ...calcul.joueurs.map((p) => p.points));

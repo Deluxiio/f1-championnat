@@ -384,7 +384,7 @@
   }
 
   function courseManuelle() {
-    const calc = C.calculer(saison);
+    const calc = C.calculer(saison, { avecPartis: true });
     const m = calc.prochaine;
     const precedente = calc.courses[calc.courses.length - 1];
     const resultats = precedente
@@ -413,7 +413,7 @@
   function rendreReglages() {
     const zone = vider("reglages");
     const brouillon = copie(saison);
-    const calc = C.calculer(saison);
+    const calc = C.calculer(saison, { avecPartis: true });
     const aDesResultats = new Set(calc.classementPilotes.filter((p) => p.joueur).map((p) => p.id));
 
     zone.appendChild(h("div", { class: "champs" },

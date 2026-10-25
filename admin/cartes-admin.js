@@ -154,7 +154,7 @@
     const zone = vider("cartes-boosters");
     const saison = window.Admin.saison();
     if (!saison || !catalogue) return;
-    const calc = C.calculer(saison);
+    const calc = C.calculer(saison, { avecPartis: true });
     zone.appendChild(h("div", { class: "tableau-defilant" }, h("table", {},
       h("thead", {}, h("tr", {}, ["Joueur", "Points", "Boosters gagnés", "Bonus", "Total"].map((t) => h("th", {}, t)))),
       h("tbody", {}, calc.joueurs.map((p) => {

@@ -181,7 +181,7 @@
       : "Points cumulés après chaque GP";
     if (!n) { zone.appendChild(vide("Le graphique apparaîtra après le premier Grand Prix.")); return; }
 
-    const series = calc.joueurs.map((p) => ({
+    const series = calc.joueursActifs.map((p) => ({
       id: p.id, nom: p.nom, couleur: couleurJoueur(p.joueur),
       valeurs: calc.evolution.map((ev) => (modeRang ? ev.rang[p.id] : ev.points[p.id]) ?? (modeRang ? null : 0)),
     }));
@@ -400,7 +400,7 @@
       zone.appendChild(vide("Les stats apparaîtront après le premier Grand Prix."));
       return;
     }
-    const liste = etat.filtres.stats === "nous" ? calc.joueurs.slice().sort((a, b) => (a.rang || 99) - (b.rang || 99))
+    const liste = etat.filtres.stats === "nous" ? calc.joueursActifs.slice().sort((a, b) => (a.rang || 99) - (b.rang || 99))
       : calc.classementPilotes;
     const colonnes = [
       ["Courses", (st) => st.courses],
@@ -438,7 +438,8 @@
         const p = pilotes.get(premier.pilote);
         items.push(h("div", { class: "gp-ligne" }, "Vainqueur : ", h("strong", {}, p ? p.nom : premier.nom)));
       }
-      const nous = course.resultats.filter((r) => r.pilote.startsWith("j:") && r.statut === "fini").sort((a, b) => a.pos - b.pos)[0];
+      const partis = new Set(etat.saison.joueurs.filter((j) => j.parti).map((j) => `j:${j.id}`));
+      const nous = course.resultats.filter((r) => r.pilote.startsWith("j:") && !partis.has(r.pilote) && r.statut === "fini").sort((a, b) => a.pos - b.pos)[0];
       if (nous && nous.pos !== 1) {
         const p = pilotes.get(nous.pilote);
         items.push(h("div", { class: "gp-ligne" }, p && p.joueur ? h("span", { class: "pastille", style: { background: couleurJoueur(p.joueur) } }) : null,

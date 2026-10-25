@@ -79,7 +79,9 @@
     };
   }
 
-  function calculer(saison) {
+  // Les joueurs « partis » sont retirés des classements (leurs résultats restent dans les données) ; { avecPartis: true } les garde,
+  // pour l'admin et les cartes, qui ont besoin de leur historique complet.
+  function calculer(saison, options = {}) {
     const bareme = saison.bareme;
     const joueurs = new Map(saison.joueurs.map((j, i) => [`j:${j.id}`, { ...j, index: i }]));
     const courses = ordreCourses(saison).map((c, k) => ({
@@ -89,9 +91,11 @@
     const ecuries = new Map();
     const evolution = [];
 
+    const masque = (r) => !options.avecPartis && Boolean((joueurs.get(r.pilote) || {}).parti);
     for (const c of courses) {
-      const meilleur = Math.min(...c.resultats.map((r) => r.meilleurTour || Infinity));
+      const meilleur = Math.min(...c.resultats.filter((r) => !masque(r)).map((r) => r.meilleurTour || Infinity));
       for (const r of c.resultats) {
+        if (masque(r)) continue;
         let p = pilotes.get(r.pilote);
         if (!p) {
           const j = joueurs.get(r.pilote) || null;
