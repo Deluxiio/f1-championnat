@@ -2238,8 +2238,8 @@
     },
     {
      "pos": 20,
-     "pilote": "ia:255",
-     "nom": "Ptijo",
+     "pilote": "j:joueur3",
+     "nom": "Joris",
      "ecurie": 2,
      "numero": 69,
      "grille": 6,
