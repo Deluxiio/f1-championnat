@@ -297,7 +297,8 @@ class Enregistreur:
         if p is None:
             return {"pilote": f"voiture:{i}", "nom": f"Voiture {i + 1}", "ecurie": None, "numero": None}
         ident = {"ecurie": p["ecurie"], "numero": p["numero"]}
-        if p["ia"]:
+        # Un joueur qui quitte la partie est remplacé par une IA qui garde son pseudo (id pilote 255) : on le reconnaît quand même
+        if p["ia"] and p["piloteId"] != 255:
             return {"pilote": f"ia:{p['piloteId']}", "nom": joli_nom(p["nom"]), **ident}
         joueur = self._joueur_humain(s, i, p, ambigus)
         if joueur:
