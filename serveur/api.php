@@ -715,9 +715,29 @@ function retirerPartisPronos(array &$m, array $saison): bool
     return true;
 }
 
-function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $maintenant): bool
+/**
+ * Un joueur marqué `spectateur` dans saison.json (parti du championnat) devient un compte spectateur : même identifiant, même mot de
+ * passe, même collection et mêmes boosters déjà gagnés, mais plus de place parmi les pilotes. Idempotent.
+ */
+function convertirEnSpectateurs(array &$etat, array $saison, int $maintenant): bool
 {
     $change = false;
+    foreach ($saison['joueurs'] as $j) {
+        $id = (string) $j['id'];
+        if (empty($j['spectateur']) || !isset($etat['joueurs'][$id]) || estSpectateur($etat['joueurs'][$id])) {
+            continue;
+        }
+        $etat['joueurs'][$id]['role'] = 'spectateur';
+        $etat['joueurs'][$id]['nom'] = (string) $j['nom'];
+        $etat['joueurs'][$id]['cree'] = $maintenant;
+        $change = true;
+    }
+    return $change;
+}
+
+function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $maintenant): bool
+{
+    $change = convertirEnSpectateurs($etat, $saison, $maintenant);
     $etat['pronos']['manches'] ??= [];
     $manches = &$etat['pronos']['manches'];
     $enCours = false;  // un GP non réglé dont la course n'est pas encore enregistrée
@@ -979,6 +999,9 @@ if ($action === 'etat' && $methode === 'GET') {
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
+        if (estSpectateur($e)) {  // devenu spectateur : il est listé avec eux plus bas
+            continue;
+        }
         $vue = vueCompte($saison, $catalogue, $j['id'], $j['nom'], $e, $points[$j['id']], $maintenant, $intervalle, $maxOffert, $ancre);
         if (!empty($j['parti'])) {
             $vue['parti'] = true;

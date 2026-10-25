@@ -433,6 +433,9 @@
         h("label", { style: { flexDirection: "row", alignItems: "center", gap: "6px" }, title: "Garde ses points et ses résultats, mais il disparaît des cartes joueurs, des duels et des pronostics" },
           h("input", { type: "checkbox", checked: j.parti ? "" : null, onchange: (e) => { if (e.target.checked) j.parti = true; else delete j.parti; } }),
           "Parti du championnat"),
+        h("label", { style: { flexDirection: "row", alignItems: "center", gap: "6px" }, title: "Son compte de cartes devient un compte spectateur : collection, mot de passe et boosters déjà gagnés conservés, paris possibles, plus de points" },
+          h("input", { type: "checkbox", checked: j.spectateur ? "" : null, onchange: (e) => { if (e.target.checked) { j.spectateur = true; j.parti = true; } else delete j.spectateur; } }),
+          "Devient spectateur"),
         aDesResultats.has(`j:${j.id}`) ? null : h("button", { type: "button", class: "bouton danger",
           onclick: () => { brouillon.joueurs.splice(i, 1); sauver(brouillon, true, "Réglages"); } }, "Retirer"),
       ));

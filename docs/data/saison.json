@@ -37,7 +37,8 @@
     "Ptijo",
     "#69"
    ],
-   "parti": true
+   "parti": true,
+   "spectateur": true
   },
   {
    "id": "joueur4",

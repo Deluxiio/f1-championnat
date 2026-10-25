@@ -115,3 +115,6 @@ Corps : `{"cle": "<CLE_ADMIN de config.php>", "nom": "Joris"}`. `nom` est le pr�
 
 ### `POST api.php?action=supprimerSpectateur` — réservé à Valentin
 Corps : `{"cle": "<CLE_ADMIN de config.php>", "id": "spec3"}`. Supprime définitivement le compte d'un spectateur : collection, jetons, tirages du fil, paris et gains des pronostics. Jamais un pilote (404 « Spectateur inconnu »). Réponse : `{"ok": true, "nom": "Zoé Dupont"}`. Le pseudo redevient libre ; l'identifiant, lui, n'est pas réutilisé.
+
+## Joueur parti qui devient spectateur
+Un joueur de `saison.json` marqué `"parti": true` quitte le classement et les pronostics (ses résultats restent dans les données). S'il est aussi marqué `"spectateur": true`, le serveur convertit son compte au prochain appel : même identifiant, mot de passe, collection, fragments et boosters déjà gagnés avec ses points, mais il est listé parmi les spectateurs (`role: "spectateur"`), se connecte avec son prénom dans l'onglet Spectateur et peut parier comme eux. Ses points étant figés, il ne gagne plus de boosters que par les offerts à l'heure et les pronostics.
