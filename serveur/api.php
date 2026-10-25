@@ -679,6 +679,42 @@ function reglerManchePronos(array &$etat, array &$m, array $course, array $saiso
  * Une course « à vérifier » (joueur non reconnu…) n'est pas réglée : le classement serait faux et le crédit définitif.
  * Elle l'est dès que l'admin l'a corrigée (la saison est relue à chaque appel).
  */
+/**
+ * Retire d'un GP déjà ouvert les joueurs partis du championnat depuis son ouverture : ils quittent les forces, les cotes des
+ * autres sont recalculées, et leur nom disparaît des paris (un pari qui n'a plus rien à pronostiquer est supprimé).
+ */
+function retirerPartisPronos(array &$m, array $saison): bool
+{
+    $partis = [];
+    foreach ($saison['joueurs'] as $j) {
+        if (!empty($j['parti']) && isset($m['forces'][(string) $j['id']])) {
+            $partis[] = (string) $j['id'];
+        }
+    }
+    if (!$partis) {
+        return false;
+    }
+    foreach ($partis as $id) {
+        unset($m['forces'][$id]);
+    }
+    $m['cotes']['meilleur'] = cotesMeilleur($m['forces'], (int) $m['bases']['meilleur'], (int) $m['bases']['max']);
+    foreach (($m['paris'] ?? []) as $qui => $pari) {
+        $meilleur = $pari['meilleur'] ?? null;
+        $ordre = $pari['ordre'] ?? null;
+        $meilleur = in_array($meilleur, $partis, true) ? null : $meilleur;
+        $ordre = is_array($ordre) ? array_values(array_diff($ordre, $partis)) : null;
+        if ($ordre !== null && count($ordre) < 2) {
+            $ordre = null;
+        }
+        if ($meilleur === null && $ordre === null) {
+            unset($m['paris'][$qui]);
+        } else {
+            $m['paris'][$qui] = ['meilleur' => $meilleur, 'ordre' => $ordre] + $pari;
+        }
+    }
+    return true;
+}
+
 function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $maintenant): bool
 {
     $change = false;
@@ -692,6 +728,9 @@ function synchroniserPronos(array &$etat, array $saison, array $catalogue, int $
         $course = courseDeManche($saison, (int) $n);
         if ($course === null) {
             $enCours = true;
+            if (retirerPartisPronos($m, $saison)) {
+                $change = true;
+            }
         } elseif (empty($course['aVerifier'])) {
             reglerManchePronos($etat, $m, $course, $saison, $maintenant);
             $change = true;
