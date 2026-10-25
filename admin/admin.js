@@ -430,6 +430,9 @@
         h("label", {}, "Pseudos ou numéros en jeu (ex. FlameC, #44)",
           h("input", { class: "alias", value: (j.alias || []).join(", "),
             oninput: (e) => { j.alias = e.target.value.split(",").map((a) => a.trim()).filter(Boolean); } })),
+        h("label", { style: { flexDirection: "row", alignItems: "center", gap: "6px" }, title: "Garde ses points et ses résultats, mais il disparaît des cartes joueurs, des duels et des pronostics" },
+          h("input", { type: "checkbox", checked: j.parti ? "" : null, onchange: (e) => { if (e.target.checked) j.parti = true; else delete j.parti; } }),
+          "Parti du championnat"),
         aDesResultats.has(`j:${j.id}`) ? null : h("button", { type: "button", class: "bouton danger",
           onclick: () => { brouillon.joueurs.splice(i, 1); sauver(brouillon, true, "Réglages"); } }, "Retirer"),
       ));

@@ -63,7 +63,7 @@
 
     const cartes = vider("cartes");
     const leader = calc.classementPilotes[0];
-    const joueurs = [...calc.joueurs].sort((a, b) => b.points - a.points || (a.rang || 99) - (b.rang || 99));
+    const joueurs = [...calc.joueursActifs].sort((a, b) => b.points - a.points || (a.rang || 99) - (b.rang || 99));
     for (const p of joueurs) {
       const dernier = [...p.resultats].reverse().find(Boolean);
       const derniereCourse = dernier ? calc.courses[p.resultats.lastIndexOf(dernier)] : null;
@@ -348,7 +348,7 @@
     const { calc } = etat;
     const liste = vider("liste-duels");
     const matrice = vider("matrice-duels");
-    const joueurs = calc.joueurs;
+    const joueurs = calc.joueursActifs;
     if (!calc.courses.length) {
       liste.appendChild(vide("Les duels apparaîtront après le premier Grand Prix."));
       return;

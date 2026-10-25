@@ -542,6 +542,9 @@ function forcesPronos(array $saison, float $lissage): array
     $points = pointsJoueurs($saison);
     $forces = [];
     foreach ($saison['joueurs'] as $j) {
+        if (!empty($j['parti'])) {  // un joueur parti du championnat ne participe plus aux pronostics
+            continue;
+        }
         $forces[$j['id']] = max(0.0, (float) ($points[$j['id']] ?? 0)) + $lissage;
     }
     return $forces;
@@ -937,7 +940,11 @@ if ($action === 'etat' && $methode === 'GET') {
     $joueurs = [];
     foreach ($saison['joueurs'] as $j) {
         $e = $etat['joueurs'][$j['id']] ?? joueurVierge();
-        $joueurs[] = vueCompte($saison, $catalogue, $j['id'], $j['nom'], $e, $points[$j['id']], $maintenant, $intervalle, $maxOffert, $ancre);
+        $vue = vueCompte($saison, $catalogue, $j['id'], $j['nom'], $e, $points[$j['id']], $maintenant, $intervalle, $maxOffert, $ancre);
+        if (!empty($j['parti'])) {
+            $vue['parti'] = true;
+        }
+        $joueurs[] = $vue;
     }
     // Les spectateurs sont à part : « joueurs » ne contient que les pilotes du championnat (une page plus ancienne n'y voit rien de nouveau)
     $spectateurs = [];

@@ -187,7 +187,7 @@
 
     return {
       courses, classementPilotes, classementEcuries, evolution, duels,
-      joueurs: joueursCalcules, prochaine, nbManchesFaites: faites.size,
+      joueurs: joueursCalcules, joueursActifs: joueursCalcules.filter((p) => !p.joueur.parti), prochaine, nbManchesFaites: faites.size,
     };
   }
 

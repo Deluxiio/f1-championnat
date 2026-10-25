@@ -1829,6 +1829,7 @@
     if (etat.session && j.id === etat.session.joueur) nom.appendChild(el('span', 'moi', 'moi'));
     d.appendChild(nom);
     if (spectateur) d.appendChild(el('div', 'ligne-role', null)).appendChild(el('span', 'badge-role', 'Spectateur'));
+    else if (j.parti) d.appendChild(el('div', 'ligne-role', null)).appendChild(el('span', 'badge-role', 'Parti du championnat'));
     const pts = el('div', 'points', String(j.nbCartes));
     pts.appendChild(el('small', null, `/ ${total} cartes`));
     d.appendChild(pts);
