@@ -1,7 +1,329 @@
 /* ======================================================================
-   Écrans du classement : accueil, pilotes, constructeurs, évolution, duels, stats, courses.
-   S'appuie sur site.css (jetons, .bloc, .grille, .seg/.bascule, tableaux, cases .r…).
+   Écrans du classement : accueil (tableau de bord), pilotes, constructeurs, évolution, duels, stats, courses.
+   S'appuie sur site.css (jetons clair/sombre, .bloc, .btn, .puce, .seg/.bascule, tableaux, cases .r…).
+   Toutes les classes d'ici sont préfixées « cl- » : aucune ne peut entrer en collision avec cartes.css.
    ====================================================================== */
-.gros { margin-top: 10px; font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.gros small { margin-left: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--t3); }
-.pilote { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+
+/* --- Briques communes ------------------------------------------------------ */
+.cl-haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cl-note { font-size: 13px; font-weight: 600; color: var(--t2); }
+.cl-nm { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.cl-joueur .cl-nm { font-weight: 800; }
+.cl-eq { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); }
+.cl-eq i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.cl-gp-ligne { margin: 14px 0 0; color: var(--t2); }
+.cl-m-seul, .cl-sm { display: none; }
+
+/* Cases : légende */
+.cl-legende-cases { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13px; color: var(--t2); }
+.cl-l { display: inline-flex; align-items: center; gap: 6px; }
+.cl-legende-cases .r { min-width: 26px; height: 26px; font-size: 12px; }
+
+/* Barre de saison : une case par Grand Prix */
+.cl-saison { display: flex; gap: 3px; }
+.cl-saison i { flex: 1; height: 8px; border-radius: 3px; background: var(--bord); }
+.cl-saison i.f { background: var(--t1); }
+.cl-saison i.p { background: var(--rouge); }
+.cl-saison-lg { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--t3); }
+
+/* Tableaux du classement : boîte défilante, colonnes figées à gauche */
+.cl-defile { overflow-x: auto; }
+.cl-defile table { border-collapse: separate; border-spacing: 0; }
+.cl-defile th.cl-d, .cl-defile td.cl-d { text-align: right; }
+.cl-defile th.cl-c, .cl-defile td.cl-c { text-align: center; padding: 0 3px; }
+.cl-defile th.cl-c:last-child, .cl-defile td.cl-c:last-child { padding-right: 16px; }
+.cl-defile td { background: var(--ligne-fond, transparent); }
+.cl-defile td.cl-rg { width: 40px; color: var(--t2); font-weight: 600; }
+.cl-defile td.cl-pts { font-weight: 800; }
+.cl-defile td.cl-ecart { color: var(--t3); }
+.cl-defile td.cl-col-vp { color: var(--t2); }
+.cl-defile tr.cl-joueur { --ligne-fond: color-mix(in srgb, var(--c) 10%, var(--carte)); }
+.cl-defile tr.cl-equipe { --ligne-fond: var(--carte-2); }
+.cl-defile tr.cl-sep td { height: 34px; padding: 0; text-align: center; font-size: 13px; color: var(--t3); background: var(--carte-2); }
+.cl-zero { color: var(--t3); }
+.cl-defile td.cl-zero { color: var(--t3); font-weight: 500; }
+
+/* --- Accueil : tableau de bord ----------------------------------------------- */
+.cl-accueil { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+.cl-accueil > * { min-width: 0; }
+.cl-kpis { grid-column: 1 / -1; }
+.cl-kpis-titre { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cl-kpis-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+
+.cl-kpi {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nom rang" "pts spark" "ecart ecart";
+  align-items: end; column-gap: 12px; padding: 18px 22px;
+}
+.cl-kpi-nom { grid-area: nom; align-self: center; display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 700; }
+.cl-kpi-prenom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-kpi-nom .pt, .cl-moi { flex: none; }
+.cl-kpi-rang { grid-area: rang; align-self: center; justify-self: end; font-size: 13px; font-weight: 600; color: var(--t2); white-space: nowrap; }
+.cl-kpi-pts { grid-area: pts; margin-top: 10px; font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; }
+.cl-kpi-pts small { margin-left: 2px; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--t3); }
+.cl-spark { grid-area: spark; width: 112px; height: 34px; }
+.cl-spark polyline { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.cl-kpi-ecart { grid-area: ecart; margin: 8px 0 0; font-size: 13px; line-height: 20px; color: var(--t2); }
+.cl-kpi-ecart b { color: var(--t1); }
+.cl-moi { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--bleu-f); color: var(--bleu-t); font-size: 12px; font-weight: 700; line-height: 18px; }
+
+.cl-gp { grid-column: span 7; display: flex; flex-direction: column; padding: 24px 26px; }
+.cl-gp-nom { margin: 10px 0 0; font-size: 48px; line-height: 54px; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.cl-gp-etat { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; font-size: 14px; color: var(--t2); }
+.cl-gp-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.cl-gp-bas { margin-top: auto; padding-top: 26px; }
+
+.cl-der { grid-column: span 5; }
+.cl-der-nom { margin: 8px 0 0; font-size: 30px; line-height: 36px; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.cl-podium { display: flex; flex-direction: column; margin: 14px 0 0; padding: 0; list-style: none; }
+.cl-podium li { display: flex; align-items: center; gap: 14px; height: 56px; border-bottom: 1px solid var(--bord-2); }
+.cl-podium li:last-child { border-bottom: 0; }
+.cl-medaille { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; font-weight: 800; }
+.cl-medaille.m1 { background: var(--r1-f); color: var(--r1-t); }
+.cl-medaille.m2 { background: var(--r2-f); color: var(--r2-t); }
+.cl-medaille.m3 { background: var(--r3-f); color: var(--r3-t); }
+.cl-qui { flex: 1; min-width: 0; }
+.cl-qui b { display: block; font-size: 15px; line-height: 20px; }
+.cl-qui small { display: block; font-size: 13px; line-height: 18px; color: var(--t3); }
+.cl-points { font-size: 16px; font-weight: 700; }
+.cl-der-pied { margin: 12px 0 0; }
+.cl-autres { display: flex; flex-direction: column; margin: 14px 0 0; padding: 10px 0 0; list-style: none; border-top: 1px solid var(--bord-2); }
+.cl-autres li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; font-size: 14px; }
+.cl-autre-res { color: var(--t2); }
+
+.cl-tab { padding: 20px 0 0; overflow: hidden; }
+.cl-tab-accueil { grid-column: span 8; container-type: inline-size; container-name: tabac; }
+.cl-tab-tete { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 0 22px 14px; }
+.cl-tab-pied { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px 22px 20px; border-top: 1px solid var(--bord-2); }
+.cl-corps-vide { margin: 0; padding: 0 22px 24px; }
+.cl-t-accueil td { height: 44px; }
+@media (min-width: 901px) {
+  @container tabac (max-width: 690px) { .cl-t-accueil .cl-col-ecurie { display: none; } }
+  @container tabac (max-width: 560px) { .cl-t-accueil .cl-ecart { display: none; } }
+  @container tabac (max-width: 528px) { .cl-t-accueil th.cl-c:nth-last-child(n + 7), .cl-t-accueil td.cl-c:nth-last-child(n + 7) { display: none; } }
+  @container tabac (max-width: 488px) { .cl-t-accueil th.cl-c:nth-last-child(n + 6), .cl-t-accueil td.cl-c:nth-last-child(n + 6) { display: none; } }
+  @container tabac (max-width: 449px) { .cl-t-accueil th.cl-c:nth-last-child(n + 5), .cl-t-accueil td.cl-c:nth-last-child(n + 5) { display: none; } }
+  @container tabac (max-width: 410px) { .cl-t-accueil th.cl-c:nth-last-child(n + 4), .cl-t-accueil td.cl-c:nth-last-child(n + 4) { display: none; } }
+}
+
+.cl-colonne { grid-column: span 4; display: flex; flex-direction: column; gap: 20px; }
+.cl-mes-gros { margin-top: 12px; font-size: 44px; line-height: 48px; font-weight: 800; letter-spacing: -0.03em; }
+.cl-mes-gros small { margin-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0; color: var(--t2); }
+.cl-offerts { margin-top: 16px; }
+.cl-offerts-l { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--t2); }
+.cl-offerts-l b { color: var(--t1); }
+.cl-barre { height: 8px; margin-top: 8px; overflow: hidden; border-radius: 4px; background: var(--seg-fond); }
+.cl-barre i { display: block; height: 100%; border-radius: 4px; background: var(--rouge); }
+.cl-chrono { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--t2); }
+.cl-chrono b { color: var(--t1); }
+.cl-chrono svg { width: 18px; height: 18px; }
+.cl-mes .btn { margin-top: 18px; }
+.cl-lien-ligne { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 6px; font-size: 14px; font-weight: 600; color: var(--t2); text-decoration: none; }
+.cl-lien-ligne > span:first-child { flex: 1; }
+.cl-lien-ligne svg { width: 16px; height: 16px; }
+.cl-lien-ligne:hover { color: var(--t1); }
+.cl-avenir { flex: 1; display: flex; flex-direction: column; }
+.cl-liste-av { margin: 6px 0 0; padding: 0; list-style: none; }
+.cl-liste-av a { display: flex; align-items: center; gap: 14px; min-height: 48px; border-bottom: 1px solid var(--bord-2); font-weight: 600; text-decoration: none; }
+.cl-liste-av li:last-child a { border-bottom: 0; }
+.cl-liste-av a:hover { color: var(--rouge-t); }
+.cl-m { width: 28px; color: var(--t3); font-weight: 600; }
+.cl-avenir .cl-bas { margin-top: auto; padding-top: 14px; }
+
+/* --- Classement (pilotes, constructeurs, stats) --------------------------------- */
+.cl-pg { padding: 0; }
+.cl-pg .cl-tab-pied { padding: 16px 24px 20px; }
+.cl-pg td { height: 48px; }
+.cl-pg th:first-child, .cl-pg td:first-child { padding-left: 24px; }
+.cl-pg table { min-width: 100%; }
+.cl-pg th.cl-rg, .cl-pg td.cl-rg { position: sticky; left: 0; z-index: 2; width: 64px; min-width: 64px; background: var(--ligne-fond, var(--carte)); }
+.cl-pg th.cl-rg { background: var(--carte); }
+.cl-pg th.cl-pilote, .cl-pg td.cl-pilote { position: sticky; left: 64px; z-index: 2; padding-left: 12px; background: var(--ligne-fond, var(--carte)); }
+.cl-pg th.cl-pilote { background: var(--carte); }
+.cl-pg td.cl-pilote { padding-right: 20px; }
+.cl-pg th.cl-pilote + th, .cl-pg td.cl-pilote + td { padding-left: 16px; }
+.cl-note-pied { margin: 0; font-size: 13px; color: var(--t3); }
+.cl-equipiers { display: inline-flex; flex-wrap: nowrap; gap: 16px; }
+.cl-equipiers-m { display: none; }
+.cl-eq-nom { color: var(--t1); font-weight: 600; }
+.cl-pc { font-weight: 600; }
+.cl-t-stats th.cl-d { height: auto; min-width: 78px; padding-top: 8px; padding-bottom: 8px; vertical-align: bottom; white-space: normal; line-height: 1.3; text-wrap: balance; }
+
+/* --- Évolution -------------------------------------------------------------------- */
+.cl-graph { padding: 22px 24px 12px; }
+.cl-graph-titre { margin: 0 0 12px; font-size: 14px; color: var(--t2); }
+.cl-legende { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 10px; font-size: 14px; color: var(--t2); }
+.cl-legende > span { display: inline-flex; align-items: center; gap: 8px; }
+.cl-cle { display: inline-block; flex: none; width: 16px; height: 3px; border-radius: 2px; }
+.cl-graph-zone { position: relative; width: 100%; }
+.cl-graph-zone svg { display: block; width: 100%; height: auto; overflow: visible; border-radius: 8px; }
+.cl-graph-zone svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.cl-graph-zone text { font-family: inherit; }
+.cl-grille { stroke: var(--bord-2); stroke-width: 1; }
+.cl-axe { fill: var(--t3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cl-etiquette { fill: var(--t1); font-size: 12px; font-weight: 700; }
+.cl-etiquette-val { fill: var(--t2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cl-point { stroke: var(--carte); stroke-width: 2; }
+.cl-rappel { stroke: var(--bord); stroke-width: 1; }
+.cl-reticule { stroke: var(--bord-champ); stroke-width: 1; }
+.cl-valeurs { margin-top: 12px; border-top: 1px solid var(--bord-2); }
+.cl-valeurs summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--t2); cursor: pointer; }
+.cl-valeurs[open] summary { color: var(--t1); }
+.cl-valeurs .cl-defile { margin: 0 -24px; }
+.cl-valeurs td, .cl-valeurs th { padding-left: 24px; }
+.infobulle {
+  position: fixed; z-index: 70; min-width: 160px; max-width: 260px; padding: 10px 12px; pointer-events: none;
+  border-radius: 12px; background: var(--carte); color: var(--t1); border: 1px solid var(--bord);
+  box-shadow: 0 10px 30px var(--ombre-lg); font-size: 13px;
+}
+.cl-bulle-titre { margin-bottom: 6px; font-size: 12px; color: var(--t2); }
+.cl-bulle-ligne { display: flex; align-items: center; gap: 8px; }
+.cl-bulle-ligne strong { min-width: 2.5em; }
+.cl-bulle-ligne span:last-child { color: var(--t2); }
+
+/* --- Duels --------------------------------------------------------------------------- */
+.cl-duels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.cl-duels > * { min-width: 0; }
+.cl-duels > .vide { grid-column: 1 / -1; }
+.cl-duel { padding: 20px 22px; }
+.cl-duel-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cl-duel-nom { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 700; }
+.cl-duel-nom span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-duel-score { flex: none; font-size: 28px; line-height: 34px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; color: var(--t3); }
+.cl-haut-score { color: var(--t1); }
+.cl-duel-barre { display: flex; gap: 3px; height: 8px; margin: 14px 0 12px; }
+.cl-duel-barre span { min-width: 4px; border-radius: 4px; }
+.cl-duel-barre .neutre { flex: 1; background: var(--seg-fond); }
+.cl-duel-detail { margin: 0; font-size: 14px; color: var(--t2); }
+.cl-matrice { margin-top: 20px; padding: 20px 0 0; overflow: hidden; }
+.cl-matrice h3 { margin: 0; padding: 0 24px 14px; font-size: 18px; line-height: 26px; letter-spacing: -0.01em; }
+.cl-matrice td { height: 48px; }
+
+/* --- Courses --------------------------------------------------------------------------- */
+.cl-hero { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px 32px; margin-bottom: 20px; padding: 26px 28px; }
+.cl-hero-g { min-width: 0; }
+.cl-hero .cl-gp-nom { margin-top: 8px; }
+.cl-hero-d { display: flex; flex-direction: column; gap: 18px; flex: 0 1 440px; min-width: 260px; }
+.cl-hero-d .cl-saison-bloc { width: 100%; }
+.cl-liste-gp { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.cl-gpt { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 18px; border-radius: 14px; background: var(--carte); border: 1px solid var(--bord-2); }
+.cl-gpt-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; min-height: 28px; }
+.cl-gpt-h .sur { white-space: nowrap; }
+.cl-gpt h3 { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.cl-futur { background: transparent; border: 1px dashed var(--bord); }
+.cl-futur h3 { font-weight: 600; color: var(--t2); }
+.cl-prochain { padding: 15px 17px; border: 2px solid var(--rouge); }
+.cl-puce-fait, .cl-puce-prochain { min-height: 24px; padding: 0 10px; font-size: 12px; }
+.cl-puce-fait { background: var(--seg-fond); border-color: transparent; color: var(--t2); }
+.cl-puce-prochain { background: var(--rouge); border-color: transparent; color: #fff; }
+.cl-vq { display: flex; align-items: center; flex-wrap: wrap; gap: 0 10px; margin: 6px 0 0; font-size: 14px; color: var(--t2); }
+.cl-vq-l { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t3); }
+.cl-dp { margin: 0; font-size: 13px; line-height: 20px; color: var(--t2); }
+.cl-dp b { font-weight: 700; color: var(--t1); }
+.cl-pr { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--t2); }
+
+/* --- Fenêtres moyennes (901–1180 px) : colonne de droite sous le classement, pilotes en liste ------------ */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .cl-kpis { padding: 18px 22px; border-radius: 16px; background: var(--carte); border: 1px solid var(--bord-2); }
+  .cl-kpis-titre { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+  .cl-kpis-liste { display: block; margin-top: 6px; }
+  .cl-kpi {
+    grid-template-columns: minmax(0, 1fr) 112px 84px; grid-template-areas: "nom spark pts" "ecart spark pts"; align-items: center;
+    column-gap: 20px; min-height: 68px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--bord-2); border-radius: 0; background: none;
+  }
+  .cl-kpi:last-child { border-bottom: 0; }
+  .cl-kpi-rang { display: none; }
+  .cl-m-seul { display: inline; }
+  .cl-d-seul { display: none; }
+  .cl-kpi-pts { margin: 0; text-align: right; font-size: 28px; line-height: 32px; letter-spacing: -0.02em; }
+  .cl-kpi-pts small { display: block; margin: 0; font-size: 12px; line-height: 16px; }
+  .cl-spark { align-self: center; }
+  .cl-kpi-ecart { margin: 2px 0 0; }
+  .cl-tab-accueil { grid-column: 1 / -1; }
+  .cl-colonne { grid-column: 1 / -1; flex-direction: row; align-items: stretch; }
+  .cl-colonne > * { flex: 1 1 0; min-width: 0; }
+}
+
+/* --- Téléphone et petites fenêtres ------------------------------------------------------ */
+@media (max-width: 900px) {
+  .cl-accueil { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .cl-gp, .cl-der, .cl-tab-accueil, .cl-colonne { grid-column: auto; }
+  .cl-gp { order: 1; padding: 20px; }
+  .cl-kpis { order: 2; padding: 18px; border-radius: 16px; background: var(--carte); border: 1px solid var(--bord-2); }
+  .cl-der { order: 3; }
+  .cl-colonne { display: contents; }
+  .cl-mes { order: 4; }
+  .cl-tab-accueil { order: 5; }
+  .cl-avenir { display: none; }
+  .cl-gp-nom { font-size: 36px; line-height: 42px; }
+  .cl-gp-actions { flex-direction: column; }
+  .cl-gp-actions .btn { width: 100%; min-height: 48px; }
+  .cl-kpis-titre { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+  .cl-kpis-liste { display: block; margin-top: 6px; }
+  .cl-kpi {
+    grid-template-columns: minmax(0, 1fr) 72px 56px; grid-template-areas: "nom spark pts" "ecart spark pts"; align-items: center;
+    column-gap: 12px; min-height: 68px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--bord-2); border-radius: 0; background: none;
+  }
+  .cl-kpi:last-child { border-bottom: 0; }
+  .cl-kpi-rang { display: none; }
+  .cl-m-seul { display: inline; }
+  .cl-d-seul { display: none; }
+  .cl-kpi-pts { margin: 0; text-align: right; font-size: 24px; line-height: 28px; letter-spacing: -0.02em; }
+  .cl-kpi-pts small { display: block; margin: 0; font-size: 12px; line-height: 16px; }
+  .cl-spark { width: 72px; height: 30px; align-self: center; }
+  .cl-kpi-ecart { margin: 2px 0 0; }
+  .cl-der-nom { font-size: 28px; line-height: 34px; }
+  .cl-mes-gros { font-size: 40px; line-height: 44px; }
+  .cl-tab-tete { flex-direction: column; align-items: stretch; gap: 12px; padding: 0 18px 14px; }
+  .cl-tab-tete .bascule { display: flex; }
+  .cl-tab-tete .bascule button { flex: 1; }
+  .cl-tab-tete .bascule button, .entete-actions .bascule button { min-height: 40px; }
+  .cl-tab-pied { padding: 12px 18px 18px; }
+  .cl-pg .cl-tab-pied { padding: 14px 16px 18px; }
+  .cl-corps-vide { padding: 0 18px 20px; }
+
+  /* Accueil : tableau tenant dans la largeur (rang, pilote, points, écart et les 3 dernières courses) */
+  .cl-t-accueil .cl-col-ecurie { display: none; }
+  .cl-t-accueil th.cl-c:nth-last-child(n + 4), .cl-t-accueil td.cl-c:nth-last-child(n + 4) { display: none; }
+  .cl-t-accueil th, .cl-t-accueil td { padding: 0 3px; }
+  .cl-t-accueil th:first-child, .cl-t-accueil td:first-child { width: 36px; padding-left: 16px; }
+  .cl-t-accueil th.cl-pts, .cl-t-accueil th:nth-child(4) { width: 46px; }
+  .cl-t-accueil th.cl-ecart { width: 54px; }
+  .cl-t-accueil th.cl-c { width: 33px; }
+  .cl-t-accueil td.cl-d { padding-right: 6px; }
+  .cl-t-accueil td.cl-c:last-child, .cl-t-accueil th.cl-c:last-child { width: 41px; padding-right: 10px; }
+  .cl-t-accueil .cl-lg { display: none; }
+  .cl-t-accueil .cl-sm { display: inline; }
+  .cl-t-accueil td { height: 46px; font-size: 14px; }
+  .cl-t-accueil .r { min-width: 28px; height: 28px; border-radius: 7px; padding: 0 3px; }
+  .cl-t-accueil .cl-eq { display: none; }
+  .cl-legende-cases { gap: 6px 14px; font-size: 12px; }
+  .cl-legende-cases .r { min-width: 22px; height: 22px; font-size: 11px; border-radius: 6px; }
+
+  /* Classement : le tableau défile dans sa boîte, rang et pilote restent visibles */
+  .cl-pg table { min-width: 560px; }
+  .cl-pg td { height: 46px; }
+  .cl-pg .cl-col-ecurie, .cl-pg .cl-col-vp, .cl-pg .cl-col-pilotes { display: none; }
+  .cl-pg th:first-child, .cl-pg td:first-child { padding-left: 16px; }
+  .cl-pg th.cl-rg, .cl-pg td.cl-rg { width: 48px; min-width: 48px; }
+  .cl-pg th.cl-pilote, .cl-pg td.cl-pilote { left: 48px; padding-right: 10px; }
+  .cl-pg th.cl-pilote + th, .cl-pg td.cl-pilote + td { padding-left: 8px; }
+  .cl-t-stats { min-width: 760px; }
+  .cl-t-ecuries { min-width: 480px; }
+  .cl-t-ecuries td.cl-pilote { padding-top: 6px; padding-bottom: 6px; }
+  .cl-equipiers-m { display: block; margin: 0 0 0 18px; font-size: 12px; line-height: 16px; color: var(--t3); white-space: nowrap; }
+  .cl-equipiers-m b { color: var(--t2); }
+
+  .cl-graph { padding: 18px 16px 8px; }
+  .cl-valeurs .cl-defile { margin: 0 -16px; }
+  .cl-valeurs td, .cl-valeurs th { padding-left: 16px; }
+  .cl-duels { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .cl-matrice h3 { padding: 0 18px 12px; }
+  .cl-hero { padding: 20px; gap: 20px; }
+  .cl-hero .cl-gp-nom { font-size: 36px; line-height: 42px; }
+  .cl-hero-d { flex: 1 1 100%; }
+  .cl-liste-gp { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cl-gpt { padding: 14px; }
+  .cl-prochain { padding: 13px; }
+  .cl-gpt-h { flex-wrap: wrap; row-gap: 4px; }
+  .cl-vq { flex-direction: column; align-items: flex-start; gap: 0; }
+}

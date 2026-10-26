@@ -129,20 +129,12 @@
             <button type="button" data-valeur="tous" aria-pressed="true">Toute la grille</button>
             <button type="button" data-valeur="nous" aria-pressed="false">Nous seulement</button>
           </div>
-          <div class="tableau-defilant" id="table-pilotes"></div>
-          <p class="legende-cases">
-            <span class="case p1">1</span> Victoire
-            <span class="case p2">2</span><span class="case p3">3</span> Podium
-            <span class="case pts">7</span> Dans les points
-            <span class="case hors">14</span> Hors points
-            <span class="case ab">Ab</span> Abandon
-            <span class="mt-exemple">5</span> Meilleur tour
-          </p>
+          <div id="table-pilotes"></div>
         </section>
 
         <section class="panneau" id="ecuries" hidden>
           <h2 class="sr-seulement">Classement constructeurs</h2>
-          <div class="tableau-defilant" id="table-ecuries"></div>
+          <div id="table-ecuries"></div>
         </section>
 
         <section class="panneau" id="evolution" hidden>
@@ -151,19 +143,22 @@
             <button type="button" data-valeur="points" aria-pressed="true">Points</button>
             <button type="button" data-valeur="rang" aria-pressed="false">Position</button>
           </div>
-          <div class="carte-graphique">
-            <p class="graphique-titre" id="graphique-titre"></p>
-            <div class="legende" id="legende"></div>
-            <div class="graphique" id="graphique"></div>
+          <div class="bloc cl-graph" id="evolution-carte">
+            <p class="cl-graph-titre" id="graphique-titre"></p>
+            <div class="cl-legende" id="legende"></div>
+            <div class="cl-graph-zone" id="graphique"></div>
+            <details class="cl-valeurs" id="evolution-valeurs">
+              <summary>Voir les valeurs</summary>
+              <div class="cl-defile" id="evolution-table"></div>
+            </details>
           </div>
+          <div class="vide" id="evolution-vide" hidden>Le graphique apparaîtra après le premier Grand Prix.</div>
         </section>
 
         <section class="panneau" id="duels" hidden>
           <h2 class="sr-seulement">Duels</h2>
-          <p class="aide">Nombre de courses où chacun a fini devant l'autre, quand les deux étaient au départ.</p>
-          <div class="duels" id="liste-duels"></div>
-          <h3>Tableau des face-à-face</h3>
-          <div class="tableau-defilant" id="matrice-duels"></div>
+          <div class="cl-duels" id="liste-duels"></div>
+          <div id="matrice-duels"></div>
         </section>
 
         <section class="panneau" id="stats" hidden>
@@ -172,13 +167,14 @@
             <button type="button" data-valeur="nous" aria-pressed="true">Nous seulement</button>
             <button type="button" data-valeur="tous" aria-pressed="false">Toute la grille</button>
           </div>
-          <div class="tableau-defilant" id="table-stats"></div>
+          <div id="table-stats"></div>
         </section>
 
         <!-- ============================ Courses ============================ -->
         <section class="panneau" id="courses" hidden>
           <h2 class="sr-seulement">Calendrier des courses</h2>
-          <ol class="calendrier" id="liste-calendrier"></ol>
+          <div id="courses-hero"></div>
+          <ol class="cl-liste-gp" id="liste-calendrier" aria-label="Calendrier des Grands Prix"></ol>
         </section>
 
         <!-- ============================ Cartes ============================ -->
