@@ -100,7 +100,7 @@
 
       <div data-section="cartes">
         <div class="bandeau-demo" id="bandeau-demo" hidden>
-          <span><strong>Mode démo</strong> — le vrai jeu arrive bientôt. Ici, chaque pilote a 40 boosters, chacun (spectateurs compris) 3 boosters offerts, pour essayer, et rien de ce que vous ouvrez n'est conservé.</span>
+          <span><strong>Mode démo</strong> : 40 boosters par pilote et 3 offerts à chacun pour essayer. Rien n’est conservé.</span>
           <button type="button" class="lien-bouton" id="btn-reinit-demo">Réinitialiser la démo</button>
         </div>
       </div>
@@ -178,36 +178,41 @@
         </section>
 
         <!-- ============================ Cartes ============================ -->
-        <div class="intro-cartes" id="intro-cartes" data-section="cartes">
-          <p class="aide" id="sous-titre-cartes">Chargement du catalogue…</p>
+        <div class="intro-cartes" id="intro-cartes" data-section="cartes" hidden>
+          <p class="etat-cartes" id="sous-titre-cartes" role="status"></p>
         </div>
 
         <section class="panneau section" id="boosters" hidden>
-          <div class="section-tete">
-            <h2>Boosters</h2>
-            <div class="puces" id="boosters-compteur"></div>
-          </div>
-          <p class="aide"><span class="ratio-boosters">1 point au championnat = 1 booster</span> de 5 cartes ; la 5<sup>e</sup> carte est au moins Peu commune. Un doublon est recyclé automatiquement en fragments, et les fragments servent à fabriquer la carte manquante de votre choix.<span class="aide-offerts" data-forme="longue" hidden></span><span class="aide-spectateur" hidden></span></p>
+          <h2 class="sr-seulement">Boosters</h2>
 
-          <div class="vide" id="boosters-hors-ligne" hidden>
-            <p>Connectez-vous pour ouvrir vos boosters.</p>
-            <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+          <div class="kpis" id="boosters-compteur" role="group" aria-label="Mon état" hidden>
+            <article class="bloc kpi" id="kpi-dispo">
+              <span class="sur">Boosters à ouvrir</span>
+              <div class="kpi-val n" id="kpi-dispo-val">0</div>
+              <p class="kpi-sous" id="kpi-dispo-sous"></p>
+            </article>
+            <article class="bloc kpi" id="offerts" hidden>
+              <span class="sur">Boosters offerts</span>
+              <div class="kpi-val n" id="offerts-stock">0 / 0</div>
+              <div class="barre" aria-hidden="true"><i id="offerts-progres"></i></div>
+              <p class="chrono"><svg class="ic" aria-hidden="true"><use href="#i-horloge"/></svg><span id="offerts-texte"></span></p>
+            </article>
+            <article class="bloc kpi" id="kpi-fragments">
+              <span class="sur">Fragments</span>
+              <div class="kpi-val n" id="kpi-fragments-val">0</div>
+            </article>
+            <article class="bloc kpi" id="kpi-collection">
+              <span class="sur">Collection</span>
+              <div class="kpi-val n"><b id="kpi-collection-val">0</b> <small id="kpi-collection-total">/ 0</small></div>
+              <div class="barre" id="kpi-collection-barre-zone" role="img" aria-label=""><i id="kpi-collection-barre"></i></div>
+            </article>
           </div>
 
-          <div id="boosters-zone" hidden>
-            <div class="actions" id="boosters-actions">
-              <button type="button" class="bouton" id="btn-ouvrir-1">Ouvrir 1</button>
-              <button type="button" class="bouton secondaire" id="btn-ouvrir-10">Ouvrir 10</button>
-              <button type="button" class="bouton secondaire" id="btn-ouvrir-tout">Tout ouvrir</button>
-              <button type="button" class="bouton secondaire" id="btn-tout-reveler" hidden>Tout révéler</button>
+          <section class="bloc ouvrir sombre" aria-labelledby="t-ouvrir">
+            <div class="ouvrir-tete">
+              <h2 id="t-ouvrir">Ouvrir des boosters</h2>
+              <p class="regle"><span class="ratio-boosters pour-pilotes">1 point au championnat = 1 booster</span><span class="aide-offerts" data-forme="courte" hidden></span><span class="aide-spectateur" hidden></span></p>
             </div>
-            <div class="offerts" id="offerts" hidden>
-              <strong>Boosters offerts</strong>
-              <span class="offerts-stock" id="offerts-stock"></span>
-              <div class="offerts-barre" aria-hidden="true"><i id="offerts-progres"></i></div>
-              <span class="offerts-texte" id="offerts-texte"></span>
-            </div>
-            <p class="indication" id="indication"></p>
             <div class="scene" id="scene">
               <div class="paquet" id="paquet">
                 <div class="couche haut" id="paquet-haut"></div>
@@ -216,66 +221,119 @@
               </div>
               <div class="main-cartes" id="main-cartes" hidden></div>
             </div>
-            <div class="recap" id="recap" hidden></div>
-          </div>
+            <p class="indication" id="indication" role="status" aria-live="polite"></p>
+            <div id="boosters-zone" hidden>
+              <div class="actions" id="boosters-actions">
+                <button type="button" class="bouton" id="btn-ouvrir-1">Ouvrir 1</button>
+                <button type="button" class="bouton secondaire" id="btn-ouvrir-10">Ouvrir 10</button>
+                <button type="button" class="bouton secondaire" id="btn-ouvrir-tout">Tout ouvrir</button>
+                <button type="button" class="bouton secondaire" id="btn-tout-reveler" hidden>Tout révéler</button>
+              </div>
+            </div>
+            <div class="hors-ligne" id="boosters-hors-ligne" hidden>
+              <p>Connectez-vous pour ouvrir vos boosters.</p>
+              <div class="actions">
+                <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+                <button type="button" class="bouton secondaire" data-action="creation" hidden>Créer un compte spectateur</button>
+              </div>
+            </div>
+          </section>
 
-          <h3>Raretés, chances et fragments</h3>
-          <div class="tableau-defilant"><table id="table-raretes"></table></div>
+          <div class="bloc recap" id="recap" hidden></div>
+
+          <section class="bloc chances" aria-labelledby="t-chances">
+            <div class="chances-tete"><h3 id="t-chances">Chances par carte</h3><span>Hors Mythique</span></div>
+            <div class="chances-barre" id="chances-barre" role="img" aria-label=""></div>
+            <ul class="chances-liste" id="chances-liste"></ul>
+            <p class="chances-myth" id="chances-mythique"></p>
+          </section>
+
+          <details class="det">
+            <summary>Comment ça marche ?<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <div class="det-c">
+              <ul class="regles">
+                <li id="aide-booster">Un booster contient 5 cartes ; la dernière est au moins Peu commune.</li>
+                <li class="pour-pilotes"><span class="ratio-boosters">1 point au championnat = 1 booster</span>.</li>
+                <li class="aide-offerts" data-forme="longue" hidden></li>
+                <li class="aide-spectateur" hidden></li>
+                <li>Un doublon est recyclé en fragments ; les fragments servent à fabriquer la carte qui vous manque.</li>
+                <li id="aide-catalogue"></li>
+              </ul>
+            </div>
+          </details>
+          <details class="det">
+            <summary>Raretés, doublons et fabrication<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <div class="det-c"><div class="tableau-defilant"><table id="table-raretes"></table></div></div>
+          </details>
         </section>
 
         <section class="panneau section" id="collection" hidden>
-          <div class="section-tete">
-            <h2 id="album-titre">Collection</h2>
-            <div class="progression">
-              <span id="prog-texte">0 / 0</span>
+          <div class="bloc album-tete">
+            <div class="album-qui">
+              <h2 id="album-titre">Collection</h2>
+              <p class="aide" id="album-aide"></p>
+            </div>
+            <div class="progression" role="group" aria-label="Progression de la collection">
+              <span class="prog-texte n" id="prog-texte">0 / 0</span>
               <div class="barre" aria-hidden="true"><i id="prog-barre"></i></div>
-              <small id="prog-pct">0 %</small>
+              <small class="n" id="prog-pct">0 %</small>
             </div>
           </div>
           <div class="bandeau-lecture" id="album-lecture" hidden>
+            <span class="pastille" aria-hidden="true"></span>
             <span id="album-lecture-texte"></span>
             <button type="button" class="bouton secondaire petit" id="btn-mon-album">Revenir à mon album</button>
           </div>
-          <p class="aide" id="album-aide"></p>
           <div class="resume" id="resume"></div>
-          <div class="filtres">
+          <div class="filtres bloc">
             <input type="search" id="filtre-recherche" placeholder="Rechercher un pilote…" aria-label="Rechercher un pilote" autocomplete="off">
             <select id="filtre-rarete" aria-label="Filtrer par rareté"><option value="">Toutes les raretés</option></select>
             <select id="filtre-ecurie" aria-label="Filtrer par écurie"><option value="">Toutes les écuries</option></select>
-            <div class="bascule" id="filtre-possession">
+            <div class="bascule" id="filtre-possession" role="group" aria-label="Cartes affichées">
               <button type="button" data-valeur="toutes" aria-pressed="true">Toutes</button>
               <button type="button" data-valeur="possedees" aria-pressed="false">Possédées</button>
               <button type="button" data-valeur="manquantes" aria-pressed="false">Manquantes</button>
             </div>
-            <span class="filtres-compte" id="filtres-compte"></span>
+            <span class="filtres-compte n" id="filtres-compte"></span>
           </div>
           <div class="minis" id="album"></div>
           <div class="vide" id="album-vide" hidden>Aucune carte ne correspond à ces filtres.</div>
         </section>
 
         <section class="panneau section" id="collections" hidden>
-          <div class="section-tete"><h2>Collections des joueurs</h2></div>
-          <p class="aide">Boosters gagnés : <span class="ratio-boosters">1 point au championnat = 1 booster</span>. Cliquez sur un joueur pour feuilleter son album.<span class="aide-offerts" data-forme="courte" hidden></span></p>
+          <h2 class="sr-seulement">Collections des joueurs</h2>
+          <p class="aide">Cliquez sur un joueur pour feuilleter son album.</p>
           <div class="cartes joueurs" id="joueurs"></div>
           <div id="spectateurs-zone" hidden>
             <h3>Spectateurs</h3>
-            <p class="aide">Ils ne participent pas au championnat (aucun point), mais ils collectionnent, ouvrent leurs boosters offerts et font des pronostics comme les pilotes. Cliquez sur un spectateur pour feuilleter son album.</p>
+            <p class="aide">Ils collectionnent et pronostiquent, sans points au championnat.</p>
             <div class="cartes joueurs" id="spectateurs"></div>
           </div>
           <h3>Dernières grosses cartes</h3>
-          <p class="aide">Les 30 dernières cartes Épique ou mieux obtenues, la plus récente en premier.</p>
+          <p class="aide">Les 30 dernières cartes Épique ou mieux, la plus récente en premier.</p>
           <ol class="fil" id="fil"></ol>
         </section>
 
         <section class="panneau section" id="pronostics" hidden>
-          <div class="section-tete">
-            <h2>Pronostics</h2>
-            <div class="puces" id="pronos-etat"></div>
-          </div>
-          <p class="aide">Avant chaque Grand Prix, devinez <strong>le meilleur d’entre nous</strong> et <strong>l’ordre d’arrivée</strong> de la bande. <strong>Aucune mise</strong> : on ne perd jamais rien, et un pari juste rapporte des boosters, d’autant plus que la cote est haute.<span id="pronos-regles"></span> Les pronostics ferment au départ de la course, et les paris des autres restent secrets jusque-là.</p>
+          <h2 class="sr-seulement">Pronostics</h2>
+          <div class="puces pronos-tete" id="pronos-etat"></div>
+          <p class="aide">Avant chaque Grand Prix, devinez le meilleur d’entre vous et l’ordre d’arrivée des pilotes : un pari juste rapporte des boosters.</p>
+          <details class="det">
+            <summary>Comment ça marche ?<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <div class="det-c">
+              <ul class="regles">
+                <li>Aucune mise : on ne perd jamais rien.</li>
+                <li>Plus la cote est haute, plus le pari juste rapporte.<span id="pronos-regles"></span></li>
+                <li>Les pronostics ferment au départ de la course ; les paris des autres restent secrets jusque-là.</li>
+              </ul>
+            </div>
+          </details>
           <div class="vide" id="pronos-hors-ligne" hidden>
             <p>Connectez-vous pour faire votre pronostic.</p>
-            <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+            <div class="actions">
+              <button type="button" class="bouton" data-action="connexion">Se connecter</button>
+              <button type="button" class="bouton secondaire" data-action="creation" hidden>Créer un compte spectateur</button>
+            </div>
           </div>
           <div id="pronos-gp"></div>
           <h3>Derniers résultats</h3>
@@ -290,7 +348,7 @@
         <div data-section="cartes">
           <details class="credits" id="credits" hidden>
             <summary id="credits-titre">Crédits photos</summary>
-            <p class="aide">Les photos des pilotes de F1 proviennent de Wikimedia Commons et sont publiées sous licences libres (CC BY, CC BY-SA, CC0, domaine public…). Auteur et licence de chacune ci-dessous. Les cartes Mythiques des potes montrent leur photo personnelle quand ils en ont donné une ; les cartes sans photo affichent un casque dessiné.</p>
+            <p class="aide">Photos de Wikimedia Commons sous licences libres (CC BY, CC BY-SA, CC0, domaine public) : auteur et licence ci-dessous. Les cartes Mythiques montrent la photo personnelle du pilote quand il en a donné une.</p>
             <ul class="credits-liste" id="credits-liste"></ul>
           </details>
           <p id="pied-cartes"></p>
@@ -330,7 +388,7 @@
         <span>Mot de passe</span>
         <input type="password" id="connexion-mdp" minlength="4" required autocomplete="current-password">
       </label>
-      <p class="aide" id="connexion-aide">Première connexion ? Le mot de passe que vous saisissez devient le vôtre (4 caractères minimum) : retenez-le bien.</p>
+      <p class="aide" id="connexion-aide">Première connexion : le mot de passe saisi devient le vôtre (4 caractères minimum).</p>
       <p class="erreur" id="connexion-erreur" role="alert" hidden></p>
       <div class="actions">
         <button type="submit" class="bouton" id="connexion-valider">Se connecter</button>
@@ -339,7 +397,7 @@
     </form>
   </div>
 
-  <div class="loupe" id="loupe" hidden>
+  <div class="loupe sombre" id="loupe" hidden role="dialog" aria-modal="true" aria-label="Carte en grand">
     <div class="loupe-contenu">
       <div id="loupe-carte"></div>
       <div class="loupe-infos" id="loupe-infos"></div>
