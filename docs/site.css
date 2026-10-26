@@ -123,6 +123,9 @@
     --mt: light-dark(#6D28D9, #A78BFA);
   }
 }
+/* Choix explicite du thème par un hôte (attribut data-theme) : color-scheme suffit, light-dark() fait le reste */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 /* Zone toujours sombre (scène des boosters, faces des cartes…) : les jetons y prennent leurs valeurs sombres */
 .sombre { color-scheme: dark; color: var(--t1); }
 

@@ -67,6 +67,11 @@
   }
   const adresse = (vue) => (vue === 'accueil' ? '#/' : `#/${vue}`);
 
+  /* Réécrit l'adresse sans ajouter d'entrée à l'historique (sans effet si le navigateur ou l'hôte le refuse) */
+  function reecrire(hash) {
+    try { history.replaceState(null, '', hash); } catch (e) { /* l'adresse affichée reste telle quelle, la page fonctionne */ }
+  }
+
   /* --- Mise à jour de l'interface -------------------------------------------- */
 
   function majMenu(vue) {
@@ -180,7 +185,7 @@
     const voulue = adresse(vue);
     const brut = location.hash;
     const accueilNu = vue === 'accueil' && (brut === '' || brut === '#' || brut === '#/');
-    if (!accueilNu && brut !== voulue) history.replaceState(null, '', voulue);
+    if (!accueilNu && brut !== voulue) reecrire(voulue);
 
     const premier = courant === null, change = vue !== courant;
     courant = vue;
@@ -221,7 +226,7 @@
     /* Va à une page : 'accueil', 'classement', 'classement/duels', 'cartes/boosters'… */
     aller(chemin, options) {
       const vue = analyser(`#/${chemin}`) || 'accueil';
-      if (options && options.remplacer) { history.replaceState(null, '', adresse(vue)); afficher(false); }
+      if (options && options.remplacer) { reecrire(adresse(vue)); afficher(false); }
       else if (location.hash === adresse(vue)) afficher(false);
       else location.hash = adresse(vue);
     },
