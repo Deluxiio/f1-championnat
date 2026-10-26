@@ -135,7 +135,7 @@
    ]
   },
   "amis": {
-   "nom": "La bande",
+   "nom": "Les pilotes",
    "couleurs": [
     "#E10600",
     "#FFD200",
@@ -21995,12 +21995,12 @@
    "nom": "Deluxiio",
    "pilote": "joueur1",
    "nationalite": "F1",
-   "pays": "La bande",
+   "pays": "Les pilotes",
    "ecurie": "amis",
    "saisons": "Saison 2025",
    "debut": 2025,
    "fin": 2025,
-   "fait": "Pilote de la bande : la saison commence.",
+   "fait": "Pilote du championnat : la saison commence.",
    "stats": {
     "titres": 0,
     "victoires": 0,
@@ -22022,7 +22022,7 @@
    "auto": {
     "rarete": "mythique",
     "note": 92,
-    "fait": "Pilote de la bande : la saison commence."
+    "fait": "Pilote du championnat : la saison commence."
    }
   },
   {
@@ -22032,12 +22032,12 @@
    "nom": "FlameC",
    "pilote": "joueur2",
    "nationalite": "F1",
-   "pays": "La bande",
+   "pays": "Les pilotes",
    "ecurie": "amis",
    "saisons": "Saison 2025",
    "debut": 2025,
    "fin": 2025,
-   "fait": "Pilote de la bande : la saison commence.",
+   "fait": "Pilote du championnat : la saison commence.",
    "stats": {
     "titres": 0,
     "victoires": 0,
@@ -22059,7 +22059,7 @@
    "auto": {
     "rarete": "mythique",
     "note": 92,
-    "fait": "Pilote de la bande : la saison commence."
+    "fait": "Pilote du championnat : la saison commence."
    }
   },
   {
@@ -22069,12 +22069,12 @@
    "nom": "Ptijo",
    "pilote": "joueur3",
    "nationalite": "F1",
-   "pays": "La bande",
+   "pays": "Les pilotes",
    "ecurie": "amis",
    "saisons": "Saison 2025",
    "debut": 2025,
    "fin": 2025,
-   "fait": "Pilote de la bande : la saison commence.",
+   "fait": "Pilote du championnat : la saison commence.",
    "stats": {
     "titres": 0,
     "victoires": 0,
@@ -22096,7 +22096,7 @@
    "auto": {
     "rarete": "mythique",
     "note": 92,
-    "fait": "Pilote de la bande : la saison commence."
+    "fait": "Pilote du championnat : la saison commence."
    }
   },
   {
@@ -22106,12 +22106,12 @@
    "nom": "Le Crack",
    "pilote": "joueur4",
    "nationalite": "F1",
-   "pays": "La bande",
+   "pays": "Les pilotes",
    "ecurie": "amis",
    "saisons": "Saison 2025",
    "debut": 2025,
    "fin": 2025,
-   "fait": "Pilote de la bande : la saison commence.",
+   "fait": "Pilote du championnat : la saison commence.",
    "stats": {
     "titres": 0,
     "victoires": 0,
@@ -22133,7 +22133,7 @@
    "auto": {
     "rarete": "mythique",
     "note": 92,
-    "fait": "Pilote de la bande : la saison commence."
+    "fait": "Pilote du championnat : la saison commence."
    }
   }
  ],

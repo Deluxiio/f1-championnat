@@ -109,7 +109,7 @@ COULEURS_AMIS = [
     ["#EDA100", "#FFF1C2", "#2A1D00"], ["#E87BA4", "#FFE0EC", "#3A1022"], ["#2FA02F", "#DFFFDF", "#082808"],
     ["#6250D6", "#E4E0FF", "#1A1240"], ["#E34948", "#FFE0E0", "#3A0E0E"],
 ]
-FAIT_AMI = "Pilote de la bande : la saison commence."
+FAIT_AMI = "Pilote du championnat : la saison commence."
 
 
 def cartes_amis(saison, premier_numero):
@@ -133,7 +133,7 @@ def cartes_amis(saison, premier_numero):
             numero_course = max(numeros[j["id"]].items(), key=lambda kv: kv[1])[0]  # le numéro le plus utilisé en course
         cartes.append({
             "id": f"{j['id']}--amis", "rarete": "mythique", "prenom": j["nom"], "nom": pseudo, "pilote": j["id"],
-            "nationalite": "F1", "pays": "La bande", "ecurie": "amis", "saisons": str(saison.get("saison", "")),
+            "nationalite": "F1", "pays": "Les pilotes", "ecurie": "amis", "saisons": str(saison.get("saison", "")),
             "debut": annee, "fin": annee, "fait": FAIT_AMI,
             "stats": {"titres": 0, "victoires": 0, "podiums": 0, "poles": 0, "departs": 0, "points": 0, "meilleur": None},
             "note": 92, "numero": premier_numero + i,
@@ -325,7 +325,7 @@ def main():
     # Les cartes Mythiques des joueurs du championnat : numérotées à la suite des cartes de pilotes
     saison = json.loads(SAISON.read_text(encoding="utf-8")) if SAISON.exists() else {"joueurs": [], "courses": []}
     cartes += cartes_amis(saison, len(cartes) + 1)
-    ecuries["amis"] = "La bande"
+    ecuries["amis"] = "Les pilotes"
 
     # Les réglages faits dans l'admin (économie, raretés, cartes modifiées) survivent à une régénération
     ancien = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
