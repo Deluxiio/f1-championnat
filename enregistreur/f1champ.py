@@ -99,6 +99,27 @@ def charger_config():
     return config
 
 
+class ConflitGithub(Exception):
+    """La saison de GitHub et celle de ce PC ne se fusionnent pas toutes seules."""
+
+
+MESSAGE_CONFLIT = ("Échec de la publication : GitHub a une autre version de la saison, en conflit avec celle de ce PC. "
+                   "Rien n'est perdu : la saison de ce PC est intacte (voir « Échec de la publication » dans le README).")
+
+
+def push_refuse(e):
+    """Vrai quand GitHub refuse le push parce qu'il a des commits que ce PC n'a pas (pas pour des droits ou un hook)."""
+    texte = (e.stderr or "") + (e.stdout or "")
+    return "[rejected]" in texte or "fetch first" in texte or "non-fast-forward" in texte
+
+
+def detail_git(e):
+    """La ligne la plus parlante de l'erreur de git, sans les « hint: » ni l'adresse du dépôt (« To … »)."""
+    lignes = [l.strip() for l in (e.stderr or e.stdout or "").splitlines() if l.strip()]
+    utiles = [l for l in lignes if not l.startswith(("hint:", "To "))]
+    return next((l for l in utiles if l.startswith(("fatal:", "error:", "remote:"))), (utiles or lignes or [str(e)])[-1])
+
+
 class Enregistreur:
     def __init__(self, config):
         self.config = config
@@ -431,29 +452,69 @@ class Enregistreur:
         while True:
             self._pub_evenement.wait()
             self._pub_evenement.clear()
-            message = self._pub_message or "Mise à jour du championnat"
-            if not (RACINE / ".git").exists():
-                self.publication = {"etat": "erreur", "date": maintenant(),
-                                    "message": "Dépôt GitHub pas encore configuré (voir README)"}
-                continue
-            self.publication = {"etat": "en_cours", "message": "Publication en cours…", "date": maintenant()}
+            self.publier(self._pub_message or "Mise à jour du championnat")
+
+    def publier(self, message):
+        """Commit puis push de la saison et du catalogue.
+
+        Si GitHub a reçu d'autres commits entre-temps (une mise à jour du site faite ailleurs), le push est refusé :
+        on les intègre sous les nôtres puis on republie, au lieu de rester bloqué jusqu'à un git pull à la main."""
+        if not (RACINE / ".git").exists():
+            self.publication = {"etat": "erreur", "date": maintenant(),
+                                "message": "Dépôt GitHub pas encore configuré (voir README)"}
+            return
+        self.publication = {"etat": "en_cours", "message": "Publication en cours…", "date": maintenant()}
+        try:
+            self._git("add", "docs/data/saison.json", "docs/cartes/catalogue.json")
+            if self._git("diff", "--cached", "--quiet", verifier=False).returncode != 0:
+                self._git("commit", "-m", message)
             try:
-                self._git("add", "docs/data/saison.json", "docs/cartes/catalogue.json")
-                if self._git("diff", "--cached", "--quiet", verifier=False).returncode != 0:
-                    self._git("commit", "-m", message)
                 self._git("push", "--quiet")
-                self.publication = {"etat": "ok", "date": maintenant(),
-                                    "message": "Publié : la page publique se met à jour d'ici 1 à 2 minutes"}
-                self.log(f"Publié sur GitHub ({message})")
             except subprocess.CalledProcessError as e:
-                detail = (e.stderr or e.stdout or "").strip().splitlines()
-                self.publication = {"etat": "erreur", "date": maintenant(),
-                                    "message": "Échec de la publication : " + (detail[-1] if detail else str(e))}
-                self.log(self.publication["message"])
-            except (OSError, subprocess.TimeoutExpired) as e:
-                self.publication = {"etat": "erreur", "date": maintenant(),
-                                    "message": f"Échec de la publication : {e}"}
-                self.log(self.publication["message"])
+                if not push_refuse(e):
+                    raise
+                self._integrer_github()
+                self._git("push", "--quiet")
+            self.publication = {"etat": "ok", "date": maintenant(),
+                                "message": "Publié : la page publique se met à jour d'ici 1 à 2 minutes"}
+            self.log(f"Publié sur GitHub ({message})")
+        except ConflitGithub:
+            self.publication = {"etat": "erreur", "date": maintenant(), "message": MESSAGE_CONFLIT}
+            self.log(self.publication["message"])
+        except subprocess.CalledProcessError as e:
+            detail = ("GitHub a reçu d'autres changements pendant la publication : réessaie dans un instant"
+                      if push_refuse(e) else detail_git(e))
+            self.publication = {"etat": "erreur", "date": maintenant(), "message": "Échec de la publication : " + detail}
+            self.log(self.publication["message"])
+        except (OSError, subprocess.TimeoutExpired) as e:
+            self.publication = {"etat": "erreur", "date": maintenant(),
+                                "message": f"Échec de la publication : {e}"}
+            self.log(self.publication["message"])
+
+    def _integrer_github(self):
+        """GitHub a des commits que ce PC n'a pas : on les glisse sous les nôtres (pull --rebase).
+
+        Si les deux versions de la saison ne se fusionnent pas, tout est annulé et le dépôt redevient comme avant.
+        Si la saison a changé sur le disque, l'enregistreur repart de celle-ci, sinon il l'écraserait à la prochaine sauvegarde."""
+        avant = FICHIER_SAISON.read_bytes()
+        try:
+            self._git("pull", "--rebase", "--autostash", "--quiet")
+        except subprocess.CalledProcessError:
+            if self._git("rebase", "--abort", verifier=False).returncode == 0:   # un rebase était bien en cours : conflit
+                raise ConflitGithub()
+            raise
+        # Un fichier modifié à la main sur ce PC que GitHub a aussi changé : git le laisse plein de marques de conflit et
+        # bloque les commits suivants. On remet la version de GitHub ; la modification à la main reste dans « git stash list ».
+        bloques = [p for p in self._git("diff", "--name-only", "--diff-filter=U", "-z", verifier=False).stdout.split("\0") if p]
+        if bloques:
+            self._git("checkout", "HEAD", "--", *bloques, verifier=False)
+            self.log("Modification faite à la main mise de côté (" + ", ".join(bloques) + ") : elle entrait en conflit avec GitHub. "
+                     "Elle est gardée dans « git stash list ».")
+        if FICHIER_SAISON.read_bytes() != avant:
+            with self.verrou:
+                self.saison = lire_json(FICHIER_SAISON)
+                self.revision += 1
+        self.log("GitHub avait de nouveaux changements : intégrés")
 
 
 # --- Serveur de l'admin ------------------------------------------------------

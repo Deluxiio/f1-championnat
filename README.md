@@ -41,6 +41,14 @@ C'est le cas si le jeu a planté, si l'hôte a été déconnecté ou si l'enregi
 
 Selon les options en ligne du jeu, un joueur peut apparaître sous un nom générique. Le plus simple est d'activer l'affichage des noms des joueurs en ligne dans les options du jeu. Sinon, associe le nom à la main dans l'admin.
 
+### Échec de la publication
+
+La course reste enregistrée sur le PC, seule la mise en ligne a échoué. La cause la plus courante : GitHub a reçu des changements que le PC n'a pas encore (une mise à jour du site faite depuis ailleurs), et il refuse alors le push. L'enregistreur les récupère tout seul puis republie, il n'y a rien à faire. Si le message revient :
+
+- **« en conflit avec celle de ce PC »** : GitHub et le PC ont chacun modifié la saison. Rien n'est perdu (la saison du PC est intacte), mais les deux versions sont à fusionner à la main : demande de l'aide plutôt que de forcer le push.
+- **Autre message** (réseau, droits GitHub) : vérifie la connexion, puis clique sur *Enregistrer et publier* dans l'admin pour réessayer.
+- **Si ça bloque quand même**, ouvre un terminal dans le dossier du projet et tape `git pull --rebase --autostash`, puis `git push`. Si `git pull` a changé des fichiers de `enregistreur/`, ferme la fenêtre noire et relance **Lancer.bat** pour prendre la nouvelle version.
+
 ## Points et classements
 
 - Barème officiel : 25-18-15-12-10-8-6-4-2-1 pour le top 10, pas de point pour le meilleur tour.
