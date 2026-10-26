@@ -239,6 +239,7 @@
   };
 
   function demarrer() {
+    try { sessionStorage.removeItem('f1.rechargee'); } catch (e) { /* stockage indisponible */ }   // repère posé par la garde de migration d'app.js
     window.addEventListener('hashchange', () => afficher(false));
     $('evitement').addEventListener('click', (e) => { e.preventDefault(); $('contenu').focus(); });
     afficher(true);

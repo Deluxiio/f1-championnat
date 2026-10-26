@@ -5,6 +5,15 @@
 (function () {
   "use strict";
 
+  // Garde de migration : une ancienne page index.html restée dans le cache d'un navigateur charge ce script sans les éléments du site fusionné.
+  // On la recharge une fois (le rechargement va chercher la page à jour) au lieu de planter ; site.js efface le repère quand tout va bien.
+  if (!document.getElementById("accueil-contenu")) {
+    try {
+      if (!sessionStorage.getItem("f1.rechargee")) { sessionStorage.setItem("f1.rechargee", "1"); location.reload(); }
+    } catch (e) { /* stockage indisponible : la page reste telle quelle */ }
+    return;
+  }
+
   const C = window.Champ;
   const etat = {
     saison: null, calc: null, ctx: null, maj: null,
