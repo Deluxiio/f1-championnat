@@ -58,8 +58,8 @@
   function analyser(hash) {
     let h = String(hash || '').replace(/^#/, '');
     if (h === '' || h === '/') return 'accueil';
-    if (h[0] !== '/') return ANCIENS[h] || null;
-    h = h.replace(/^\/+|\/+$/g, '');
+    if (h[0] !== '/') return ANCIENS[h.toLowerCase()] || null;
+    h = h.toLowerCase().replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
     if (h === '' || h === 'accueil') return 'accueil';
     if (VUES[h]) return h;
     if (SECTIONS[h]) return h === 'cartes' ? vueCartesParDefaut() : (SECTIONS[h].parDefaut || h);
