@@ -173,8 +173,8 @@
   function afficher(initial) {
     let vue = analyser(location.hash);
     if (vue === null) {
-      if (!initial) return;                       // ancre interne (#contenu, #credits) : la page ne change pas
-      vue = 'accueil';
+      if (!initial && !location.hash.startsWith('#/')) return;   // ancre interne (#contenu, #credits) : la page ne change pas
+      vue = 'accueil';                                           // adresse de page inconnue (#/zzz) : retour à l'accueil
     }
     if (vue === 'cartes/pronostics' && cartes && cartes.chargee && !cartes.pronosVisibles) vue = vueCartesParDefaut();
     const voulue = adresse(vue);

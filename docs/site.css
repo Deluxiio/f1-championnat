@@ -250,6 +250,7 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 20px;
   font-size: 13px; line-height: 20px; font-weight: 500; color: var(--t3);
 }
+.fil-ariane a, .fil-ariane [aria-current] { display: inline-flex; align-items: center; min-height: 24px; }
 .fil-ariane a { text-decoration: none; }
 .fil-ariane a:hover { color: var(--t1); text-decoration: underline; }
 .fil-ariane svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -316,7 +317,7 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
 /* Choix à bascule (filtres, modes) : un seul bouton pressé à la fois */
 .seg, .bascule { display: inline-flex; max-width: 100%; padding: 3px; border-radius: 10px; background: var(--seg-fond); }
 .seg button, .bascule button {
-  min-height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: none; color: var(--t2);
+  min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: none; color: var(--t2);
   font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .seg button[aria-pressed="true"], .bascule button[aria-pressed="true"] { background: var(--seg-actif); color: var(--t1); box-shadow: 0 1px 2px var(--ombre); }
@@ -395,7 +396,7 @@ abbr { text-decoration: none; }
     position: relative; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 8px;
     height: 60px; padding: 0 8px 0 16px; background: var(--lat); color: #fff;
   }
-  .marque-mobile { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; text-decoration: none; }
+  .marque-mobile { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; font-weight: 700; text-decoration: none; }
   .marque-mobile .logo { width: 32px; height: 32px; }
   .compte-mobile { display: flex; align-items: center; }
   .contenu { padding: 20px 16px 28px; }
