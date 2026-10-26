@@ -392,9 +392,9 @@ abbr { text-decoration: none; }
 
 /* --- Téléphone et petites fenêtres : barre d'application en haut, onglets en bas ------ */
 @media (max-width: 900px) {
-  .site { display: block; }
+  .site { display: flex; flex-direction: column; align-items: stretch; min-height: 100vh; min-height: 100dvh; }
   .lateral { display: none; }
-  .zone { min-height: 0; display: block; }
+  .zone { flex: 1 0 auto; min-height: 0; }
   .barre-app {
     position: relative; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 8px;
     height: 60px; padding: 0 8px 0 16px; background: var(--lat); color: #fff;
@@ -422,7 +422,7 @@ abbr { text-decoration: none; }
   .c3, .c4, .c5, .c6, .c7, .c8, .c12 { grid-column: auto; }
   .bloc { padding: 18px; }
   .onglets-bas {
-    position: sticky; bottom: 0; z-index: 40; display: flex; padding-bottom: env(safe-area-inset-bottom);
+    position: sticky; bottom: 0; z-index: 40; display: flex; flex: none; padding-bottom: env(safe-area-inset-bottom);
     background: var(--lat); border-top: 1px solid var(--lat-ligne);
   }
   .onglets-bas a {
