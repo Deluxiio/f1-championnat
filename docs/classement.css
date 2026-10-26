@@ -1,0 +1,7 @@
+/* ======================================================================
+   Écrans du classement : accueil, pilotes, constructeurs, évolution, duels, stats, courses.
+   S'appuie sur site.css (jetons, .bloc, .grille, .seg/.bascule, tableaux, cases .r…).
+   ====================================================================== */
+.gros { margin-top: 10px; font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.gros small { margin-left: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--t3); }
+.pilote { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }

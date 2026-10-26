@@ -1,0 +1,3 @@
+Plus Jakarta Sans (sous-ensemble latin, police variable 200-800) — Copyright 2020 The Plus Jakarta Sans Project Authors
+(https://github.com/tokotype/PlusJakartaSans). Licence SIL Open Font License 1.1 : https://openfontlicense.org
+La licence est aussi incluse dans les métadonnées du fichier .woff2. Police auto-hébergée : le site n'appelle aucun service tiers.

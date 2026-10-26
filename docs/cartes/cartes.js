@@ -6,6 +6,7 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const XLINK_NS = 'http://www.w3.org/1999/xlink';
   const reduitMouvement = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DOSSIER = 'cartes/';   // les fichiers du jeu (catalogue, photos) sont relatifs à la page du site, qui est à la racine
   const CLE_SESSION = 'f1cartes.session';
   const CLE_DERNIER_NOM = 'f1cartes.dernierNom';
   const CLE_DERNIER_MODE = 'f1cartes.dernierMode';
@@ -29,7 +30,8 @@
     occupe: false, pioches: [], minuterie: null, nouvellesRecentes: new Set(),
     pilotes: new Map(), photosCassees: new Set(), creditsConstruits: false,
     offertsFin: null, prochainEssaiOfferts: 0, rafraichitOfferts: false, pauseOfferts: 10000, generation: 0, requetesEtat: 0, etatApplique: 0,
-    monPari: null, suiviPari: null, brouillon: null, envoiPari: false, rafraichitPronos: false, pronosVu: {}, ongletAffiche: null,
+    monPari: null, suiviPari: null, brouillon: null, envoiPari: false, rafraichitPronos: false, pronosVu: {},
+    vue: null, menuCompte: false, signatureCompte: '',
   };
 
   /* ====================================================================
@@ -573,7 +575,7 @@
      ==================================================================== */
   async function chargerCatalogue() {
     let reponse;
-    try { reponse = await fetch('catalogue.json?t=' + Date.now(), { cache: 'no-store' }); }
+    try { reponse = await fetch(DOSSIER + 'catalogue.json?t=' + Date.now(), { cache: 'no-store' }); }
     catch (e) { throw new Error('Catalogue injoignable.'); }
     if (!reponse.ok) throw new Error(`Catalogue introuvable (${reponse.status}).`);
     const cat = await reponse.json();
@@ -592,7 +594,7 @@
      si le fichier est introuvable, chaque carte garde simplement les valeurs du catalogue. */
   async function chargerSaison() {
     try {
-      const reponse = await fetch('../data/saison.json?t=' + Date.now(), { cache: 'no-store' });
+      const reponse = await fetch('data/saison.json?t=' + Date.now(), { cache: 'no-store' });
       if (!reponse.ok) return;
       appliquerCartesVivantes(await reponse.json());
     } catch (e) { /* hors ligne, ou page ouverte hors du site */ }
@@ -808,7 +810,7 @@
     if (photo) {
       illu.classList.add('avec-photo');
       carte.classList.add('avec-photo');
-      const img = el('img', 'photo', null, { src: photo.photo, alt: '', decoding: 'async' });
+      const img = el('img', 'photo', null, { src: DOSSIER + photo.photo, alt: '', decoding: 'async' });
       if (options.paresseux) img.setAttribute('loading', 'lazy');
       const voile = el('div', 'voile');
       img.addEventListener('error', () => {
@@ -903,7 +905,7 @@
     const actuel = m.querySelector('.mini-photo, .casque');
     const estPhoto = !!(actuel && actuel.classList.contains('mini-photo'));
     if (photo && !estPhoto) {
-      const img = el('img', 'mini-photo', null, { src: photo.photo, alt: '', loading: 'lazy', decoding: 'async' });
+      const img = el('img', 'mini-photo', null, { src: DOSSIER + photo.photo, alt: '', loading: 'lazy', decoding: 'async' });
       img.addEventListener('error', () => { etat.photosCassees.add(c.pilote); img.replaceWith(casqueSvg()); });
       if (actuel) actuel.replaceWith(img); else m.insertBefore(img, m.children[1] || null);
     } else if (!photo && estPhoto) {
@@ -1006,7 +1008,7 @@
       return true;
     } catch (e) {
       etat.panne = true;
-      if (initial) $('sous-titre').textContent = `Serveur injoignable — ${e.message}`;
+      if (initial) $('sous-titre-cartes').textContent = `Serveur injoignable — ${e.message}`;
       if (!silencieux) notifier(e.message);
       return false;
     }
@@ -1024,13 +1026,14 @@
     rendreFil();
     rendreTableRaretes();
     rendrePronos();
+    diffuserEtat();
   }
   function rendreSousTitre() {
     if (etat.panne && !etat.public) return;
     const nbMythiques = (etat.parRarete.get('mythique') || []).length;
     const total = etat.catalogue.cartes.length - nbMythiques;
     const offerts = reglageOfferts();
-    $('sous-titre').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}${nbMythiques ? `, plus les ${nbMythiques} cartes Mythiques de la bande` : ''}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`
+    $('sous-titre-cartes').textContent = `${total} cartes, une par couple pilote–écurie depuis ${etat.catalogue.premiereSaison || 2000}${nbMythiques ? `, plus les ${nbMythiques} cartes Mythiques de la bande` : ''}. ${texteRatio()} de ${etat.catalogue.cartesParBooster} cartes.`
       + (offerts ? ` En plus : 1 booster offert ${texteRythme(offerts.intervalle)} (${offerts.max} en stock au maximum).` : '');
     document.querySelectorAll('.ratio-boosters').forEach((n) => { n.textContent = texteRatio(); });
     document.querySelectorAll('.aide-offerts').forEach((n) => {
@@ -1041,42 +1044,122 @@
         : ` Chaque joueur reçoit aussi 1 booster offert ${texteRythme(offerts.intervalle)}, mis en stock jusqu’à ${offerts.max} : quand le stock est plein, le compteur s’arrête jusqu’à la prochaine ouverture. Les boosters offerts s’ouvrent en premier.`;
     });
   }
+  /* Compte : bloc en bas de la barre latérale (ordinateur) et bouton dans la barre d'application (téléphone, menu déroulant).
+     Les deux sont dessinés ensemble ; le CSS n'en montre qu'un. Rien n'est reconstruit tant que ce qu'ils affichent ne change pas. */
+  const initiale = (nom) => (String(nom || '?').trim().charAt(0) || '?').toUpperCase();
+  const texteBoosters = (n) => (n > 0 ? `${pluriel(n, 'booster')} à ouvrir` : 'Aucun booster à ouvrir');
+  function avatarCompte(nom, couleur) {
+    const a = el('span', 'avatar', initiale(nom), { 'aria-hidden': 'true' });
+    a.style.setProperty('--couleur', couleur);
+    return a;
+  }
+  function lienBouton(texte, route, classes, auClic) {
+    const a = el('a', classes, texte, { href: `#/${route}` });
+    if (auClic) a.addEventListener('click', auClic);
+    return a;
+  }
+  function boutonCompte(texte, classes, action, attrs) {
+    const b = el('button', classes, texte, Object.assign({ type: 'button' }, attrs || {}));
+    b.addEventListener('click', action);
+    return b;
+  }
+  function iconeSortie() {
+    const svg = svgEl('svg', { class: 'ic', 'aria-hidden': 'true' });
+    svg.appendChild(svgEl('use', { href: '#i-sortie' }));
+    return svg;
+  }
+  function boutonDeconnexion() {
+    const b = boutonCompte('', 'deco', () => { etat.menuCompte = false; deconnecter(); });
+    b.append(iconeSortie(), document.createTextNode('Se déconnecter'));
+    return b;
+  }
+  /* Contenu du compte d'un joueur connecté : même rendu dans la barre latérale et dans le menu du téléphone. */
+  function enveloppeCompte(moi, fermer) {
+    const nom = etat.session.nom, couleur = moi ? couleurJoueur(moi) : 'var(--spectateur)';
+    const tete = el('div', 'compte-tete');
+    const qui = el('span', 'compte-qui');
+    const gras = el('b', null, nom);
+    if (estSpectateur(moi)) gras.appendChild(el('span', 'compte-role', 'Spectateur'));
+    qui.append(gras, el('small', null, moi ? texteBoosters(moi.boostersDispo) : (etat.panne ? 'Serveur injoignable' : 'Joueur inconnu du serveur')));
+    tete.append(avatarCompte(nom, couleur), qui);
+    const parts = [tete];
+    if (moi && moi.boostersDispo > 0) parts.push(lienBouton('Ouvrir un booster', 'cartes/boosters', 'btn btn-p btn-plein', fermer));
+    else if (moi) parts.push(lienBouton('Ma collection', 'cartes/collection', 'btn btn-s btn-plein', fermer));
+    return parts;
+  }
   function rendreCompte() {
-    const zone = $('compte');
-    zone.textContent = '';
+    const lateral = $('compte'), mobile = $('compte-mobile');
+    if (!lateral && !mobile) return;
+    if (!etat.public && !etat.panne) return;  // le serveur n'a pas encore répondu : on n'affiche pas un faux « joueur inconnu »
+    const moi = joueurConnecte(), ins = inscriptions();
+    const signature = JSON.stringify([etat.session && etat.session.nom, etat.session && etat.session.role, moi && [moi.boostersDispo, moi.role],
+      etat.panne, !!(ins && ins.ouvertes), etat.menuCompte]);
+    if (signature === etat.signatureCompte) return;
+    etat.signatureCompte = signature;
+    const fermerMenu = () => { etat.menuCompte = false; etat.signatureCompte = ''; rendreCompte(); };
+    if (lateral) lateral.textContent = '';
+    if (mobile) mobile.textContent = '';
     if (!etat.session) {
-      const ins = inscriptions();
-      zone.appendChild(el('span', 'texte', ins && ins.ouvertes
-        ? 'Les collections sont visibles par tous ; connectez-vous pour ouvrir vos boosters, ou créez un compte spectateur.'
-        : 'Les collections sont visibles par tous ; connectez-vous pour ouvrir vos boosters.'));
-      const b = el('button', 'bouton', 'Se connecter', { type: 'button' });
-      b.addEventListener('click', () => ouvrirConnexion());
-      zone.appendChild(b);
-      if (ins && ins.ouvertes) {
-        const c = el('button', 'bouton secondaire', 'Créer un compte spectateur', { type: 'button', id: 'btn-creer-compte' });
-        c.addEventListener('click', () => ouvrirConnexion('creation'));
-        zone.appendChild(c);
+      const texte = ins && ins.ouvertes
+        ? 'Connectez-vous ou créez un compte spectateur pour ouvrir des boosters et pronostiquer.'
+        : 'Connectez-vous pour ouvrir des boosters et pronostiquer.';
+      if (lateral) {
+        const carte = el('div', 'compte-carte');
+        carte.append(el('p', 'compte-texte', texte), boutonCompte('Se connecter', 'btn btn-p btn-plein', () => ouvrirConnexion(), { id: 'btn-connexion' }));
+        if (ins && ins.ouvertes) carte.appendChild(boutonCompte('Créer un compte spectateur', 'btn btn-s btn-plein', () => ouvrirConnexion('creation'), { id: 'btn-creer-compte' }));
+        lateral.appendChild(carte);
       }
+      if (mobile) mobile.appendChild(boutonCompte('Se connecter', 'btn-barre', () => ouvrirConnexion()));
       return;
     }
-    const moi = joueurConnecte();
-    const puces = el('div', 'puces');
-    const pj = el('span', 'puce');
-    const past = el('span', 'pastille');
-    past.style.background = moi ? couleurJoueur(moi) : '#888';
-    pj.append(past, el('b', null, etat.session.nom));
-    if (estSpectateur(moi)) pj.appendChild(el('span', 'badge-role', 'Spectateur'));
-    puces.appendChild(pj);
-    if (moi) {
-      const pb = el('span', 'puce'); pb.append(el('b', null, String(moi.boostersDispo)), el('span', null, moi.boostersDispo > 1 ? ' boosters à ouvrir' : ' booster à ouvrir')); puces.appendChild(pb);
-      const pf = el('span', 'puce'); pf.append(el('b', null, String(moi.fragments)), el('span', null, moi.fragments > 1 ? ' fragments' : ' fragment')); puces.appendChild(pf);
-    } else {
-      puces.appendChild(el('span', 'puce', etat.panne ? 'Serveur injoignable' : 'Joueur inconnu du serveur'));
+    if (lateral) {
+      lateral.appendChild(el('div', 'compte-carte')).append(...enveloppeCompte(moi));
+      lateral.appendChild(boutonDeconnexion());
     }
-    zone.appendChild(puces);
-    const b = el('button', 'bouton secondaire petit', 'Déconnexion', { type: 'button' });
-    b.addEventListener('click', deconnecter);
-    zone.appendChild(b);
+    if (mobile) {
+      const nom = etat.session.nom;
+      const bouton = boutonCompte('', 'avatar-bouton', (e) => { e.stopPropagation(); etat.menuCompte = !etat.menuCompte; etat.signatureCompte = ''; rendreCompte(); }, {
+        'aria-haspopup': 'true', 'aria-expanded': etat.menuCompte ? 'true' : 'false', 'aria-controls': 'menu-compte',
+        'aria-label': `Compte de ${nom}${moi ? `, ${texteBoosters(moi.boostersDispo)}` : ''}`,
+      });
+      bouton.appendChild(avatarCompte(nom, moi ? couleurJoueur(moi) : 'var(--spectateur)'));
+      mobile.appendChild(bouton);
+      if (etat.menuCompte) {
+        const menu = el('div', 'menu-compte', null, { id: 'menu-compte', role: 'group', 'aria-label': 'Mon compte' });
+        menu.append(...enveloppeCompte(moi, fermerMenu), boutonDeconnexion());
+        mobile.appendChild(menu);
+      }
+    }
+  }
+  /* Le menu du téléphone se referme d'un clic ailleurs, avec Échap, ou en changeant de page. */
+  function initialiserMenuCompte() {
+    const fermer = (rendre) => { if (!etat.menuCompte) return; etat.menuCompte = false; etat.signatureCompte = ''; if (rendre) rendreCompte(); };
+    document.addEventListener('click', (e) => { if (!e.target.closest('#compte-mobile')) fermer(true); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !etat.menuCompte) return;
+      fermer(true);
+      const b = document.querySelector('#compte-mobile .avatar-bouton');
+      if (b) b.focus();
+    });
+    document.addEventListener('site:route', () => fermer(true));
+  }
+  /* Résumé du jeu pour le reste du site (tableau de bord, menu) : événement cartes:etat, à chaque rendu. */
+  function diffuserEtat() {
+    const moi = joueurConnecte(), o = offertsDe(moi);
+    document.dispatchEvent(new CustomEvent('cartes:etat', { detail: {
+      demo: etat.demo,
+      panne: etat.panne,
+      chargee: !!etat.public,
+      session: etat.session ? { joueur: etat.session.joueur, nom: etat.session.nom, role: etat.session.role || 'pilote' } : null,
+      moi: moi ? {
+        id: moi.id, nom: moi.nom, role: moi.role || 'pilote', couleur: couleurJoueur(moi),
+        boostersDispo: moi.boostersDispo, fragments: moi.fragments, nbCartes: moi.nbCartes,
+        offerts: o ? { stock: o.stock, max: o.max, intervalle: o.intervalle, fin: etat.offertsFin } : null,
+      } : null,
+      totalCartes: etat.catalogue ? etat.catalogue.cartes.length : 0,
+      pronos: pronosDe(),
+      pronosVisibles: pronosVisibles(),
+    } }));
   }
 
   /* ---------- Connexion et inscription ---------- */
@@ -1171,7 +1254,8 @@
         ? `Bienvenue ${nomAffiche} ! Votre compte spectateur est créé${pret > 0 ? ` : ${pluriel(pret, 'booster')} ${pret > 1 ? 'vous attendent' : 'vous attend'}` : ''}.`
         : (r.premiereConnexion ? `Bienvenue ${nomAffiche} ! Votre mot de passe est enregistré.` : `Bonjour ${nomAffiche} !`), 'succes');
       rendreTout();
-      if (location.hash !== '#boosters' && location.hash !== '#pronostics') location.hash = '#boosters';
+      const vue = window.Site && Site.route();
+      if (vue && vue.startsWith('cartes/') && vue !== 'cartes/boosters' && vue !== 'cartes/pronostics') Site.aller('cartes/boosters');
     } catch (err) {
       const ins = inscriptions();
       // Un pseudo inconnu à la connexion : on dit à un nouveau venu où créer son compte
@@ -1852,7 +1936,7 @@
       : `${pluriel(j.boostersDispo, 'booster')} à ouvrir${offerts ? ` (dont ${offerts.stock} offert${offerts.stock > 1 ? 's' : ''})` : ''} · ${j.boostersOuverts} ouvert${j.boostersOuverts > 1 ? 's' : ''} sur ${j.boostersGagnes} gagné${j.boostersGagnes > 1 ? 's' : ''}`));
     d.appendChild(el('div', 'detail', `${pluriel(j.fragments, 'fragment')}${j.compte ? '' : ' · pas encore de mot de passe'}`));
     const b = el('button', 'bouton secondaire petit', 'Voir l’album', { type: 'button' });
-    const voir = () => { etat.albumJoueur = j.id; mettreAJourAlbum(); if (location.hash !== '#collection') location.hash = '#collection'; else window.scrollTo({ top: 0 }); };
+    const voir = () => { etat.albumJoueur = j.id; mettreAJourAlbum(); if (window.Site && Site.route() !== 'cartes/collection') Site.aller('cartes/collection'); else window.scrollTo({ top: 0 }); };
     b.addEventListener('click', (e) => { e.stopPropagation(); voir(); });
     d.addEventListener('click', voir);
     d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); voir(); } });
@@ -1925,11 +2009,6 @@
   }
   const formaterCote = (c) => `×${(typeof c === 'number' ? c : 0).toFixed(1).replace('.', ',')}`;
   const ordreParDefaut = (p) => Object.keys(p.forces).sort((a, b) => p.forces[b] - p.forces[a]);  // le favori en premier
-  function majOngletPronos() {
-    const lien = $('onglet-pronostics');
-    if (lien) lien.hidden = !pronosVisibles();
-    if (etat.afficherOnglet) etat.afficherOnglet();
-  }
   const clePari = (p) => (etat.session ? `${etat.session.joueur}|${p.manche}` : null);
   const pariEnregistre = (p) => (etat.monPari && etat.monPari.manche === p.manche ? etat.monPari.pari : null);
 
@@ -2294,7 +2373,6 @@
     try { dessinerPronos(); } catch (e) { console.error(e); }
   }
   function dessinerPronos() {
-    majOngletPronos();
     const p = pronosDe();
     if (!p || !pronosVisibles() || !$('pronos-gp')) return;  // sans le bloc HTML (ancienne page en cache), rien à dessiner
     const moi = joueurConnecte();
@@ -2359,7 +2437,7 @@
     if (details.open) construireCredits();
   }
   function rendrePied() {
-    const pied = $('pied');
+    const pied = $('pied-cartes');
     pied.textContent = '';
     const cat = etat.catalogue;
     const nb = nbPhotos();
@@ -2379,29 +2457,16 @@
   }
 
   /* ====================================================================
-     Onglets et démarrage
+     Pages et démarrage
      ==================================================================== */
-  function initialiserOnglets() {
-    const liens = Array.from(document.querySelectorAll('.onglets a'));
-    const sections = Array.from(document.querySelectorAll('main > section'));
-    function afficher() {
-      let id = location.hash.replace('#', '');
-      if (!sections.some((s) => s.id === id) || (id === 'pronostics' && !pronosVisibles())) id = etat.session ? 'boosters' : 'collections';
-      sections.forEach((s) => { s.hidden = s.id !== id; });
-      liens.forEach((a) => a.setAttribute('aria-selected', a.getAttribute('href') === '#' + id ? 'true' : 'false'));
-      // sur petit écran la barre d'onglets défile : à chaque changement d'onglet, on amène le nouveau au centre (sans faire bouger la page)
-      const actif = liens.find((a) => a.getAttribute('aria-selected') === 'true'), liste = actif && actif.parentElement;
-      if (liste && id !== etat.ongletAffiche && liste.scrollWidth > liste.clientWidth) {
-        const a = actif.getBoundingClientRect(), l = liste.getBoundingClientRect();
-        liste.scrollLeft += (a.left + a.width / 2) - (l.left + l.width / 2);
-      }
-      etat.ongletAffiche = id;
-    }
-    window.addEventListener('hashchange', () => { afficher(); if (location.hash === '#pronostics') rafraichirPronos(); });
-    etat.afficherOnglet = afficher;
-    afficher();
+  /* La page affichée est choisie par site.js (adresse #/cartes/…) : on s'y abonne pour relire les pronostics à l'arrivée. */
+  function suivreRoute() {
+    document.addEventListener('site:route', (e) => {
+      etat.vue = e.detail.vue;
+      if (e.detail.vue === 'cartes/pronostics') rafraichirPronos();
+    });
   }
-  /* Sur l'onglet Pronostics, l'état est relu à l'arrivée puis toutes les 45 s (ouverture, fermeture, résultats). */
+  /* Sur la page Pronostics, l'état est relu à l'arrivée puis toutes les 45 s (ouverture, fermeture, résultats). */
   async function rafraichirPronos() {
     if (!etat.public || !pronosVisibles() || etat.occupe || etat.envoiPari || etat.rafraichitPronos) return;
     etat.rafraichitPronos = true;
@@ -2425,13 +2490,14 @@
       location.reload();
     });
     document.querySelectorAll('[data-action="connexion"]').forEach((b) => b.addEventListener('click', ouvrirConnexion));
-    initialiserOnglets();
+    suivreRoute();
+    initialiserMenuCompte();
     initialiserConnexion();
     initialiserFiltres();
     initialiserLoupe();
     initialiserBoosters();
     try { await chargerCatalogue(); }
-    catch (e) { $('sous-titre').textContent = `Impossible de charger le catalogue des cartes (${e.message})`; notifier(e.message); return; }
+    catch (e) { $('sous-titre-cartes').textContent = `Impossible de charger le catalogue des cartes (${e.message})`; notifier(e.message); return; }
     etat.api = etat.demo ? serveurDemo(etat.catalogue) : apiDistante(window.CARTES_API);
     preparerPaquet();
     remplirFiltres();
@@ -2442,9 +2508,16 @@
     await Promise.all([rafraichirEtat(true), chargerSaison()]);
     rendreTout();
     setInterval(majCompteARebours, 1000);
-    setInterval(() => { if (!document.hidden && location.hash === '#pronostics') rafraichirPronos(); }, 45000);
+    setInterval(() => { if (!document.hidden && etat.vue === 'cartes/pronostics') rafraichirPronos(); }, 45000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && etat.session && reglageOfferts()) rafraichirOfferts(); });
   }
+
+  /* Ce que le reste du site peut demander aux cartes (le reste passe par l'événement cartes:etat). */
+  window.CartesApp = {
+    vueParDefaut: () => (etat.session ? 'boosters' : 'collections'),
+    pronosVisibles: () => pronosVisibles(),
+    ouvrirConnexion: (mode) => ouvrirConnexion(mode),
+  };
 
   demarrer();
 })();

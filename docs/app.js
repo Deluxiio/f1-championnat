@@ -47,36 +47,32 @@
     return h("div", { class: "vide" }, texte);
   }
 
-  // --- En-tête ------------------------------------------------------------
+  // --- Accueil (provisoire : le tableau de bord complet arrive avec les écrans du classement) ---------
 
-  function rendreEntete() {
+  function rendreAccueil() {
     const { saison, calc } = etat;
-    document.title = saison.titre || "Championnat F1 25";
-    document.getElementById("titre").textContent = saison.titre || "Championnat F1 25";
-    document.getElementById("surtitre").textContent = `F1 25 · ${saison.saison || ""}`;
     const n = calc.courses.length;
     const total = saison.calendrier.length;
-    let texte = n === 0 ? "Aucun GP couru pour l'instant" : `Après ${n} GP sur ${total}`;
-    if (calc.prochaine) texte += ` · ${n === 0 ? "Premier" : "Prochain"} GP : ${calc.prochaine.gp}`;
-    else if (n > 0) texte += " · Saison terminée";
-    document.getElementById("sous-titre").textContent = texte;
-
-    const cartes = vider("cartes");
     const leader = calc.classementPilotes[0];
-    const joueurs = [...calc.joueursActifs].sort((a, b) => b.points - a.points || (a.rang || 99) - (b.rang || 99));
-    for (const p of joueurs) {
-      const dernier = [...p.resultats].reverse().find(Boolean);
-      const derniereCourse = dernier ? calc.courses[p.resultats.lastIndexOf(dernier)] : null;
-      let ecart = "";
-      if (leader && n > 0) ecart = leader.id === p.id ? "Leader du championnat" : `à ${pts(leader.points - p.points)} de ${leader.nom}`;
-      cartes.appendChild(h("div", { class: "carte-joueur", style: { "--couleur": couleurJoueur(p.joueur) } },
-        h("div", { class: "nom" }, p.nom),
-        h("div", { class: "rang" }, p.rang ? `${p.rang}${p.rang === 1 ? "er" : "e"} au général` : "Pas encore classé"),
-        h("div", { class: "points" }, String(p.points), h("small", {}, p.points > 1 ? "pts" : "pt")),
-        ecart && h("div", { class: "detail" }, ecart),
-        dernier && h("div", { class: "detail" }, `Dernier GP (${derniereCourse.nomGp}) : ${libelleResultat(dernier)}`),
-      ));
+    let sous = n === 0 ? "Aucun GP couru pour l'instant" : `Après ${n} GP sur ${total}`;
+    if (calc.prochaine) sous += ` · ${n === 0 ? "Premier" : "Prochain"} GP : ${calc.prochaine.gp}`;
+    else if (n > 0) sous += " · Saison terminée";
+    if (window.Site) {
+      window.Site.definirTitre("accueil", {
+        titre: n === 0 || !leader ? "Le championnat n'a pas encore commencé" : `Après ${n} GP, ${leader.nom} mène le championnat`,
+        sousTitre: sous,
+      });
+      window.Site.definirTitre("pilotes", { sousTitre: n ? `Après ${pluriel(n, "GP")} sur ${total}` : "" });
+      window.Site.definirTitre("courses", { sousTitre: `${pluriel(n, "course")} disputée${n > 1 ? "s" : ""} sur ${total}` });
     }
+    const zone = vider("accueil-contenu");
+    const joueurs = [...calc.joueursActifs].sort((a, b) => b.points - a.points || (a.rang || 99) - (b.rang || 99));
+    zone.appendChild(h("div", { class: "grille" }, joueurs.map((p) => h("article", { class: "bloc c4" },
+      h("div", { class: "bloc-tete" },
+        h("span", { class: "pilote" }, h("span", { class: "pastille", style: { background: couleurJoueur(p.joueur) } }), p.nom),
+        h("span", { class: "n" }, p.rang ? `${p.rang}${p.rang === 1 ? "er" : "e"} au général` : "Pas encore classé")),
+      h("div", { class: "gros n" }, String(p.points), h("small", {}, p.points > 1 ? "pts" : "pt")),
+    ))));
   }
 
   function libelleResultat(r) {
@@ -466,7 +462,7 @@
   }
 
   function rendrePied() {
-    const pied = vider("pied");
+    const pied = vider("pied-maj");
     if (etat.saison.maj) {
       const d = new Date(etat.saison.maj);
       pied.appendChild(document.createTextNode(
@@ -476,7 +472,7 @@
 
   function rendre() {
     etat.calc = C.calculer(etat.saison);
-    rendreEntete();
+    rendreAccueil();
     rendrePilotes();
     rendreEcuries();
     rendreEvolution();
@@ -484,28 +480,17 @@
     rendreStats();
     rendreCalendrier();
     rendrePied();
+    document.dispatchEvent(new CustomEvent("champ:donnees", { detail: { saison: etat.saison, calc: etat.calc } }));
   }
 
-  // --- Onglets, filtres, chargement ------------------------------------------
+  // --- Filtres, chargement ---------------------------------------------------
 
-  function afficherOnglet() {
-    const ids = ["pilotes", "ecuries", "evolution", "duels", "stats", "calendrier"];
-    const id = ids.includes(location.hash.slice(1)) ? location.hash.slice(1) : "pilotes";
-    for (const autre of ids) document.getElementById(autre).hidden = autre !== id;
-    for (const a of document.querySelectorAll('.onglets a[href^="#"]')) {
-      a.setAttribute("aria-selected", a.getAttribute("href") === `#${id}` ? "true" : "false");
-    }
-    if (id === "evolution" && etat.calc) rendreEvolution();
-  }
+  // Le graphique se mesure à l'écran : on le redessine quand sa page devient visible
+  document.addEventListener("site:route", (evt) => {
+    if (evt.detail.id === "evolution" && etat.calc) rendreEvolution();
+  });
 
-  document.querySelectorAll('.onglets a[href^="#"]').forEach((a) => a.addEventListener("click", (evt) => {
-    evt.preventDefault();
-    history.replaceState(null, "", a.getAttribute("href"));
-    afficherOnglet();
-  }));
-  window.addEventListener("hashchange", afficherOnglet);
-
-  document.querySelectorAll(".bascule").forEach((groupe) => {
+  document.querySelectorAll(".bascule[data-filtre]").forEach((groupe) => {
     groupe.addEventListener("click", (evt) => {
       const bouton = evt.target.closest("button");
       if (!bouton) return;
@@ -531,11 +516,15 @@
       etat.maj = saison.maj || null;
       rendre();
     } catch (e) {
-      if (!etat.saison) document.getElementById("sous-titre").textContent = "Impossible de charger les résultats.";
+      if (!etat.saison) {
+        for (const id of ["accueil-contenu", "table-pilotes", "table-ecuries", "graphique", "liste-duels", "table-stats", "liste-calendrier"]) {
+          vider(id).appendChild(vide("Impossible de charger les résultats."));
+        }
+      }
     }
   }
 
-  afficherOnglet();
+  window.Championnat = { donnees: () => (etat.saison && etat.calc ? { saison: etat.saison, calc: etat.calc } : null) };
   charger();
   // Pendant une soirée de course, la page se met à jour toute seule
   setInterval(() => { if (!document.hidden) charger(); }, 60000);
