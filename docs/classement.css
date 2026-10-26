@@ -54,7 +54,9 @@
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nom rang" "pts spark" "ecart ecart";
   align-items: end; column-gap: 12px; padding: 18px 22px;
 }
-.cl-kpi-nom { grid-area: nom; align-self: center; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; font-size: 16px; font-weight: 700; }
+.cl-kpi-nom { grid-area: nom; align-self: center; display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 700; }
+.cl-kpi-prenom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-kpi-nom .pt, .cl-moi { flex: none; }
 .cl-kpi-rang { grid-area: rang; align-self: center; justify-self: end; font-size: 13px; font-weight: 600; color: var(--t2); white-space: nowrap; }
 .cl-kpi-pts { grid-area: pts; margin-top: 10px; font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; }
 .cl-kpi-pts small { margin-left: 2px; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--t3); }
@@ -97,6 +99,10 @@
 @media (min-width: 901px) {
   @container tabac (max-width: 690px) { .cl-t-accueil .cl-col-ecurie { display: none; } }
   @container tabac (max-width: 560px) { .cl-t-accueil .cl-ecart { display: none; } }
+  @container tabac (max-width: 528px) { .cl-t-accueil th.cl-c:nth-last-child(n + 7), .cl-t-accueil td.cl-c:nth-last-child(n + 7) { display: none; } }
+  @container tabac (max-width: 488px) { .cl-t-accueil th.cl-c:nth-last-child(n + 6), .cl-t-accueil td.cl-c:nth-last-child(n + 6) { display: none; } }
+  @container tabac (max-width: 449px) { .cl-t-accueil th.cl-c:nth-last-child(n + 5), .cl-t-accueil td.cl-c:nth-last-child(n + 5) { display: none; } }
+  @container tabac (max-width: 410px) { .cl-t-accueil th.cl-c:nth-last-child(n + 4), .cl-t-accueil td.cl-c:nth-last-child(n + 4) { display: none; } }
 }
 
 .cl-colonne { grid-column: span 4; display: flex; flex-direction: column; gap: 20px; }
@@ -198,9 +204,10 @@
 .cl-hero .cl-gp-nom { margin-top: 8px; }
 .cl-hero-d { display: flex; flex-direction: column; gap: 18px; flex: 0 1 440px; min-width: 260px; }
 .cl-hero-d .cl-saison-bloc { width: 100%; }
-.cl-liste-gp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.cl-liste-gp { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
 .cl-gpt { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 18px; border-radius: 14px; background: var(--carte); border: 1px solid var(--bord-2); }
-.cl-gpt-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.cl-gpt-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; min-height: 28px; }
+.cl-gpt-h .sur { white-space: nowrap; }
 .cl-gpt h3 { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .cl-futur { background: transparent; border: 1px dashed var(--bord); }
 .cl-futur h3 { font-weight: 600; color: var(--t2); }
@@ -208,11 +215,33 @@
 .cl-puce-fait, .cl-puce-prochain { min-height: 24px; padding: 0 10px; font-size: 12px; }
 .cl-puce-fait { background: var(--seg-fond); border-color: transparent; color: var(--t2); }
 .cl-puce-prochain { background: var(--rouge); border-color: transparent; color: #fff; }
-.cl-vq { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font-size: 14px; color: var(--t2); }
+.cl-vq { display: flex; align-items: center; flex-wrap: wrap; gap: 0 10px; margin: 6px 0 0; font-size: 14px; color: var(--t2); }
 .cl-vq-l { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t3); }
 .cl-dp { margin: 0; font-size: 13px; line-height: 20px; color: var(--t2); }
 .cl-dp b { font-weight: 700; color: var(--t1); }
 .cl-pr { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--t2); }
+
+/* --- Fenêtres moyennes (901–1180 px) : colonne de droite sous le classement, pilotes en liste ------------ */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .cl-kpis { padding: 18px 22px; border-radius: 16px; background: var(--carte); border: 1px solid var(--bord-2); }
+  .cl-kpis-titre { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+  .cl-kpis-liste { display: block; margin-top: 6px; }
+  .cl-kpi {
+    grid-template-columns: minmax(0, 1fr) 112px 84px; grid-template-areas: "nom spark pts" "ecart spark pts"; align-items: center;
+    column-gap: 20px; min-height: 68px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--bord-2); border-radius: 0; background: none;
+  }
+  .cl-kpi:last-child { border-bottom: 0; }
+  .cl-kpi-rang { display: none; }
+  .cl-m-seul { display: inline; }
+  .cl-d-seul { display: none; }
+  .cl-kpi-pts { margin: 0; text-align: right; font-size: 28px; line-height: 32px; letter-spacing: -0.02em; }
+  .cl-kpi-pts small { display: block; margin: 0; font-size: 12px; line-height: 16px; }
+  .cl-spark { align-self: center; }
+  .cl-kpi-ecart { margin: 2px 0 0; }
+  .cl-tab-accueil { grid-column: 1 / -1; }
+  .cl-colonne { grid-column: 1 / -1; flex-direction: row; align-items: stretch; }
+  .cl-colonne > * { flex: 1 1 0; min-width: 0; }
+}
 
 /* --- Téléphone et petites fenêtres ------------------------------------------------------ */
 @media (max-width: 900px) {

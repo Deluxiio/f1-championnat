@@ -135,7 +135,7 @@
     return h("span", { class: `r ${classe}`, title: titre }, texte);
   }
 
-  function legendeCases() {
+  function legendeCases(compact) {
     const l = (chips, texte) => h("span", { class: "cl-l" }, chips, texte);
     return h("div", { class: "cl-legende-cases", role: "group", "aria-label": "Légende des cases" },
       l(h("span", { class: "r r1" }, "1"), "Victoire"),
@@ -144,7 +144,7 @@
       l(h("span", { class: "r rh" }, "14"), "Hors points"),
       l(h("span", { class: "r rab" }, "Ab"), "Abandon"),
       l(h("span", { class: "r rp mt" }, "5"), "Meilleur tour"),
-      l(h("span", { class: "r rx" }, "–"), "Absent"),
+      compact ? null : l(h("span", { class: "r rx" }, "–"), "Absent"),   // l'accueil ne montre que le haut de grille : pas de pilote absent
     );
   }
 
@@ -227,7 +227,7 @@
     const serie = etat.calc.evolution.map((ev) => ev.points[p.id] ?? 0);
     const couleur = couleurJoueur(p.joueur);
     return h("article", { class: "bloc cl-kpi" },
-      h("span", { class: "cl-kpi-nom" }, pastille(p.joueur), p.nom, p.joueur.id === moiId ? h("span", { class: "cl-moi" }, "Moi") : null),
+      h("span", { class: "cl-kpi-nom" }, pastille(p.joueur), h("span", { class: "cl-kpi-prenom" }, p.nom), p.joueur.id === moiId ? h("span", { class: "cl-moi" }, "Moi") : null),
       h("span", { class: "cl-kpi-rang n" }, p.rang ? `${ordinal(p.rang)} au général` : "Pas encore classé"),
       h("div", { class: "cl-kpi-pts n" }, String(p.points), " ", h("small", {}, p.points > 1 ? "pts" : "pt")),
       serie.length ? courbe(serie, max, couleur) : null,
@@ -363,7 +363,7 @@
         compact ? null : [compteur(p.stats.victoires), compteur(p.stats.podiums)],
         courses.map((c) => h("td", { class: "cl-c" }, caseResultat(p.resultats[c.index], c))));
     };
-    return h("table", { class: compact ? "cl-t-accueil" : "cl-t-pilotes" },
+    return h("table", { class: compact ? "cl-t-accueil" : null },
       h("caption", { class: "sr-seulement" }, `Classement pilotes${nous ? " : nous seulement" : ""}, après ${calc.courses.length} GP`),
       h("thead", {}, h("tr", {},
         h("th", { class: "cl-rg", scope: "col" }, compact ? [h("span", { class: "cl-lg" }, "Rang"), h("abbr", { class: "cl-sm", title: "Rang" }, "N°")] : "Rang"),
@@ -390,9 +390,9 @@
       remplir(corps, h("p", { class: "cl-gp-ligne cl-corps-vide" }, "Le classement apparaîtra après le premier Grand Prix."));
       return;
     }
-    remplir(corps, 
+    remplir(corps,
       h("div", { class: "cl-defile" }, tableClassement(true)),
-      h("div", { class: "cl-tab-pied" }, legendeCases(),
+      h("div", { class: "cl-tab-pied" }, legendeCases(true),
         h("a", { class: "lien-fl", href: "#/classement/pilotes" }, `Voir les ${calc.classementPilotes.length} pilotes`, icone("i-fleche"))));
   }
 
@@ -793,7 +793,7 @@
             h("span", { class: "cl-duel-score n" },
               h("span", { class: da.devant > db.devant ? "cl-haut-score" : null }, String(da.devant)), " – ",
               h("span", { class: db.devant > da.devant ? "cl-haut-score" : null }, String(db.devant))),
-            h("span", { class: "cl-duel-nom cl-duel-nom-droite" }, h("span", {}, b.nom), pastille(b.joueur))),
+            h("span", { class: "cl-duel-nom" }, h("span", {}, b.nom), pastille(b.joueur))),
           h("div", { class: "cl-duel-barre", "aria-hidden": "true" },
             da.total === 0 ? h("span", { class: "neutre" }) : [
               da.devant ? h("span", { style: { flex: String(da.devant), background: couleurJoueur(a.joueur) } }) : null,
