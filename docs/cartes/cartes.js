@@ -1118,13 +1118,10 @@
     if (lateral) lateral.textContent = '';
     if (mobile) mobile.textContent = '';
     if (!etat.session) {
-      const texte = ins && ins.ouvertes
-        ? 'Connectez-vous ou créez un compte spectateur pour ouvrir des boosters et pronostiquer.'
-        : 'Connectez-vous pour ouvrir des boosters et pronostiquer.';
       if (lateral) {
         const carte = el('div', 'compte-carte');
-        carte.append(el('p', 'compte-texte', texte), boutonCompte('Se connecter', 'btn btn-p btn-plein', () => ouvrirConnexion(), { id: 'btn-connexion' }));
-        if (ins && ins.ouvertes) carte.appendChild(boutonCompte('Créer un compte spectateur', 'btn btn-s btn-plein', () => ouvrirConnexion('creation'), { id: 'btn-creer-compte' }));
+        carte.appendChild(boutonCompte('Se connecter', 'btn btn-p btn-plein', () => ouvrirConnexion(), { id: 'btn-connexion' }));
+        if (ins && ins.ouvertes) carte.appendChild(boutonCompte('Créer un compte spectateur', 'compte-lien', () => ouvrirConnexion('creation'), { id: 'btn-creer-compte' }));
         lateral.appendChild(carte);
       }
       if (mobile) mobile.appendChild(boutonCompte('Se connecter', 'btn-barre', () => ouvrirConnexion()));
