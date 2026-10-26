@@ -63,9 +63,15 @@
 
   // --- Formats ---
 
-  const couleurJoueur = (j) => `var(--j${(j.index % 8) + 1})`;
+  // La couleur d'un pilote suit le numéro de son identifiant (joueur4 → --j4), comme dans les cartes : elle ne dépend pas de sa place dans la liste
+  const couleurJoueur = (j) => {
+    const n = parseInt(String(j.id).replace(/\D+/g, ""), 10);
+    return `var(--j${((n > 0 ? n - 1 : j.index) % 8) + 1})`;
+  };
   const pluriel = (n, mot, forme) => `${n} ${n > 1 ? (forme || `${mot}s`) : mot}`;
-  const pts = (n) => `${n} pt${Math.abs(n) > 1 ? "s" : ""}`;
+  const signe = (n) => (n < 0 ? `−${-n}` : String(n));   // vrai signe moins (U+2212)
+  const pts = (n) => `${signe(n)} pt${Math.abs(n) > 1 ? "s" : ""}`;
+  const ontParie = (k, n) => `${k} / ${n} ${k === 1 ? "a" : "ont"} parié`;
   const ordinal = (n) => (n === 1 ? "1er" : `${n}e`);
   const ecartTexte = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "—");   // vrai signe moins (U+2212)
   const coursesDisputees = (n) => (n ? `${pluriel(n, "course")} disputée${n > 1 ? "s" : ""}` : "Aucune course disputée");
@@ -99,8 +105,11 @@
   function pastille(j) {
     return j ? h("i", { class: "pt", style: { background: couleurJoueur(j) } }) : null;
   }
+  function nomPilote(joueur, nom) {
+    return h("span", { class: "cl-nm" }, pastille(joueur), h("span", { class: "cl-nom", title: nom }, nom));
+  }
   function nomAvecPastille(r) {
-    return h("span", { class: "cl-nm" }, pastille(joueurActif(r.pilote)), nomResultat(r));
+    return nomPilote(joueurActif(r.pilote), nomResultat(r));
   }
 
   // --- Pronostics du prochain GP, d'après le jeu de cartes ---
@@ -206,14 +215,14 @@
   function majTitres() {
     const { saison, calc } = etat;
     const n = calc.courses.length, total = saison.calendrier.length;
-    const apres = n ? `Après ${n} GP${total ? ` sur ${total}` : ""}` : "";
+    const apres = n ? `Après ${n} GP${total >= n ? ` sur ${total}` : ""}` : "";
     definirTitre("accueil", phraseAccueil());
     definirTitre("pilotes", { sousTitre: apres });
     definirTitre("ecuries", { sousTitre: apres });
     definirTitre("stats", { sousTitre: apres });
     definirTitre("evolution", { sousTitre: apres });
     definirTitre("duels", { sousTitre: "Courses où chacun a fini devant l'autre, quand les deux étaient au départ." });
-    definirTitre("courses", { sousTitre: `${coursesDisputees(n)}${total ? ` sur ${total}` : ""}` });
+    definirTitre("courses", { sousTitre: `${coursesDisputees(n)}${total >= n && total ? ` sur ${total}` : ""}` });
   }
 
   // --- Accueil : tableau de bord -------------------------------------------------
@@ -238,7 +247,7 @@
     return h("article", { class: "bloc cl-kpi" },
       h("span", { class: "cl-kpi-nom" }, pastille(p.joueur), h("span", { class: "cl-kpi-prenom" }, p.nom), p.joueur.id === moiId ? h("span", { class: "cl-moi" }, "Moi") : null),
       h("span", { class: "cl-kpi-rang n" }, p.rang ? `${ordinal(p.rang)} au général` : "Pas encore classé"),
-      h("div", { class: "cl-kpi-pts n" }, String(p.points), " ", h("small", {}, p.points > 1 ? "pts" : "pt")),
+      h("div", { class: "cl-kpi-pts n" }, signe(p.points), " ", h("small", {}, Math.abs(p.points) > 1 ? "pts" : "pt")),
       serie.length ? courbe(serie, max, couleur) : null,
       h("p", { class: "cl-kpi-ecart n" }, p.rang ? h("span", { class: "cl-m-seul" }, `${ordinal(p.rang)} · `) : null, texteEcart(p)));
   }
@@ -271,7 +280,7 @@
       remplir(zone,
         h("div", { class: "cl-haut" }, h("span", { class: "sur rouge", id: "cl-gp-sur" }, n ? "Prochain Grand Prix" : "Premier Grand Prix"), h("span", { class: "cl-note n" }, `Manche ${m.manche} / ${total}`)),
         h("h2", { class: "cl-gp-nom", id: "cl-gp-titre" }, m.gp),
-        pr ? h("div", { class: "cl-gp-etat" }, puceEtatPronos(pr), pr.ouvert ? h("span", { class: "n" }, `${pr.k} / ${pr.n} ont parié`) : null) : null,
+        pr ? h("div", { class: "cl-gp-etat" }, puceEtatPronos(pr), pr.ouvert ? h("span", { class: "n" }, ontParie(pr.k, pr.n)) : null) : null,
         pr && pr.ouvert ? h("p", { class: "cl-gp-ligne" }, "Devinez le meilleur d'entre vous et l'ordre d'arrivée. Aucune mise, rien à perdre.") : null,
         h("div", { class: "cl-gp-actions" }, actionsGp(pr, true)),
         h("div", { class: "cl-gp-bas" }, barreSaison()));
@@ -280,7 +289,7 @@
     if (n) {
       const [premier] = calc.classementPilotes;
       remplir(zone,
-        h("div", { class: "cl-haut" }, h("span", { class: "sur rouge", id: "cl-gp-sur" }, "Saison terminée"), h("span", { class: "cl-note n" }, `${total || n} courses`)),
+        h("div", { class: "cl-haut" }, h("span", { class: "sur rouge", id: "cl-gp-sur" }, "Saison terminée"), h("span", { class: "cl-note n" }, `${Math.max(total, n)} courses`)),
         h("h2", { class: "cl-gp-nom", id: "cl-gp-titre" }, "Saison terminée"),
         premier ? h("p", { class: "cl-gp-ligne" }, `${premier.nom} remporte le championnat avec ${pts(premier.points)}.`) : null,
         h("div", { class: "cl-gp-actions" },
@@ -315,7 +324,7 @@
       puce = nbPilotesPodium === 1 ? "Un pilote sur le podium"
         : nbPilotesPodium === actifs.length ? `Les ${nbPilotesPodium} pilotes sur le podium` : `${nbPilotesPodium} pilotes sur le podium`;
     }
-    const points = (r) => { const p = C.pointsDe(r, saison.bareme); return p ? `+${p}` : "0"; };
+    const points = (r) => { const p = C.pointsDe(r, saison.bareme); return p > 0 ? `+${p}` : p < 0 ? `−${-p}` : "0"; };
     const autres = actifs.filter((p) => !surPodium.has(p.id)).map((p) => ({ p, r: res.find((x) => x.pilote === p.id) }));
     remplir(zone,
       h("div", { class: "cl-haut" }, h("span", { class: "sur", id: "cl-der-sur" }, "Dernière course"), h("span", { class: "cl-note n" }, course.manche != null ? `Manche ${course.manche}` : "Hors calendrier")),
@@ -326,7 +335,7 @@
         h("span", { class: "cl-points n" }, points(r))))) : h("p", { class: "cl-gp-ligne" }, "Aucun classé dans cette course."),
       puce ? h("p", { class: "cl-der-pied" }, h("span", { class: "puce puce-or" }, puce)) : null,
       autres.length ? h("ul", { class: "cl-autres", "aria-label": "Les autres pilotes" }, autres.map(({ p, r }) => h("li", {},
-        h("span", { class: "cl-nm" }, pastille(p.joueur), p.nom),
+        nomPilote(p.joueur, p.nom),
         h("span", { class: "cl-autre-res n" }, r ? `${libelleResultat(r)}${r.statut === "absent" ? "" : ` · ${points(r)}`}` : "Pas au départ")))) : null);
   }
 
@@ -365,7 +374,7 @@
       if (trou) return h("tr", { class: "cl-sep" }, h("td", { colspan: colonnes }, libelleTrou(trou)));
       return h("tr", { class: p.joueur ? "cl-joueur" : null, style: p.joueur ? { "--c": couleurJoueur(p.joueur) } : null },
         h("td", { class: "cl-rg n" }, String(p.rang)),
-        h("td", { class: "cl-pilote" }, h("span", { class: "cl-nm" }, pastille(p.joueur), p.nom)),
+        h("td", { class: "cl-pilote" }, nomPilote(p.joueur, p.nom)),
         h("td", { class: "cl-col-ecurie" }, h("span", { class: "cl-eq" }, h("i", { style: { background: C.couleurEcurie(p.ecurie) } }), C.nomEcurie(p.ecurie))),
         h("td", { class: "cl-d cl-pts n" }, String(p.points)),
         h("td", { class: "cl-d cl-ecart n" }, ecartTexte(p.points - leader.points)),
@@ -395,20 +404,25 @@
     const corps = $("cl-tab-corps");
     if (!corps) return;
     const { calc } = etat;
-    if (!calc.courses.length) {
-      remplir(corps, h("p", { class: "cl-gp-ligne cl-corps-vide" }, "Le classement apparaîtra après le premier Grand Prix."));
-      return;
-    }
-    remplir(corps,
-      h("div", { class: "cl-defile" }, tableClassement(true)),
-      h("div", { class: "cl-tab-pied" }, legendeCases(true),
-        h("a", { class: "lien-fl", href: "#/classement/pilotes" }, `Voir les ${calc.classementPilotes.length} pilotes`, icone("i-fleche"))));
+    garderDefilement(corps, () => {
+      if (!calc.courses.length) {
+        remplir(corps, h("p", { class: "cl-gp-ligne cl-corps-vide" }, "Le classement apparaîtra après le premier Grand Prix."));
+        return;
+      }
+      remplir(corps,
+        h("div", { class: "cl-defile" }, tableClassement(true)),
+        h("div", { class: "cl-tab-pied" }, legendeCases(true),
+          h("a", { class: "lien-fl", href: "#/classement/pilotes" }, calc.classementPilotes.length > 1 ? `Voir les ${calc.classementPilotes.length} pilotes` : "Voir le classement", icone("i-fleche"))));
+    });
   }
 
   function construireTableAccueil() {
-    remplir($("cl-tab"),
-      h("div", { class: "cl-tab-tete" }, h("h2", { id: "cl-tab-titre" }, "Classement pilotes"), basculePilotes()),
-      h("div", { id: "cl-tab-corps" }));
+    // l'en-tête (avec la bascule) n'est créé qu'une fois : un rafraîchissement des données ne fait pas perdre le focus à qui s'y trouve
+    if (!$("cl-tab-corps")) {
+      remplir($("cl-tab"),
+        h("div", { class: "cl-tab-tete" }, h("h2", { id: "cl-tab-titre" }, "Classement pilotes"), basculePilotes()),
+        h("div", { id: "cl-tab-corps" }));
+    }
     rendreTableAccueil();
   }
 
@@ -424,10 +438,10 @@
     }
     const moi = c.moi;
     if (!moi) {
-      const inconnu = !!c.session;
+      const probleme = c.panne || !!c.session;   // une session sans compte : le serveur ne répond pas (un compte vraiment supprimé efface la session)
       remplir(zone, entete(false),
-        h("p", { class: "cl-gp-ligne" }, inconnu ? "Ce compte n'est pas reconnu par le serveur des cartes." : c.panne ? "Le serveur des cartes est injoignable." : "Connectez-vous pour ouvrir vos boosters."),
-        inconnu || c.panne ? h("a", { class: "btn btn-s btn-plein", href: "#/cartes" }, "Voir les cartes")
+        h("p", { class: "cl-gp-ligne" }, c.panne ? "Le serveur des cartes est injoignable." : c.session ? "Ce compte n'est pas reconnu par le serveur des cartes." : "Connectez-vous pour ouvrir vos boosters."),
+        probleme ? h("a", { class: "btn btn-s btn-plein", href: "#/cartes" }, "Voir les cartes")
           : h("button", { type: "button", class: "btn btn-p btn-plein", id: "cl-mes-connexion", onclick: () => { if (window.CartesApp) window.CartesApp.ouvrirConnexion(); } }, "Se connecter"),
         h("a", { class: "cl-lien-ligne", href: "#/cartes/collections" }, h("span", {}, "Collections des joueurs"), icone("i-chevron")));
       return;
@@ -526,25 +540,45 @@
     }
   }
 
+  // Un nouveau rendu recrée la boîte défilante du tableau : on garde sa position horizontale, et le focus s'il y était
+  function garderDefilement(zone, dessiner) {
+    const avant = zone.querySelector(".cl-defile");
+    const x = avant ? avant.scrollLeft : 0, avaitLeFocus = !!avant && document.activeElement === avant;
+    dessiner();
+    const apres = zone.querySelector(".cl-defile");
+    if (!apres) return;
+    if (x) apres.scrollLeft = x;
+    if (avaitLeFocus) apres.focus({ preventScroll: true });
+  }
+
   // --- Classement : pilotes ---------------------------------------------------------
 
   function rendrePilotes() {
     const { calc } = etat;
-    const zone = vider("table-pilotes");
-    if (!calc.courses.length) {
-      zone.appendChild(vide("Le classement apparaîtra après le premier Grand Prix."));
-      return;
-    }
-    zone.appendChild(h("section", { class: "bloc cl-tab cl-pg", "aria-label": "Classement pilotes" },
-      h("div", { class: "cl-defile" }, tableClassement(false)),
-      h("div", { class: "cl-tab-pied" }, legendeCases())));
+    const zone = $("table-pilotes");
+    garderDefilement(zone, () => {
+      zone.replaceChildren();
+      if (!calc.courses.length) {
+        zone.appendChild(vide("Le classement apparaîtra après le premier Grand Prix."));
+        return;
+      }
+      zone.appendChild(h("section", { class: "bloc cl-tab cl-pg", "aria-label": "Classement pilotes" },
+        h("div", { class: "cl-defile" }, tableClassement(false)),
+        h("div", { class: "cl-tab-pied" }, legendeCases())));
+    });
   }
 
   // --- Classement : constructeurs ---------------------------------------------------
 
   function rendreEcuries() {
     const { calc } = etat;
-    const zone = vider("table-ecuries");
+    const zone = $("table-ecuries");
+    garderDefilement(zone, () => dessinerEcuries(zone));
+  }
+
+  function dessinerEcuries(zone) {
+    const { calc } = etat;
+    zone.replaceChildren();
     if (!calc.courses.length) {
       zone.appendChild(vide("Le classement constructeurs apparaîtra après le premier Grand Prix."));
       return;
@@ -558,7 +592,7 @@
         h("td", { class: "cl-pilote" },
           h("span", { class: "cl-eq cl-eq-nom" }, h("i", { style: { background: e.couleur } }), e.nom),
           h("span", { class: "cl-equipiers-m" }, pilotes.map((p, i) => [i ? " · " : null, p.joueur ? h("b", {}, p.nom) : p.nom]))),
-        h("td", { class: "cl-col-pilotes" }, h("span", { class: "cl-equipiers" }, pilotes.map((p) => h("span", { class: "cl-nm" }, pastille(p.joueur), p.nom)))),
+        h("td", { class: "cl-col-pilotes" }, h("span", { class: "cl-equipiers" }, pilotes.map((p) => nomPilote(p.joueur, p.nom)))),
         h("td", { class: "cl-d cl-pts n" }, String(e.points)),
         h("td", { class: "cl-d cl-ecart n" }, ecartTexte(e.points - leader.points)),
         compteur(e.decompte[1]),
@@ -599,6 +633,7 @@
     const modeRang = etat.filtres.evolution === "rang";
     $("evolution-carte").hidden = !n;
     $("evolution-vide").hidden = !!n;
+    $("evolution-vide").textContent = "Le graphique apparaîtra après le premier Grand Prix.";
     const titre = $("graphique-titre");
     titre.textContent = modeRang ? "Position au classement général après chaque GP" : "Points cumulés après chaque GP";
     const zone = vider("graphique");
@@ -645,10 +680,11 @@
       ticks = [];
       for (let t = 1; t <= pire; t += pas) ticks.push(t);
     } else {
-      const ech = echelleRonde(Math.max(...series.flatMap((se) => se.valeurs)));
-      yMin = 0; yMax = ech.max;
+      const valeurs = series.flatMap((se) => se.valeurs);
+      const ech = echelleRonde(Math.max(...valeurs));
+      yMin = Math.min(0, Math.floor(Math.min(...valeurs) / ech.pas) * ech.pas); yMax = ech.max;   // un cumul négatif descend sous le zéro
       ticks = [];
-      for (let t = 0; t <= ech.max + 1e-9; t += ech.pas) ticks.push(t);
+      for (let t = yMin; t <= ech.max + 1e-9; t += ech.pas) ticks.push(t);
     }
     const x = (i) => m.gauche + (n === 1 ? lp / 2 : (i * lp) / (n - 1));
     const y = (v) => modeRang
@@ -779,9 +815,14 @@
   // --- Duels ------------------------------------------------------------------------------
 
   function rendreDuels() {
+    const matrice = $("matrice-duels");
+    garderDefilement(matrice, () => dessinerDuels(matrice));
+  }
+
+  function dessinerDuels(matrice) {
     const { calc } = etat;
     const liste = vider("liste-duels");
-    const matrice = vider("matrice-duels");
+    matrice.replaceChildren();
     const joueurs = calc.joueursActifs;
     if (!calc.courses.length) {
       liste.appendChild(vide("Les duels apparaîtront après le premier Grand Prix."));
@@ -821,7 +862,7 @@
         h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Devant ↓ / derrière →"),
           joueurs.map((b) => h("th", { class: "cl-c", scope: "col" }, b.nom)))),
         h("tbody", {}, joueurs.map((a) => h("tr", {},
-          h("td", {}, h("span", { class: "cl-nm" }, pastille(a.joueur), a.nom)),
+          h("td", {}, nomPilote(a.joueur, a.nom)),
           joueurs.map((b) => {
             if (a.id === b.id) return h("td", { class: "cl-c cl-zero" }, "·");
             const d = calc.duels[a.id][b.id];
@@ -833,8 +874,13 @@
   // --- Stats ---------------------------------------------------------------------------------
 
   function rendreStats() {
+    const zone = $("table-stats");
+    garderDefilement(zone, () => dessinerStats(zone));
+  }
+
+  function dessinerStats(zone) {
     const { calc } = etat;
-    const zone = vider("table-stats");
+    zone.replaceChildren();
     if (!calc.courses.length) {
       zone.appendChild(vide("Les stats apparaîtront après le premier Grand Prix."));
       return;
@@ -850,7 +896,7 @@
       ["Meilleurs tours", (st) => st.meilleursTours],
       ["Meilleur résultat", (st) => (st.meilleurResultat ? `P${st.meilleurResultat}` : "—")],
       ["Arrivée moyenne", (st) => (st.arrivees ? (st.sommePositions / st.arrivees).toFixed(1).replace(".", ",") : "—")],
-      ["Places gagnées", (st) => (st.placesGagnees > 0 ? `+${st.placesGagnees}` : String(st.placesGagnees))],
+      ["Places gagnées", (st) => (st.placesGagnees > 0 ? `+${st.placesGagnees}` : signe(st.placesGagnees))],
       ["Pénalités", (st) => (st.nbPenalites ? `${st.nbPenalites} (${st.penalites} s)` : "0")],
     ];
     zone.appendChild(h("section", { class: "bloc cl-tab cl-pg", "aria-label": "Stats pilotes" },
@@ -860,7 +906,7 @@
           colonnes.map(([nom]) => h("th", { class: "cl-d", scope: "col" }, nom)))),
         h("tbody", {}, liste.map((p) => h("tr", { class: p.joueur ? "cl-joueur" : null, style: p.joueur ? { "--c": couleurJoueur(p.joueur) } : null },
           h("td", { class: "cl-rg n" }, p.rang ? String(p.rang) : "–"),
-          h("td", { class: "cl-pilote" }, h("span", { class: "cl-nm" }, pastille(p.joueur), p.nom)),
+          h("td", { class: "cl-pilote" }, nomPilote(p.joueur, p.nom)),
           colonnes.map(([, f]) => h("td", { class: "cl-d n" }, String(f(p.stats)))))))))));
   }
 
@@ -877,7 +923,7 @@
         h("div", { class: "cl-hero-g" },
           h("div", { class: "sur rouge" }, `${n ? "Prochain" : "Premier"} Grand Prix · Manche ${m.manche} / ${total}`),
           h("h2", { class: "cl-gp-nom", id: "cl-hero-titre" }, m.gp),
-          pr ? h("div", { class: "cl-gp-etat" }, puceEtatPronos(pr), pr.ouvert ? h("span", { class: "n" }, `${pr.k} / ${pr.n} ont parié`) : null) : null),
+          pr ? h("div", { class: "cl-gp-etat" }, puceEtatPronos(pr), pr.ouvert ? h("span", { class: "n" }, ontParie(pr.k, pr.n)) : null) : null),
         h("div", { class: "cl-hero-d" }, barre, pr ? h("div", {}, actionsGp(pr, false)) : null));
     }
     const [premier] = calc.classementPilotes;
@@ -916,7 +962,7 @@
         liste.appendChild(h("li", { class: "cl-gpt cl-prochain", "aria-current": "step" },
           h("div", { class: "cl-gpt-h" }, h("span", { class: "sur rouge n" }, `Manche ${m.manche}`), h("span", { class: "puce cl-puce-prochain" }, "Prochain GP")),
           h("h3", {}, m.gp),
-          pr ? [h("p", { class: "cl-pr" }, pr.ouvert ? "Pronostics ouverts" : "Pronostics fermés"), pr.ouvert ? h("p", { class: "cl-pr n" }, `${pr.k} / ${pr.n} ont parié`) : null] : null));
+          pr ? [h("p", { class: "cl-pr" }, pr.ouvert ? "Pronostics ouverts" : "Pronostics fermés"), pr.ouvert ? h("p", { class: "cl-pr n" }, ontParie(pr.k, pr.n)) : null] : null));
         continue;
       }
       liste.appendChild(h("li", { class: "cl-gpt cl-futur" }, h("div", { class: "cl-gpt-h" }, h("span", { class: "sur n" }, `Manche ${m.manche}`)), h("h3", {}, m.gp)));
@@ -970,7 +1016,7 @@
     if (etat.cartes) return;
     etat.cartesTardives = true;
     if (etat.calc) isoler(() => rendreAccueil("cartes"));
-  }, 10000);
+  }, 20000);
 
   document.addEventListener("site:route", (evt) => {
     const id = evt.detail.id;
@@ -1002,6 +1048,9 @@
   function erreurChargement() {
     const message = "Impossible de charger les résultats.";
     for (const id of ["accueil-contenu", "table-pilotes", "table-ecuries", "liste-duels", "table-stats", "courses-hero"]) vider(id).appendChild(vide(message));
+    $("evolution-carte").hidden = true;
+    $("evolution-vide").hidden = false;
+    $("evolution-vide").textContent = message;
   }
 
   async function charger() {
@@ -1011,6 +1060,10 @@
       saison = await reponse.json();
     } catch (e) {
       if (!etat.saison) erreurChargement();
+      return;
+    }
+    if (!saison || !Array.isArray(saison.courses) || !Array.isArray(saison.joueurs) || !Array.isArray(saison.calendrier)) {
+      if (!etat.saison) erreurChargement();   // un fichier lisible mais qui n'est pas une saison : même message que s'il manquait
       return;
     }
     if (saison.maj && saison.maj === etat.maj) return;

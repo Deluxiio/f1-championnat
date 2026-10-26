@@ -7,7 +7,11 @@
 /* --- Briques communes ------------------------------------------------------ */
 .cl-haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cl-note { font-size: 13px; font-weight: 600; color: var(--t2); }
-.cl-nm { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.cl-nm { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; font-weight: 600; }
+.cl-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* un pseudo de 32 caractères ne doit pas pousser les points hors de l'écran */
+.cl-pilote { max-width: 260px; }
+.cl-qui b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-qui b .cl-nm { max-width: 100%; }
 .cl-joueur .cl-nm { font-weight: 800; }
 .cl-eq { display: inline-flex; align-items: center; gap: 8px; color: var(--t2); }
 .cl-eq i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
@@ -28,6 +32,7 @@
 
 /* Tableaux du classement : boîte défilante, colonnes figées à gauche */
 .cl-defile { overflow-x: auto; }
+.cl-defile:focus-visible { outline-offset: -3px; border-radius: 12px; }   /* le parent coupe tout ce qui dépasse : l'anneau de focus se dessine à l'intérieur */
 .cl-defile table { border-collapse: separate; border-spacing: 0; }
 .cl-defile th.cl-d, .cl-defile td.cl-d { text-align: right; }
 .cl-defile th.cl-c, .cl-defile td.cl-c { text-align: center; padding: 0 3px; }
@@ -37,6 +42,7 @@
 .cl-defile td.cl-pts { font-weight: 800; }
 .cl-defile td.cl-ecart { color: var(--t3); }
 .cl-defile td.cl-col-vp { color: var(--t2); }
+.cl-defile tr.cl-joueur { --ligne-fond: var(--carte-2); }   /* repli sans color-mix() */
 .cl-defile tr.cl-joueur { --ligne-fond: color-mix(in srgb, var(--c) 10%, var(--carte)); }
 .cl-defile tr.cl-equipe { --ligne-fond: var(--carte-2); }
 .cl-defile tr.cl-sep td { height: 34px; padding: 0; text-align: center; font-size: 13px; color: var(--t3); background: var(--carte-2); }
@@ -326,4 +332,12 @@
   .cl-prochain { padding: 13px; }
   .cl-gpt-h { flex-wrap: wrap; row-gap: 4px; }
   .cl-vq { flex-direction: column; align-items: flex-start; gap: 0; }
+}
+
+/* Très petits téléphones (360 px) : le tableau de l'accueil se resserre pour tenir sans défiler */
+@media (max-width: 380px) {
+  .cl-t-accueil th:first-child, .cl-t-accueil td:first-child { width: 32px; padding-left: 12px; }
+  .cl-t-accueil th.cl-c { width: 30px; }
+  .cl-t-accueil td.cl-c:last-child, .cl-t-accueil th.cl-c:last-child { width: 36px; padding-right: 8px; }
+  .cl-t-accueil .r { min-width: 26px; padding: 0 2px; }
 }

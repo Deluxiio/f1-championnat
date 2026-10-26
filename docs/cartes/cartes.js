@@ -159,6 +159,7 @@
   /* === fin des calculs de pronostics === */
 
   let minuterieNotif = null;
+  const surLesCartes = () => !!etat.vue && etat.vue.startsWith('cartes/');
   function notifier(message, type) {
     const n = $('notification');
     n.textContent = message;
@@ -963,8 +964,9 @@
   }
   function couleurJoueur(j) {
     if (estSpectateur(j)) return 'var(--spectateur)';
-    const i = etat.public ? etat.public.joueurs.indexOf(j) : -1;
-    return `var(--j${((i < 0 ? 0 : i) % 8) + 1})`;
+    const n = parseInt(String(j.id).replace(/\D+/g, ''), 10);   // même règle que le classement : la couleur suit l'identifiant, pas le rang dans la liste
+    const i = n > 0 ? n - 1 : (etat.public ? Math.max(0, etat.public.joueurs.indexOf(j)) : 0);
+    return `var(--j${(i % 8) + 1})`;
   }
   function compterRaretes(ids) {
     const comptes = {};
@@ -1017,7 +1019,7 @@
     } catch (e) {
       etat.panne = true;
       if (initial) afficherEtat(`Serveur injoignable : ${e.message}`);
-      if (!silencieux) notifier(e.message);
+      if (!silencieux && surLesCartes()) notifier(e.message);
       return false;
     }
   }
@@ -1094,7 +1096,8 @@
     const nom = etat.session.nom, couleur = moi ? couleurJoueur(moi) : 'var(--spectateur)';
     const tete = el('div', 'compte-tete');
     const qui = el('span', 'compte-qui');
-    const gras = el('b', null, nom);
+    const gras = el('span', 'compte-nom');
+    gras.appendChild(el('b', null, nom));
     if (estSpectateur(moi)) gras.appendChild(el('span', 'compte-role', 'Spectateur'));
     qui.append(gras, el('small', null, moi ? texteBoosters(moi.boostersDispo) : (etat.panne ? 'Serveur injoignable' : 'Joueur inconnu du serveur')));
     tete.append(avatarCompte(nom, couleur), qui);
@@ -1109,15 +1112,16 @@
     if (!lateral && !mobile) return;
     if (!etat.public && !etat.panne) return;  // le serveur n'a pas encore répondu : on n'affiche pas un faux « joueur inconnu »
     const moi = joueurConnecte(), ins = inscriptions();
-    const signature = JSON.stringify([etat.session && etat.session.nom, etat.session && etat.session.role, moi && [moi.boostersDispo, moi.role],
-      etat.panne, !!(ins && ins.ouvertes), etat.menuCompte]);
+    const signature = JSON.stringify([etat.session && etat.session.nom, etat.session && etat.session.role, moi && [moi.boostersDispo, moi.role, couleurJoueur(moi)],
+      etat.panne, !!(ins && ins.ouvertes)]);
     if (signature === etat.signatureCompte) return;
     etat.signatureCompte = signature;
     document.querySelectorAll('[data-action="creation"]').forEach((b) => { b.hidden = !(ins && ins.ouvertes); });  // l'inscription spectateur aussi dans les blocs « Connectez-vous » (la barre du téléphone n'a qu'un bouton)
-    const fermerMenu = () => { etat.menuCompte = false; etat.signatureCompte = ''; rendreCompte(); };
+    const focusDansMobile = mobile && mobile.contains(document.activeElement) ? (document.activeElement.classList.contains('deco') ? '.deco' : '.avatar-bouton') : null;
     if (lateral) lateral.textContent = '';
     if (mobile) mobile.textContent = '';
     if (!etat.session) {
+      etat.menuCompte = false;
       if (lateral) {
         const carte = el('div', 'compte-carte');
         carte.appendChild(boutonCompte('Se connecter', 'btn btn-p btn-plein', () => ouvrirConnexion(), { id: 'btn-connexion' }));
@@ -1133,30 +1137,36 @@
     }
     if (mobile) {
       const nom = etat.session.nom;
-      const bouton = boutonCompte('', 'avatar-bouton', (e) => { e.stopPropagation(); etat.menuCompte = !etat.menuCompte; etat.signatureCompte = ''; rendreCompte(); }, {
-        'aria-haspopup': 'true', 'aria-expanded': etat.menuCompte ? 'true' : 'false', 'aria-controls': 'menu-compte',
+      const bouton = boutonCompte('', 'avatar-bouton', (e) => { e.stopPropagation(); basculerMenuCompte(!etat.menuCompte); }, {
+        'aria-expanded': 'false', 'aria-controls': 'menu-compte',
         'aria-label': `Compte de ${nom}${moi ? `, ${texteBoosters(moi.boostersDispo)}` : ''}`,
       });
       bouton.appendChild(avatarCompte(nom, moi ? couleurJoueur(moi) : 'var(--spectateur)'));
-      mobile.appendChild(bouton);
-      if (etat.menuCompte) {
-        const menu = el('div', 'menu-compte', null, { id: 'menu-compte', role: 'group', 'aria-label': 'Mon compte' });
-        menu.append(...enveloppeCompte(moi, fermerMenu), boutonDeconnexion());
-        mobile.appendChild(menu);
-      }
-    }
+      const menu = el('div', 'menu-compte', null, { id: 'menu-compte', role: 'group', 'aria-label': 'Mon compte', hidden: '' });
+      menu.append(...enveloppeCompte(moi, () => basculerMenuCompte(false)), boutonDeconnexion());
+      mobile.append(bouton, menu);
+      basculerMenuCompte(etat.menuCompte);   // le compte redessiné garde le menu dans l'état où il était
+    } else etat.menuCompte = false;
+    if (focusDansMobile) { const n = mobile.querySelector(focusDansMobile); if (n) n.focus({ preventScroll: true }); }
   }
-  /* Le menu du téléphone se referme d'un clic ailleurs, avec Échap, ou en changeant de page. */
+  /* Ouvre ou ferme le menu du compte du téléphone, sans rien reconstruire (le bouton garde le focus). */
+  function basculerMenuCompte(ouvert) {
+    etat.menuCompte = !!ouvert;
+    const bouton = document.querySelector('#compte-mobile .avatar-bouton'), menu = $('menu-compte');
+    if (bouton) bouton.setAttribute('aria-expanded', etat.menuCompte ? 'true' : 'false');
+    if (menu) menu.hidden = !etat.menuCompte;
+  }
+  /* Le menu du téléphone se referme d'un clic ailleurs, avec Échap, quand le focus en sort, ou en changeant de page. */
   function initialiserMenuCompte() {
-    const fermer = (rendre) => { if (!etat.menuCompte) return; etat.menuCompte = false; etat.signatureCompte = ''; if (rendre) rendreCompte(); };
-    document.addEventListener('click', (e) => { if (!e.target.closest('#compte-mobile')) fermer(true); });
+    document.addEventListener('click', (e) => { if (etat.menuCompte && !e.target.closest('#compte-mobile')) basculerMenuCompte(false); });
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape' || !etat.menuCompte) return;
-      fermer(true);
+      basculerMenuCompte(false);
       const b = document.querySelector('#compte-mobile .avatar-bouton');
       if (b) b.focus();
     });
-    document.addEventListener('site:route', () => fermer(true));
+    document.addEventListener('focusin', (e) => { if (etat.menuCompte && !e.target.closest('#compte-mobile')) basculerMenuCompte(false); });
+    document.addEventListener('site:route', () => basculerMenuCompte(false));
   }
   /* Résumé du jeu pour le reste du site (tableau de bord, menu) : événement cartes:etat, à chaque changement (rien n'est émis si le résumé est le même). */
   function diffuserEtat() {
@@ -1187,7 +1197,9 @@
      serveur gère les spectateurs. Un seul bouton d'action, dont le libellé suit l'intention : Entrée fait toujours ce qu'il annonce. */
   const avecSpectateurs = () => !!$('connexion-mode');  // la page contient le choix Pilote / Spectateur (une ancienne page HTML en cache ne l'a pas)
   /* `mode` : 'creation' (le bouton « Créer un compte spectateur »), 'spectateur', 'pilote', ou rien : le dernier mode utilisé. */
+  let ouvreurConnexion = null;   // l'élément qui a ouvert la fenêtre : il récupère le focus à la fermeture
   function ouvrirConnexion(mode) {
+    ouvreurConnexion = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
     const select = $('connexion-nom');
     select.textContent = '';
     const joueurs = etat.public ? etat.public.joueurs : JOUEURS_DEMO.map((j) => ({ id: j.id, nom: j.nom, compte: true }));
@@ -1239,7 +1251,12 @@
       ? `${j.nom} n’a pas encore de mot de passe : celui saisi ici sera enregistré (4 caractères minimum).`
       : 'Première connexion : le mot de passe saisi devient le vôtre (4 caractères minimum).';
   }
-  function fermerConnexion() { $('modale-connexion').hidden = true; }
+  function fermerConnexion(rendreFocus) {
+    $('modale-connexion').hidden = true;
+    const o = ouvreurConnexion;
+    ouvreurConnexion = null;
+    if (rendreFocus !== false && o && o.isConnected && o.offsetParent !== null) o.focus({ preventScroll: true });
+  }
   /* Se connecter (pilote ou spectateur) ou créer le compte d'un nouveau spectateur selon le choix affiché. */
   async function validerConnexion() {
     const spectateur = etat.modeConnexion === 'spectateur' && avecSpectateurs();
@@ -1266,7 +1283,7 @@
       stockage.ecrire(CLE_DERNIER_MODE, role === 'spectateur' ? 'spectateur' : 'pilote');
       if (role === 'spectateur') stockage.ecrire(CLE_DERNIER_PSEUDO, nomAffiche); else stockage.ecrire(CLE_DERNIER_NOM, r.joueur);
       etat.albumJoueur = r.joueur;
-      fermerConnexion();
+      fermerConnexion(false);   // le bouton « Se connecter » va être remplacé par le compte : pas de focus à lui rendre
       await rafraichirEtat();
       const moi = joueurConnecte(), pret = moi ? moi.boostersDispo : 0;
       notifier(creer
@@ -1275,6 +1292,7 @@
       rendreTout();
       const vue = window.Site && Site.route();
       if (vue && vue.startsWith('cartes/') && vue !== 'cartes/boosters' && vue !== 'cartes/pronostics') Site.aller('cartes/boosters');
+      else if ((!document.activeElement || document.activeElement === document.body) && $('titre-page')) $('titre-page').focus({ preventScroll: true });   // le focus ne reste pas perdu sur la page
     } catch (err) {
       const ins = inscriptions();
       // Un pseudo inconnu à la connexion : on dit à un nouveau venu où créer son compte
@@ -1303,8 +1321,17 @@
         else if (b.dataset.sous === 'connexion' && champ.value === '') champ.value = memorise;     // et on le repropose pour se reconnecter
       });
     }
-    $('connexion-annuler').addEventListener('click', fermerConnexion);
+    $('connexion-annuler').addEventListener('click', () => fermerConnexion());
     $('modale-connexion').addEventListener('click', (e) => { if (e.target === $('modale-connexion')) fermerConnexion(); });
+    $('modale-connexion').addEventListener('keydown', (e) => {   // Échap ferme ; Tab tourne dans la fenêtre sans en sortir
+      if (e.key === 'Escape') { e.preventDefault(); fermerConnexion(); return; }
+      if (e.key !== 'Tab') return;
+      const champs = Array.from($('form-connexion').querySelectorAll('button, input, select')).filter((n) => !n.disabled && n.offsetParent !== null);
+      if (!champs.length) return;
+      const premier = champs[0], dernier = champs[champs.length - 1];
+      if (e.shiftKey && document.activeElement === premier) { e.preventDefault(); dernier.focus(); }
+      else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
+    });
     $('form-connexion').addEventListener('submit', (e) => {
       e.preventDefault();
       validerConnexion();
@@ -2436,7 +2463,10 @@
   }
   /* Toute erreur de rendu de cet onglet (données inattendues venues du serveur) reste dans l'onglet : le reste de la page et ses minuteries continuent. */
   function rendrePronos() {
+    const corps = $('pronos-corps');
+    if (corps) corps.hidden = !!(etat.panne && !etat.public);   // serveur injoignable : la ligne d'état suffit, pas de titres vides
     try { dessinerPronos(); } catch (e) { console.error(e); }
+    diffuserEtat();  // le tableau de bord suit aussi un pari enregistré ou la fermeture des pronostics
   }
   function dessinerPronos() {
     const p = pronosDe();
@@ -2564,7 +2594,7 @@
     initialiserLoupe();
     initialiserBoosters();
     try { await chargerCatalogue(); }
-    catch (e) { afficherEtat(`Impossible de charger le catalogue des cartes (${e.message})`); notifier(e.message); return; }
+    catch (e) { afficherEtat(`Impossible de charger le catalogue des cartes (${e.message})`); if (surLesCartes()) notifier(e.message); return; }
     etat.api = etat.demo ? serveurDemo(etat.catalogue) : apiDistante(window.CARTES_API);
     preparerPaquet();
     remplirFiltres();
@@ -2575,7 +2605,8 @@
     await Promise.all([rafraichirEtat(true), chargerSaison()]);
     rendreTout();
     setInterval(majCompteARebours, 1000);
-    setInterval(() => { if (!document.hidden && etat.vue === 'cartes/pronostics') rafraichirPronos(); }, 45000);
+    // Les pronostics se relisent toutes les 45 s sur leur page et sur l'accueil (qui en montre l'état).
+    setInterval(() => { if (!document.hidden && (etat.vue === 'cartes/pronostics' || etat.vue === 'accueil')) rafraichirPronos(); }, 45000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && etat.session && reglageOfferts()) rafraichirOfferts(); });
   }
 

@@ -54,15 +54,17 @@
     return `cartes/${app && app.vueParDefaut ? app.vueParDefaut() : 'collections'}`;
   }
 
-  /* Adresse (#…) → vue, ou null si ce n'est pas une adresse de page (ancre interne comme #contenu). */
+  /* Adresse (#…) → vue, ou null si ce n'est pas une adresse de page (ancre interne comme #contenu).
+     Les tables sont interrogées par clé propre : « #/constructor » ou « #toString » ne sont pas des pages. */
+  const connue = (table, cle) => Object.prototype.hasOwnProperty.call(table, cle);
   function analyser(hash) {
     let h = String(hash || '').replace(/^#/, '');
     if (h === '' || h === '/') return 'accueil';
-    if (h[0] !== '/') return ANCIENS[h.toLowerCase()] || null;
+    if (h[0] !== '/') { h = h.toLowerCase(); return connue(ANCIENS, h) ? ANCIENS[h] : null; }
     h = h.toLowerCase().replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
     if (h === '' || h === 'accueil') return 'accueil';
-    if (VUES[h]) return h;
-    if (SECTIONS[h]) return h === 'cartes' ? vueCartesParDefaut() : (SECTIONS[h].parDefaut || h);
+    if (connue(VUES, h)) return h;
+    if (connue(SECTIONS, h)) return h === 'cartes' ? vueCartesParDefaut() : (SECTIONS[h].parDefaut || h);
     return null;
   }
   const adresse = (vue) => (vue === 'accueil' ? '#/' : `#/${vue}`);
@@ -87,7 +89,19 @@
       else a.removeAttribute('aria-current');
     });
     const pronos = $('menu-pronostics');
-    if (pronos) pronos.hidden = !pronosDispos();
+    if (pronos) {
+      pronos.hidden = !pronosDispos();
+      if (pronos.hidden) pronos.removeAttribute('aria-current');
+    }
+  }
+
+  /* Fenêtre basse : le menu latéral défile, l'entrée de la page affichée doit rester dans la partie visible */
+  function montrerEntreeActive() {
+    const menu = $('menu'), actif = menu && menu.querySelector('[aria-current="page"]');
+    if (!actif || menu.scrollHeight <= menu.clientHeight) return;
+    const m = menu.getBoundingClientRect(), a = actif.getBoundingClientRect();
+    if (a.top < m.top) menu.scrollTop -= m.top - a.top + 8;
+    else if (a.bottom > m.bottom) menu.scrollTop += a.bottom - m.bottom + 8;
   }
 
   function chevron() {
@@ -137,8 +151,12 @@
   }
 
   /* Pastilles de sous-pages sur téléphone (le menu latéral n'y existe pas) */
+  let signaturePastilles = '';
   function majSousMenuMobile(vue) {
     const zone = $('sous-menu-mobile'), section = VUES[vue].section;
+    const signature = `${vue}|${pronosDispos()}`;
+    if (signature === signaturePastilles) return;
+    signaturePastilles = signature;
     zone.replaceChildren();
     if (!sectionAvecVues(section)) { zone.hidden = true; return; }
     zone.setAttribute('aria-label', SECTIONS[section].titre);
@@ -176,16 +194,17 @@
   }
 
   function afficher(initial) {
-    let vue = analyser(location.hash);
+    let vue = analyser(location.hash), ancre = false;
     if (vue === null) {
-      if (!initial && !location.hash.startsWith('#/')) return;   // ancre interne (#contenu, #credits) : la page ne change pas
-      vue = 'accueil';                                           // adresse de page inconnue (#/zzz) : retour à l'accueil
+      ancre = !location.hash.startsWith('#/');
+      if (!initial && ancre) return;   // ancre interne (#contenu, #credits) : la page ne change pas
+      vue = 'accueil';                 // adresse de page inconnue (#/zzz) : retour à l'accueil ; une ancre au chargement ne fait qu'ouvrir l'accueil
     }
     if (vue === 'cartes/pronostics' && cartes && cartes.chargee && !cartes.pronosVisibles) vue = vueCartesParDefaut();
     const voulue = adresse(vue);
     const brut = location.hash;
     const accueilNu = vue === 'accueil' && (brut === '' || brut === '#' || brut === '#/');
-    if (!accueilNu && brut !== voulue) reecrire(voulue);
+    if (!accueilNu && !ancre && brut !== voulue) reecrire(voulue);
 
     const premier = courant === null, change = vue !== courant;
     courant = vue;
@@ -196,6 +215,7 @@
     document.querySelectorAll('[data-section]').forEach((e) => e.classList.toggle('cache-section', e.dataset.section !== v.section));
     placerCommandes(v.panneau);
     majMenu(vue);
+    montrerEntreeActive();
     majFil(vue);
     majEntete(vue);
     majSousMenuMobile(vue);
@@ -219,6 +239,7 @@
     if (!courant) return;
     if (courant === 'cartes/pronostics' && cartes.chargee && !cartes.pronosVisibles) { Site.aller(vueCartesParDefaut(), { remplacer: true }); return; }
     majMenu(courant);
+    if (courant === 'cartes/pronostics') montrerEntreeActive();   // l'entrée « Pronostics » vient d'apparaître : elle doit être visible
     majSousMenuMobile(courant);
   });
 
@@ -226,7 +247,7 @@
     /* Va à une page : 'accueil', 'classement', 'classement/duels', 'cartes/boosters'… */
     aller(chemin, options) {
       const vue = analyser(`#/${chemin}`) || 'accueil';
-      if (options && options.remplacer) { reecrire(adresse(vue)); afficher(false); }
+      if ((options && options.remplacer) || vue === courant) { reecrire(adresse(vue)); afficher(false); }
       else if (location.hash === adresse(vue)) afficher(false);
       else location.hash = adresse(vue);
     },
@@ -238,9 +259,24 @@
     },
   };
 
+  /* Un lien vers la page déjà affichée (« Classement » depuis Pilotes, la marque depuis l'accueil) ne doit pas ajouter d'entrée
+     à l'historique : « Retour » ramènerait sur la même page. */
+  function surLienDeLaPageCourante(e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const lien = e.target.closest && e.target.closest('a[href^="#/"]');
+    if (!lien || (lien.target && lien.target !== '_self')) return;
+    if (analyser(lien.getAttribute('href')) !== courant) return;
+    e.preventDefault();
+    reecrire(adresse(courant));
+    window.scrollTo(0, 0);
+  }
+
   function demarrer() {
     try { sessionStorage.removeItem('f1.rechargee'); } catch (e) { /* stockage indisponible */ }   // repère posé par la garde de migration d'app.js
     window.addEventListener('hashchange', () => afficher(false));
+    document.addEventListener('click', surLienDeLaPageCourante);
+    // le bloc du compte se remplit après le menu et le raccourcit : l'entrée de la page affichée doit rester visible
+    if (window.ResizeObserver && $('menu')) new ResizeObserver(montrerEntreeActive).observe($('menu'));
     $('evitement').addEventListener('click', (e) => { e.preventDefault(); $('contenu').focus(); });
     afficher(true);
   }

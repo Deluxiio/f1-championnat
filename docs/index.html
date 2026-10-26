@@ -316,6 +316,7 @@
 
         <section class="panneau section" id="pronostics" hidden>
           <h2 class="sr-seulement">Pronostics</h2>
+          <div id="pronos-corps">
           <div class="puces pronos-tete" id="pronos-etat"></div>
           <p class="aide">Avant chaque Grand Prix, devinez le meilleur d’entre vous et l’ordre d’arrivée des pilotes : un pari juste rapporte des boosters.</p>
           <details class="det">
@@ -340,6 +341,7 @@
           <div id="pronos-historique"></div>
           <h3>Classement des pronostics</h3>
           <div class="tableau-defilant"><table id="pronos-classement"></table></div>
+          </div>
         </section>
       </main>
 
@@ -366,8 +368,8 @@
   </div>
 
   <div class="modale" id="modale-connexion" hidden>
-    <form class="modale-contenu" id="form-connexion" novalidate>
-      <h2>Connexion</h2>
+    <form class="modale-contenu" id="form-connexion" novalidate role="dialog" aria-modal="true" aria-labelledby="connexion-titre">
+      <h2 id="connexion-titre">Connexion</h2>
       <div class="bascule connexion-mode" id="connexion-mode" role="group" aria-label="Type de compte" hidden>
         <button type="button" data-mode="pilote" aria-pressed="true">Pilote</button>
         <button type="button" data-mode="spectateur" aria-pressed="false">Spectateur</button>

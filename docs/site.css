@@ -190,7 +190,11 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
 .marque b { display: block; font-size: 15px; line-height: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .marque small { display: block; font-size: 12px; line-height: 16px; color: var(--lat-3); }
 
-.menu { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.menu {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.menu :focus-visible, .lien-lateral:focus-visible, .deco:focus-visible { outline-offset: -2px; }
 .menu-lien {
   display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px;
   font-size: 15px; font-weight: 600; color: var(--lat-2); text-decoration: none;
@@ -209,7 +213,7 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
 }
 
 /* Compte (rempli par cartes.js) : en bas de la barre latérale */
-.lateral-compte { flex: none; padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+.lateral .compte { flex: none; padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
 .compte-carte {
   display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 14px;
   background: rgba(255, 255, 255, 0.07); border: 1px solid var(--lat-ligne);
@@ -220,7 +224,8 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
   background: #2B2E3D; color: #fff; font-weight: 700; font-size: 16px; box-shadow: 0 0 0 2px var(--couleur, #8D99AE);
 }
 .compte-qui { min-width: 0; }
-.compte-qui b { display: block; font-size: 15px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compte-nom { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.compte-nom b { flex: 0 1 auto; min-width: 0; font-size: 15px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compte-qui small { display: block; font-size: 13px; line-height: 18px; color: var(--lat-2); }
 .compte-texte { margin: 0; font-size: 13px; line-height: 19px; color: var(--lat-2); }
 .compte-lien {
@@ -229,7 +234,7 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
 }
 .compte-lien:hover { color: #fff; }
 .compte-role {
-  display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; vertical-align: 1px;
+  flex: none; padding: 0 7px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.14); color: var(--lat-1); font-size: 11px; font-weight: 700; line-height: 18px; letter-spacing: 0.03em;
 }
 .compte-carte .btn { min-height: 44px; padding: 8px 12px; white-space: normal; text-align: center; line-height: 1.25; }
@@ -250,6 +255,20 @@ code { background: var(--carte-2); padding: 1px 5px; border-radius: 4px; font-si
   .sous-menu .menu-lien { min-height: 36px; }
   .compte-carte { gap: 10px; padding: 12px; }
   .lien-lateral, .deco { min-height: 38px; }
+}
+
+/* Fenêtre très basse (portable 13 pouces, téléphone à l'horizontale) : on garde l'essentiel, le menu défile pour le reste */
+@media (min-width: 901px) and (max-height: 700px) {
+  .lateral { padding-top: 10px; padding-bottom: 8px; }
+  .marque { padding-bottom: 8px; }
+  .marque small { display: none; }
+  .menu-lien { min-height: 34px; }
+  .sous-menu .menu-lien { min-height: 32px; }
+  .sous-menu .menu-lien[aria-current="page"]::before { top: 8px; bottom: 8px; }
+  .lateral .compte { padding-top: 8px; }
+  .compte-carte { gap: 8px; padding: 10px; }
+  .compte-carte .btn:not(#btn-connexion), .compte-lien { display: none; }
+  .lien-lateral, .deco { min-height: 34px; }
 }
 
 .zone { flex: 1 1 0; min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
@@ -397,6 +416,7 @@ abbr { text-decoration: none; }
 
 /* --- Téléphone et petites fenêtres : barre d'application en haut, onglets en bas ------ */
 @media (max-width: 900px) {
+  html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 16px); }   /* la barre d'onglets collante ne masque pas l'élément qui prend le focus */
   .site { display: flex; flex-direction: column; align-items: stretch; min-height: 100vh; min-height: 100dvh; }
   .lateral { display: none; }
   .zone { flex: 1 0 auto; min-height: 0; }
@@ -423,6 +443,7 @@ abbr { text-decoration: none; }
     background: var(--carte); border: 1px solid var(--bord); color: var(--t2); font-size: 14px; font-weight: 600; text-decoration: none;
   }
   .sous-menu-mobile a[aria-current="page"] { background: var(--lat); border-color: var(--lat); color: #fff; }
+  .sous-menu-mobile a:focus-visible { outline-offset: -3px; }   /* la rangée défile : un anneau extérieur serait rogné */
   .grille { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .c3, .c4, .c5, .c6, .c7, .c8, .c12 { grid-column: auto; }
   .bloc { padding: 18px; }
@@ -438,6 +459,10 @@ abbr { text-decoration: none; }
   .notification { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 
+@media (pointer: coarse) {
+  .seg button, .bascule button { min-height: 44px; }
+}
+
 /* Compte sur téléphone : bouton dans la barre d'application et petit menu qui s'ouvre dessous */
 .avatar-bouton { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
 .btn-barre {
@@ -448,11 +473,19 @@ abbr { text-decoration: none; }
   position: absolute; top: calc(100% + 6px); right: 8px; width: min(320px, calc(100vw - 16px)); display: flex; flex-direction: column; gap: 12px;
   padding: 16px; border-radius: 14px; background: var(--carte); color: var(--t1); border: 1px solid var(--bord); box-shadow: 0 16px 40px var(--ombre-lg);
 }
+.menu-compte[hidden] { display: none; }
 .menu-compte .compte-qui small { color: var(--t2); }
+.menu-compte .compte-role { background: var(--carte-2); color: var(--t2); box-shadow: inset 0 0 0 1px var(--bord); }
 .menu-compte .compte-texte { color: var(--t2); }
 .menu-compte .deco { color: var(--t2); }
 .menu-compte .deco:hover { background: var(--carte-2); color: var(--t1); }
 
 @media (prefers-reduced-motion: reduce) {
   .notification { animation: none; }
+}
+
+/* Contraste forcé (Windows) : les pastilles gardent leur couleur et le meilleur tour son contour */
+@media (forced-colors: active) {
+  .pt, .pastille { forced-color-adjust: none; }
+  .r.mt { outline: 2px solid CanvasText; outline-offset: -2px; }
 }
