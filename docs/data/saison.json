@@ -3568,7 +3568,440 @@
      ]
     }
    ]
+  },
+  {
+   "id": "10792634603139441782",
+   "manche": 9,
+   "circuit": 4,
+   "date": "2026-11-04T22:05:27",
+   "source": "telemetrie",
+   "tours": 23,
+   "aVerifier": false,
+   "remarques": [],
+   "resultats": [
+    {
+     "pos": 1,
+     "pilote": "ia:7",
+     "nom": "Hamilton",
+     "ecurie": 1,
+     "numero": 44,
+     "grille": 2,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77650,
+     "tempsTotal": 1999.531,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 25,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 2,
+     "pilote": "ia:0",
+     "nom": "Sainz",
+     "ecurie": 3,
+     "numero": 55,
+     "grille": 1,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77615,
+     "tempsTotal": 1999.59,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 18,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 3,
+     "pilote": "ia:54",
+     "nom": "Norris",
+     "ecurie": 8,
+     "numero": 4,
+     "grille": 10,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 76680,
+     "tempsTotal": 2000.746,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 15,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 4,
+     "pilote": "ia:58",
+     "nom": "Leclerc",
+     "ecurie": 1,
+     "numero": 16,
+     "grille": 3,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77249,
+     "tempsTotal": 2000.772,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 12,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 5,
+     "pilote": "ia:161",
+     "nom": "Bortoleto",
+     "ecurie": 9,
+     "numero": 5,
+     "grille": 4,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77681,
+     "tempsTotal": 2001.491,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 10,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 6,
+     "pilote": "ia:112",
+     "nom": "Piastri",
+     "ecurie": 8,
+     "numero": 81,
+     "grille": 7,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 76962,
+     "tempsTotal": 2002.439,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 8,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 7,
+     "pilote": "ia:62",
+     "nom": "Albon",
+     "ecurie": 3,
+     "numero": 23,
+     "grille": 11,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77627,
+     "tempsTotal": 2003.891,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 6,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 8,
+     "pilote": "ia:50",
+     "nom": "Russell",
+     "ecurie": 0,
+     "numero": 63,
+     "grille": 8,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77166,
+     "tempsTotal": 2004.034,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 4,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 9,
+     "pilote": "ia:94",
+     "nom": "Tsunoda",
+     "ecurie": 2,
+     "numero": 22,
+     "grille": 9,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77909,
+     "tempsTotal": 2004.424,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 2,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 10,
+     "pilote": "ia:17",
+     "nom": "Ocon",
+     "ecurie": 7,
+     "numero": 31,
+     "grille": 13,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 78537,
+     "tempsTotal": 2006.423,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 1,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 11,
+     "pilote": "ia:147",
+     "nom": "Bearman",
+     "ecurie": 7,
+     "numero": 87,
+     "grille": 12,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77638,
+     "tempsTotal": 2006.617,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 12,
+     "pilote": "ia:59",
+     "nom": "Gasly",
+     "ecurie": 5,
+     "numero": 10,
+     "grille": 6,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 76911,
+     "tempsTotal": 2007.592,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 2,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      18,
+      16
+     ]
+    },
+    {
+     "pos": 13,
+     "pilote": "ia:149",
+     "nom": "Hadjar",
+     "ecurie": 6,
+     "numero": 6,
+     "grille": 15,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 77961,
+     "tempsTotal": 2008.346,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      17,
+      16
+     ]
+    },
+    {
+     "pos": 14,
+     "pilote": "ia:162",
+     "nom": "Colapinto",
+     "ecurie": 5,
+     "numero": 43,
+     "grille": 16,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 78011,
+     "tempsTotal": 2008.92,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 15,
+     "pilote": "ia:113",
+     "nom": "Lawson",
+     "ecurie": 6,
+     "numero": 30,
+     "grille": 14,
+     "tours": 23,
+     "statut": "fini",
+     "statutJeu": 3,
+     "meilleurTour": 78506,
+     "tempsTotal": 2010.457,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 16,
+     "pilote": "j:joueur2",
+     "nom": "Christopher",
+     "ecurie": 4,
+     "numero": 64,
+     "grille": 17,
+     "tours": 21,
+     "statut": "abandon",
+     "statutJeu": 7,
+     "meilleurTour": 77174,
+     "tempsTotal": 1898.65,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 2,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      18,
+      17
+     ]
+    },
+    {
+     "pos": 17,
+     "pilote": "ia:10",
+     "nom": "Hulkenberg",
+     "ecurie": 9,
+     "numero": 27,
+     "grille": 19,
+     "tours": 20,
+     "statut": "abandon",
+     "statutJeu": 7,
+     "meilleurTour": 78950,
+     "tempsTotal": 1833.646,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 18,
+     "pilote": "j:joueur4",
+     "nom": "Mathieu",
+     "ecurie": 2,
+     "numero": 33,
+     "grille": 20,
+     "tours": 19,
+     "statut": "abandon",
+     "statutJeu": 4,
+     "meilleurTour": 79526,
+     "tempsTotal": 1712.184,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      17
+     ]
+    },
+    {
+     "pos": 19,
+     "pilote": "ia:165",
+     "nom": "Antonelli",
+     "ecurie": 0,
+     "numero": 12,
+     "grille": 5,
+     "tours": 16,
+     "statut": "abandon",
+     "statutJeu": 4,
+     "meilleurTour": 77995,
+     "tempsTotal": 1458.134,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 1,
+     "pointsJeu": 0,
+     "pneus": [
+      16,
+      18
+     ]
+    },
+    {
+     "pos": 20,
+     "pilote": "j:joueur1",
+     "nom": "Valentin",
+     "ecurie": 4,
+     "numero": 3,
+     "grille": 18,
+     "tours": 10,
+     "statut": "abandon",
+     "statutJeu": 4,
+     "meilleurTour": 79170,
+     "tempsTotal": 898.097,
+     "penalites": 0,
+     "nbPenalites": 0,
+     "arrets": 0,
+     "pointsJeu": 0,
+     "pneus": [
+      17
+     ]
+    }
+   ]
   }
  ],
- "maj": "2026-10-26T22:46:41"
+ "maj": "2026-11-04T22:05:27"
 }
